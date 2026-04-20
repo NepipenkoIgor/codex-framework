@@ -1,0 +1,279 @@
+version: 1
+
+models:
+  low:
+    model: codex-mini-latest
+    reasoning: low
+    use_for:
+      - mechanical changes
+      - quick repo questions
+      - narrow single-file work
+  medium:
+    model: gpt-5.4-mini
+    reasoning: medium
+    use_for:
+      - standard feature work
+      - most debugging
+      - normal review and test work
+  high:
+    model: gpt-5.4
+    reasoning: high
+    use_for:
+      - architecture
+      - multi-system changes
+      - hard debugging
+      - migrations
+  xhigh:
+    model: gpt-5.4
+    reasoning: xhigh
+    use_for:
+      - unusually ambiguous or high-risk work
+      - second-attempt rescue work
+
+roles:
+  architect:
+    signals:
+      - design
+      - architecture
+      - api contract
+      - schema
+      - tradeoff
+      - technical plan
+    skills:
+      - api-design
+      - backend-architecture
+      - frontend-architecture
+    tier: high
+  builder:
+    signals:
+      - build
+      - implement
+      - create feature
+      - full-stack
+    skills:
+      - frontend-implement
+      - backend-implement
+    tier: medium
+  builder-frontend:
+    signals:
+      - ui
+      - component
+      - page
+      - frontend
+      - form
+      - styling
+      - accessibility
+    skills:
+      - frontend-implement
+      - accessibility-implement
+    tier: medium
+  builder-backend:
+    signals:
+      - api
+      - backend
+      - service
+      - job
+      - auth
+      - persistence
+    skills:
+      - backend-implement
+      - api-design
+    tier: medium
+  builder-infra:
+    signals:
+      - ci
+      - cd
+      - docker
+      - kubernetes
+      - infra
+      - deployment
+    skills:
+      - devops-ci
+      - infrastructure-as-code
+      - deployment-validation
+    tier: medium
+  builder-mobile:
+    signals:
+      - mobile
+      - react native
+      - expo
+      - flutter
+      - ios
+      - android
+      - offline
+      - push notification
+    skills:
+      - mobile-implement
+      - accessibility-implement
+    tier: medium
+  builder-fullstack:
+    signals:
+      - next.js
+      - nextjs
+      - blazor
+      - full-stack framework
+      - app router
+      - razor
+      - page and api
+    skills:
+      - frontend-implement
+      - backend-implement
+      - api-design
+    tier: high
+  builder-automation:
+    signals:
+      - n8n
+      - workflow
+      - automation
+      - ai
+      - llm
+      - rag
+      - prompt
+      - vector
+      - agent
+    skills:
+      - automation-ai-workflows
+      - llm-security
+      - prompt-engineering
+    tier: high
+  builder-specialized:
+    signals:
+      - mobile
+      - blazor
+      - ai
+      - llm
+      - realtime
+      - graphql
+      - automation
+    skills:
+      - mobile-implement
+      - fullstack-blazor-implement
+      - ai-agent-architecture
+    tier: high
+  fixer:
+    signals:
+      - bug
+      - crash
+      - broken
+      - wrong behavior
+      - performance issue
+      - debug
+    skills:
+      - frontend-debug
+      - backend-debug
+    tier: medium
+  refactorer:
+    signals:
+      - refactor
+      - simplify
+      - migrate
+      - clean up
+      - modernize
+    skills:
+      - frontend-refactor
+      - backend-refactor
+    tier: high
+  reviewer:
+    signals:
+      - review
+      - audit
+      - check quality
+      - pr review
+    skills:
+      - frontend-review
+      - backend-review
+    tier: medium
+  tester:
+    signals:
+      - test
+      - coverage
+      - regression
+      - e2e
+    skills:
+      - frontend-test
+      - backend-test
+    tier: medium
+  project-manager:
+    signals:
+      - backlog
+      - sprint
+      - milestone
+      - ticket
+      - repo setup
+    skills:
+      - project-setup
+      - process-hygiene
+    tier: low
+  estimator:
+    signals:
+      - estimate
+      - proposal
+      - scope
+      - cost
+    skills:
+      - spec
+      - process-hygiene
+    tier: medium
+  auditor:
+    signals:
+      - dependency audit
+      - security audit
+      - cve
+      - plugin review
+    skills:
+      - security-audit
+      - dependency-audit
+      - plugin-security-review
+    tier: medium
+  framework-manager:
+    signals:
+      - framework health
+      - new skill
+      - role update
+      - routing
+      - codex framework
+    skills:
+      - framework-management
+    tier: high
+
+verification:
+  frontend:
+    triggers:
+      - ts
+      - tsx
+      - js
+      - jsx
+      - css
+      - scss
+      - html
+    checks:
+      - diagnostics
+      - targeted-tests
+      - browser-verification
+  backend:
+    triggers:
+      - py
+      - go
+      - cs
+      - java
+      - kt
+      - rs
+    checks:
+      - diagnostics
+      - targeted-tests
+      - contract-check
+  infra:
+    triggers:
+      - yml
+      - yaml
+      - tf
+      - tfvars
+      - dockerfile
+    checks:
+      - config-validation
+      - deployment-review
+  docs:
+    triggers:
+      - md
+    checks:
+      - link-and-content-review

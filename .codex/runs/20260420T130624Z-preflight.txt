@@ -1,0 +1,16 @@
+
+== Project ==
+root: /Users/igornepipenko/work/ai-codex-framework
+branch: no-git
+stack: unknown
+
+== Framework ==
+project CODEX.md: present
+project commands: present
+spec root: /Users/igornepipenko/work/ai-codex-framework/.codex/specs
+
+== Git ==
+warn: not inside a git repository
+
+== Commands ==
+TEST_CMD=bash /Users/igornepipenko/work/ai-codex-framework/scripts/framework-health.sh
