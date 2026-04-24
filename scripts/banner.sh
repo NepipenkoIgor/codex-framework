@@ -5,7 +5,9 @@ set -euo pipefail
 
 ROOT="${1:-$(project_root)}"
 TASK="${2:-}"
-STACK="$(bash "$(framework_root)/scripts/detect-project-stack.sh" "$ROOT" 2>/dev/null || echo unknown)"
+refresh_repo_intelligence >/dev/null
+load_repo_intelligence
+STACK="$RI_STACK"
 CAP_FILE="$(mktemp)"
 trap 'rm -f "$CAP_FILE"' EXIT
 bash "$(framework_root)/scripts/capabilities.sh" "$ROOT" > "$CAP_FILE"

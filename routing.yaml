@@ -9,7 +9,7 @@ models:
       - quick repo questions
       - narrow single-file work
   medium:
-    model: gpt-5.4-mini
+    model: gpt-5.4
     reasoning: medium
     use_for:
       - standard feature work
@@ -43,6 +43,13 @@ roles:
       - api-design
       - backend-architecture
       - frontend-architecture
+      - data-modeling
+      - database-migration
+      - ddd-patterns
+      - design-system-architecture
+      - observability-design
+      - adr-management
+      - security-audit
     tier: high
   builder:
     signals:
@@ -66,6 +73,10 @@ roles:
     skills:
       - frontend-implement
       - accessibility-implement
+      - design-system-implement
+      - animation-motion
+      - responsive-design
+      - ui-consistency-audit
     tier: medium
   builder-backend:
     signals:
@@ -78,6 +89,11 @@ roles:
     skills:
       - backend-implement
       - api-design
+      - data-validation-design
+      - auth-security
+      - database-optimization
+      - docs-sync
+      - observability-design
     tier: medium
   builder-infra:
     signals:
@@ -91,6 +107,11 @@ roles:
       - devops-ci
       - infrastructure-as-code
       - deployment-validation
+      - deployment-strategies
+      - environment-management
+      - kubernetes-workload
+      - observability-design
+      - incident-response
     tier: medium
   builder-mobile:
     signals:
@@ -105,6 +126,11 @@ roles:
     skills:
       - mobile-implement
       - accessibility-implement
+      - animation-motion
+      - mobile-deployment
+      - deployment-validation
+      - offline-sync-design
+      - auth-security
     tier: medium
   builder-fullstack:
     signals:
@@ -119,12 +145,29 @@ roles:
       - frontend-implement
       - backend-implement
       - api-design
+      - accessibility-implement
+      - data-validation-design
+      - docs-sync
     tier: high
   builder-automation:
     signals:
       - n8n
-      - workflow
       - automation
+      - workflow
+      - ai automation
+    skills:
+      - automation-ai-workflows
+      - llm-security
+      - prompt-engineering
+      - automation-n8n-architecture
+      - automation-n8n-debug
+      - n8n-test
+      - prompt-management
+      - rag-pipeline
+      - vector-database
+    tier: high
+  builder-ai:
+    signals:
       - ai
       - llm
       - rag
@@ -134,7 +177,27 @@ roles:
     skills:
       - automation-ai-workflows
       - llm-security
+      - ai-agent-architecture
       - prompt-engineering
+      - prompt-management
+      - rag-pipeline
+      - vector-database
+      - ai-streaming
+      - multimodal-processing
+    tier: high
+  builder-n8n:
+    signals:
+      - n8n
+      - webhook chain
+      - workflow node
+      - workflow retry
+    skills:
+      - automation-n8n-implement
+      - automation-n8n-architecture
+      - automation-n8n-debug
+      - n8n-test
+      - llm-security
+      - prompt-management
     tier: high
   builder-specialized:
     signals:
@@ -161,6 +224,9 @@ roles:
     skills:
       - frontend-debug
       - backend-debug
+      - performance
+      - security-audit
+      - accessibility-audit
     tier: medium
   refactorer:
     signals:
@@ -172,6 +238,8 @@ roles:
     skills:
       - frontend-refactor
       - backend-refactor
+      - code-reuse
+      - performance
     tier: high
   reviewer:
     signals:
@@ -182,6 +250,11 @@ roles:
     skills:
       - frontend-review
       - backend-review
+      - security-audit
+      - ui-consistency-audit
+      - accessibility-audit
+      - performance
+      - docs-sync
     tier: medium
   tester:
     signals:
@@ -192,6 +265,9 @@ roles:
     skills:
       - frontend-test
       - backend-test
+      - e2e-test
+      - visual-regression
+      - contract-testing
     tier: medium
   project-manager:
     signals:
@@ -203,6 +279,9 @@ roles:
     skills:
       - project-setup
       - process-hygiene
+      - release-management
+      - adr-management
+      - docs-sync
     tier: low
   estimator:
     signals:
@@ -224,6 +303,8 @@ roles:
       - security-audit
       - dependency-audit
       - plugin-security-review
+      - audit-logging
+      - incident-response
     tier: medium
   framework-manager:
     signals:

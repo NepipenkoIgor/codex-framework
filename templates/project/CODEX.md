@@ -11,8 +11,10 @@ Reference framework assets from:
 Primary framework docs:
 
 - `/Users/igornepipenko/work/ai-codex-framework/CODEX.md`
+- `/Users/igornepipenko/work/ai-codex-framework/CODEX.concepts.md`
 - `/Users/igornepipenko/work/ai-codex-framework/CODEX.skills.md`
 - `/Users/igornepipenko/work/ai-codex-framework/CODEX.capabilities.md`
+- `/Users/igornepipenko/work/ai-codex-framework/ORCHESTRATOR_REFERENCE.md`
 - `/Users/igornepipenko/work/ai-codex-framework/agents`
 - `/Users/igornepipenko/work/ai-codex-framework/skills`
 

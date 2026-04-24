@@ -1,186 +1,494 @@
 # AI Codex Framework
 
-Codex-first framework for running a reusable engineering workflow with:
+Codex-first engineering framework for running production-oriented work with:
 
-- Codex-native global instructions in `CODEX.md`
-- reusable role briefs in `agents/`
-- a large portable skill library in `skills/`
-- script-based checks in `scripts/`
+- a visible orchestration layer
+- role briefs and portable skills
+- repo-intelligence-driven routing
+- explicit verification and quality gates
+- repo-local state under `.codex/`
 
-This is the Codex counterpart to the Claude framework in `ai-skills`. It keeps the portable knowledge layer and replaces Claude-only runtime hooks with explicit instructions and scripts.
+This is the Codex counterpart to the Claude framework in `ai-skills`, but the runtime model is different.
+Claude relied heavily on product-native hooks and settings.
+This framework uses explicit scripts, cached repo intelligence, generated briefs, and repo-local artifacts as the control plane.
 
-## What Was Ported
+## Start Reading Here
 
-- `agents/` copied from `ai-skills` as the initial role library
-- `skills/` copied from `ai-skills` as the initial skill library
+If you want to understand the framework quickly, read in this order:
 
-The portable content is preserved first. The Codex-specific behavior is defined by the files below.
+1. [README.md](/Users/igornepipenko/work/ai-codex-framework/README.md)
+   system overview, architecture, file responsibilities, and workflow
+2. [CODEX.md](/Users/igornepipenko/work/ai-codex-framework/CODEX.md)
+   rules for the main Codex session and orchestration behavior
+3. [ORCHESTRATOR_REFERENCE.md](/Users/igornepipenko/work/ai-codex-framework/ORCHESTRATOR_REFERENCE.md)
+   model tiers, fallback chains, and execution patterns
+4. [scripts/codex-fw.sh](/Users/igornepipenko/work/ai-codex-framework/scripts/codex-fw.sh)
+   the actual framework entrypoint and command flow
 
-## Codex-Native Files
+Short version:
 
-- `CODEX.md`
-  Codex orchestration rules, routing, execution policy, and output style.
-- `CODEX.skills.md`
-  Explicit skill injection rules used by generated task briefs.
-- `CODEX.capabilities.md`
-  Capability model for runtime tools such as GitHub access, diagnostics, browser automation, and platform integrations.
-- `CONCEPTS.md`
-  Framework invariants, architectural decisions, and migration notes.
-- `scripts/setup.sh`
-  Installs the framework into `~/.codex/skills/ai-codex-framework`.
-- `scripts/detect-project-stack.sh`
-  Reads local manifests and prints a stack summary.
-- `scripts/framework-health.sh`
-  Validates role files, skills, and key framework docs.
-- `routing.yaml`
-  Machine-readable routing and verification defaults.
-- `scripts/codex-fw.sh`
-  Unified framework entrypoint for health, preflight, routing, specs, PR checks, and safe commits.
-- `scripts/task-brief.sh`
-  Generates structured execution briefs with route, stack, skills, commands, spec status, and verification expectations.
-- `scripts/capabilities.sh`
-  Reports runtime capabilities, local fallbacks, and configured-vs-validated auth state for each class of tool.
-- `scripts/github-status.sh`
-  Checks whether GitHub CLI and auth are usable in the current environment.
-- `scripts/github-issue-fetch.sh`
-  Fetches issue context via `gh` for issue-driven work.
-- `scripts/github-pr-context.sh`
-  Fetches PR metadata and changed files via `gh`.
-- `scripts/github-review-prep.sh`
-  Combines capability status with PR context to prepare GitHub review work.
-- `scripts/extract-spec.sh`
-  Fetches a GitHub issue via `gh` and creates `.codex/specs/<issue>/spec.md`.
-- `scripts/work.sh`
-  Issue wrapper that extracts the spec, chooses role/model, and launches Codex for that issue.
-- `scripts/preflight.sh`
-  Checks branch, stack, project bootstrap, command registry, and worktree state before task work.
-- `scripts/codex-fw.sh refresh-commands`
-  Regenerates `.codex/project.env` for a target repo when you want to refresh the detected command surface manually.
-- `scripts/post-change-check.sh`
-  Runs project commands and suggested checks based on changed file types.
-- `scripts/spec-status.sh`
-  Reads `.codex/specs` and reports what is done, failing, pending, and next.
-- `scripts/pr-ready.sh`
-  Runs readiness checks before PR work.
-- `scripts/pr-body.sh`
-  Generates a Claude-style PR body with `## Summary` and `## Test Plan`, deriving verification dynamically from repo hooks first and detected commands second, with no attribution footer.
-- `scripts/pr-create.sh`
-  Opens a PR with `gh` using the generated PR body or a supplied body file.
-- `scripts/safe-commit.sh`
-  Enforces conventional commit format and blocks AI attribution.
-- `scripts/browser-verify.sh`
-  Prepares browser verification from the active spec and live local URL.
-- `templates/task-brief.md`
-  Task brief format for reusable delegation and issue-driven work.
-- `templates/project/`
-  Bootstrap files for adopting the framework in a working repository.
-- `scripts/bootstrap-project.sh`
-  Copies a starter `CODEX.md` into a target project.
+- `README.md` = what the system is
+- `CODEX.md` = how the orchestrator should behave
+- `ORCHESTRATOR_REFERENCE.md` = tier/pattern policy
+- `scripts/codex-fw.sh` = what actually runs
 
-## Framework Shape
+## What This Framework Is
 
-The framework is intentionally split into layers:
+This repo is the source of truth for:
 
-1. Knowledge layer
-   `skills/` and `agents/`
-2. Orchestration layer
-   `CODEX.md`, `CODEX.skills.md`, and `CODEX.capabilities.md`
-3. Enforcement layer
-   `scripts/`
+- how Codex sessions should start
+- how tasks are routed
+- how the main session chooses role, tier, and skills
+- how repo facts are detected and cached
+- how verification and quality checks run
+- how issue/spec-driven work is structured
 
-Claude-specific concepts such as hook events, `enabledPlugins`, `teammateMode`, `statusLine`, and `claude plugin install` are not used here.
+The framework is trying to make the main Codex session behave like a strong engineer:
 
-## Recommended Usage
+1. understand the repo
+2. understand the task
+3. choose the right owner
+4. load the right knowledge lazily
+5. implement within repo conventions
+6. verify and report clearly
 
-1. Keep this repo as the source of truth for Codex framework assets.
-2. Run `scripts/setup.sh` to install reusable skills into `~/.codex/skills/ai-codex-framework` and the shell wrapper into `~/.zshrc`.
-3. The setup script also reports required, recommended, and optional local dependencies with install hints instead of silently assuming they exist.
-4. Restart your shell or run `source ~/.zshrc` before expecting plain `codex` to use the framework wrapper.
-5. In a working repo, start Codex through the framework with `codex` or `codex-fw session`.
-6. Valid wrapper entrypoints are `codex`, `codex --task "your task"`, `codex -w <issue>`, and `codex --raw`.
-7. `codex -row` and `codex --row` are invalid and will be passed to the raw Codex CLI, which rejects them.
-8. For a task-first session, run `codex --task "your task"` or `codex-fw go "your task"`.
-9. The generated `.codex/project.env` is auto-managed by default and refreshes when detected commands change. Set `PROJECT_COMMANDS_MODE="manual"` only if you want to pin custom overrides.
-10. If you want to force a refresh manually, run `codex-fw refresh-commands` in the project root.
-11. Use `scripts/codex-fw.sh post-change-check` after substantial changes.
-12. Generate a PR body with `codex-fw pr-body` or open the PR directly with `codex-fw pr-create`.
-13. Use the role briefs in `agents/` as delegation templates when spawning sub-agents.
-14. For issue-driven work, use `codex-fw work <issue>` or `codex -w <issue>` after setup. Inside a git repo, this flow creates or reuses a sibling worktree first.
+Domain roles are intended to behave like senior engineers inside their own area, so a mobile, backend, or frontend task should naturally carry design, security, documentation, release, and performance awareness when relevant.
 
-## Session Model
+## Architecture
 
-After `scripts/setup.sh` and a shell reload, plain `codex` becomes the framework-aware launcher in a project:
+The framework is split into five layers.
 
-- `codex`
-  bootstraps the project if needed, runs preflight and capability detection, writes a session context artifact, and opens Codex with that context
-- `codex --task "fix login bug"`
-  does the same, plus generates a task brief and opens Codex against that brief
-- `codex -w 424`
-  creates or opens a sibling worktree for issue `424`, extracts the issue spec there, and opens an issue-driven Codex session
-- `codex --raw`
-  bypasses the wrapper and opens plain Codex without framework startup
+### 1. Knowledge Layer
 
-Invalid examples:
+- `agents/`
+- `skills/`
 
-- `codex -row`
-  invalid; use `codex -w <issue>` for issue-driven work
-- `codex --row`
-  invalid; there is no `--row` wrapper flag
+This is the portable knowledge base.
 
-This is the main replacement for the Claude-style “framework inside every session” behavior.
+- `agents/*.md` are role briefs
+- `skills/*/SKILL.md` are reusable domain and workflow instructions
 
-## Project Command Registry
+This layer should be mostly provider-agnostic.
 
-`.codex/project.env` stores the detected command surface for the current repo:
+### 2. Control-Plane Layer
 
-- `PACKAGE_RUNNER` for script execution such as `bun run`, `pnpm`, `yarn`, or `npm run`
-- `PACKAGE_EXEC` for direct local binaries such as `bunx`, `pnpm exec`, `yarn`, or `npx`
-- `TEST_CMD`, `LINT_CMD`, `BUILD_CMD`, `DEV_CMD` for framework checks
+- [CODEX.md](/Users/igornepipenko/work/ai-codex-framework/CODEX.md)
+- [CODEX.skills.md](/Users/igornepipenko/work/ai-codex-framework/CODEX.skills.md)
+- [CODEX.concepts.md](/Users/igornepipenko/work/ai-codex-framework/CODEX.concepts.md)
+- [CODEX.capabilities.md](/Users/igornepipenko/work/ai-codex-framework/CODEX.capabilities.md)
+- [CODEX.permissions.md](/Users/igornepipenko/work/ai-codex-framework/CODEX.permissions.md)
+- [ORCHESTRATOR_REFERENCE.md](/Users/igornepipenko/work/ai-codex-framework/ORCHESTRATOR_REFERENCE.md)
+- `SKILLS_MAP.*.md`
+- [routing.yaml](/Users/igornepipenko/work/ai-codex-framework/routing.yaml)
 
-By default this file is auto-managed and refreshed by bootstrap when detection changes. If a project needs pinned custom commands, set `PROJECT_COMMANDS_MODE="manual"` in that file.
+This layer defines policy:
 
-## Session Display
+- what the orchestrator is allowed to do
+- how skills are layered
+- what model tiers mean
+- what execution patterns exist
+- what the output contract is
 
-Framework-driven sessions now use a visible display layer instead of hidden runtime hooks:
+### 3. Repo-Intelligence Layer
 
-- startup banner with stack and capability state
-- plan block with role icon, model, tier, and skills
-- explicit `go` gate before executing planned task work
-- short status blocks during work showing active owner, model, tier, and skills
+- [scripts/detect-project-stack.sh](/Users/igornepipenko/work/ai-codex-framework/scripts/detect-project-stack.sh)
+- [scripts/detect-project-features.sh](/Users/igornepipenko/work/ai-codex-framework/scripts/detect-project-features.sh)
+- [scripts/detect-project-policy.sh](/Users/igornepipenko/work/ai-codex-framework/scripts/detect-project-policy.sh)
+- [scripts/detect-project-conventions.sh](/Users/igornepipenko/work/ai-codex-framework/scripts/detect-project-conventions.sh)
+- [scripts/detect-project-commands.sh](/Users/igornepipenko/work/ai-codex-framework/scripts/detect-project-commands.sh)
+- [scripts/detect-repo-intelligence.sh](/Users/igornepipenko/work/ai-codex-framework/scripts/detect-repo-intelligence.sh)
 
-This keeps orchestration readable inside Codex without depending on Codex-internal UI chrome.
+This layer extracts structured repo facts:
 
-## Current State
+- stack
+- features
+- project commands
+- repo policy
+- local conventions
+- domain hints
+- primary framework
+- frontend/backend/test systems
 
-The framework now has:
+This is the most important layer for “code should look like it belongs in the repo.”
 
-- Codex-native orchestration in `CODEX.md`
-- explicit skill injection in `CODEX.skills.md`
-- explicit runtime capability handling in `CODEX.capabilities.md`
-- normalized role briefs across `agents/`
-- specialized role briefs for mobile, automation, and unified full-stack frameworks
-- a normalized skill library in `skills/`
-- machine-readable routing defaults in `routing.yaml`
-- a project bootstrap flow with `.codex/project.env`
-- an operational script layer for preflight, banners, plans, task briefs, verification, specs, PR readiness, and safe commits
+### 4. Orchestration Layer
 
-Generated run artifacts such as task briefs are stored under project-local `.codex/` when writable, and fall back to `/tmp/ai-codex-framework/...` when the environment blocks writes there.
+- [scripts/codex-fw.sh](/Users/igornepipenko/work/ai-codex-framework/scripts/codex-fw.sh)
+- [scripts/task-brief.sh](/Users/igornepipenko/work/ai-codex-framework/scripts/task-brief.sh)
+- [scripts/plan.sh](/Users/igornepipenko/work/ai-codex-framework/scripts/plan.sh)
+- [scripts/session-start.sh](/Users/igornepipenko/work/ai-codex-framework/scripts/session-start.sh)
+- [scripts/work.sh](/Users/igornepipenko/work/ai-codex-framework/scripts/work.sh)
+- [scripts/banner.sh](/Users/igornepipenko/work/ai-codex-framework/scripts/banner.sh)
+- [scripts/preflight.sh](/Users/igornepipenko/work/ai-codex-framework/scripts/preflight.sh)
 
-## Runtime Workflow
+This layer turns repo facts + task intent into:
 
-Typical real-task flow:
+- role
+- tier
+- model
+- skill set
+- execution pattern
+- task brief
+- session plan
 
-1. `codex` or `scripts/codex-fw.sh session`
-2. optionally `codex --task "<task>"` or `scripts/codex-fw.sh go "<task>"`
-3. work from the generated session context and task brief
-4. `scripts/codex-fw.sh post-change-check`
-5. `scripts/codex-fw.sh spec-status` or `scripts/codex-fw.sh browser-verify` when spec-driven
-6. `scripts/codex-fw.sh pr-ready`
-7. `scripts/codex-fw.sh pr-body` or `scripts/codex-fw.sh pr-create`
-8. `scripts/codex-fw.sh safe-commit "type(scope): message"`
+### 5. Enforcement Layer
 
-Issue workflow:
+- [scripts/guard-scan.sh](/Users/igornepipenko/work/ai-codex-framework/scripts/guard-scan.sh)
+- [scripts/quality-check.sh](/Users/igornepipenko/work/ai-codex-framework/scripts/quality-check.sh)
+- [scripts/post-change-check.sh](/Users/igornepipenko/work/ai-codex-framework/scripts/post-change-check.sh)
+- [scripts/framework-health.sh](/Users/igornepipenko/work/ai-codex-framework/scripts/framework-health.sh)
+- [scripts/doctor.sh](/Users/igornepipenko/work/ai-codex-framework/scripts/doctor.sh)
+- [scripts/install-git-hooks.sh](/Users/igornepipenko/work/ai-codex-framework/scripts/install-git-hooks.sh)
+- repo-local `.githooks/`
 
-1. `codex-fw work 424`
-2. or `codex -w 424` after running the global setup script
-3. when inside a git repo, the issue flow uses a sibling worktree such as `../<repo>-424`
+This layer catches:
+
+- secret and attribution violations
+- repo-quality issues
+- missing bootstrap state
+- stale hooks
+- missing framework files
+
+## Main Session Model
+
+The main Codex session is the orchestrator.
+
+It is not a hidden Claude-style hook runtime.
+It is a normal Codex session started with a generated context and explicit session contract.
+
+The main session is expected to:
+
+1. read the generated session context
+2. show the startup banner
+3. show the plan
+4. wait for `go`
+5. execute the task with the routed role/tier/skills
+6. verify and report
+
+The framework can also use sub-agents, but the main session remains the top-level coordinator.
+
+## Model Tiers
+
+Model tier policy lives in [ORCHESTRATOR_REFERENCE.md](/Users/igornepipenko/work/ai-codex-framework/ORCHESTRATOR_REFERENCE.md) and [routing.yaml](/Users/igornepipenko/work/ai-codex-framework/routing.yaml).
+
+Current tier mapping:
+
+| Tier | Model | Use |
+|---|---|---|
+| `low` | `codex-mini-latest` | mechanical edits, narrow single-file work |
+| `medium` | `gpt-5.4` | normal implementation, review, tests |
+| `high` | `gpt-5.4` | architecture, migrations, cross-system debugging |
+| `xhigh` | `gpt-5.4` | rescue/recovery, framework redesign, ambiguous high-risk work |
+
+Important policy decision:
+
+- `medium` already uses the stronger main model
+- the framework is intentionally biased away from cheap-but-weak defaults for normal work
+
+## Orchestration Flow
+
+At a high level the framework does this:
+
+1. bootstrap project state if needed
+2. load cached repo intelligence
+3. refresh repo intelligence if fingerprint is stale
+4. detect task intent
+5. choose role from repo intelligence + task
+6. choose tier/model
+7. resolve skills in layers
+8. generate brief and plan
+9. run work
+10. run guard/quality/verification checks
+
+The current route path is:
+
+`repo intelligence -> task intent -> role -> tier -> skill layering -> plan/brief -> execution -> verification`
+
+This is the direction away from old ad hoc regex-only routing.
+
+## Skill Injection Model
+
+Skill injection is explicit and lazy.
+
+The layering order is:
+
+1. domain baseline
+2. stack refinement
+3. feature refinement
+4. domain-map skills
+5. task extras
+
+The key files are:
+
+- [CODEX.skills.md](/Users/igornepipenko/work/ai-codex-framework/CODEX.skills.md)
+- `SKILLS_MAP.core.md`
+- `SKILLS_MAP.frontend.md`
+- `SKILLS_MAP.backend.md`
+- `SKILLS_MAP.mobile.md`
+- `SKILLS_MAP.infra.md`
+- `SKILLS_MAP.specialized.md`
+- `SKILLS_MAP.testing.md`
+
+Important invariant:
+
+- the planner should identify skill names during planning
+- it should not eagerly read all skill bodies during classification
+
+## Repo Intelligence Artifact
+
+The framework now stores repo intelligence as a first-class artifact:
+
+- `.codex/cache/repo-intelligence.env`
+- or `/tmp/ai-codex-framework/.../repo-intelligence.env` when project cache is blocked
+
+This file contains fields like:
+
+- `RI_STACK`
+- `RI_FEATURES`
+- `RI_POLICY`
+- `RI_CONVENTIONS`
+- `RI_PRIMARY_FRAMEWORK`
+- `RI_FRONTEND_SYSTEM`
+- `RI_BACKEND_SYSTEM`
+- `RI_TEST_SYSTEM`
+- `RI_DOMAIN_HINTS`
+- `RI_REFRESHED_AT`
+- `RI_FINGERPRINT`
+
+Purpose:
+
+- new sessions can reuse repo understanding immediately
+- refresh only happens when the repo fingerprint changes
+- routing and briefing use one cached source of truth
+
+Inspect it with:
+
+```bash
+codex-fw intelligence .
+```
+
+## Repo-Local Artifacts
+
+The framework uses `.codex/` inside a working repo.
+
+Important files and directories:
+
+- `.codex/project.env`
+  detected project commands
+- `.codex/specs/`
+  issue/spec-driven work
+- `.codex/cache/`
+  cached repo intelligence and related detector outputs
+- `.codex/runs/`
+  generated session, banner, plan, and brief artifacts
+- `.codex/handoffs/`
+  multi-agent coordination state
+
+When the environment blocks writes under `.codex/`, the framework falls back to `/tmp/ai-codex-framework/...`.
+
+## Key Files And Responsibilities
+
+### Root docs
+
+- [CODEX.md](/Users/igornepipenko/work/ai-codex-framework/CODEX.md)
+  main operating rules
+- [CODEX.skills.md](/Users/igornepipenko/work/ai-codex-framework/CODEX.skills.md)
+  skill layering policy
+- [CODEX.concepts.md](/Users/igornepipenko/work/ai-codex-framework/CODEX.concepts.md)
+  hard invariants of the system
+- [CODEX.capabilities.md](/Users/igornepipenko/work/ai-codex-framework/CODEX.capabilities.md)
+  runtime capability model
+- [CODEX.permissions.md](/Users/igornepipenko/work/ai-codex-framework/CODEX.permissions.md)
+  permission model and defaults
+- [ORCHESTRATOR_REFERENCE.md](/Users/igornepipenko/work/ai-codex-framework/ORCHESTRATOR_REFERENCE.md)
+  tiers, patterns, fallback rules
+- [CONCEPTS.md](/Users/igornepipenko/work/ai-codex-framework/CONCEPTS.md)
+  broader framework notes and migration context
+
+### Main entrypoints
+
+- [scripts/setup.sh](/Users/igornepipenko/work/ai-codex-framework/scripts/setup.sh)
+  install the wrapper and defaults
+- [scripts/codex-fw.sh](/Users/igornepipenko/work/ai-codex-framework/scripts/codex-fw.sh)
+  unified CLI entrypoint
+- [scripts/session-start.sh](/Users/igornepipenko/work/ai-codex-framework/scripts/session-start.sh)
+  generate session context and launch a framework session
+- [scripts/work.sh](/Users/igornepipenko/work/ai-codex-framework/scripts/work.sh)
+  issue/spec worktree workflow
+
+### Detection and intelligence
+
+- [scripts/detect-project-stack.sh](/Users/igornepipenko/work/ai-codex-framework/scripts/detect-project-stack.sh)
+  raw stack detection
+- [scripts/detect-project-features.sh](/Users/igornepipenko/work/ai-codex-framework/scripts/detect-project-features.sh)
+  raw feature detection
+- [scripts/detect-project-policy.sh](/Users/igornepipenko/work/ai-codex-framework/scripts/detect-project-policy.sh)
+  repo policy extraction
+- [scripts/detect-project-conventions.sh](/Users/igornepipenko/work/ai-codex-framework/scripts/detect-project-conventions.sh)
+  nearby-pattern summary
+- [scripts/detect-project-commands.sh](/Users/igornepipenko/work/ai-codex-framework/scripts/detect-project-commands.sh)
+  command registry generation
+- [scripts/detect-repo-intelligence.sh](/Users/igornepipenko/work/ai-codex-framework/scripts/detect-repo-intelligence.sh)
+  structured intelligence artifact generation
+
+### Planning and display
+
+- [scripts/task-brief.sh](/Users/igornepipenko/work/ai-codex-framework/scripts/task-brief.sh)
+  structured execution brief
+- [scripts/plan.sh](/Users/igornepipenko/work/ai-codex-framework/scripts/plan.sh)
+  user-visible plan with `go` gate
+- [scripts/banner.sh](/Users/igornepipenko/work/ai-codex-framework/scripts/banner.sh)
+  startup banner
+- [scripts/status-block.sh](/Users/igornepipenko/work/ai-codex-framework/scripts/status-block.sh)
+  progress block rendering
+- [scripts/preflight.sh](/Users/igornepipenko/work/ai-codex-framework/scripts/preflight.sh)
+  startup project state report
+
+### Verification and enforcement
+
+- [scripts/guard-scan.sh](/Users/igornepipenko/work/ai-codex-framework/scripts/guard-scan.sh)
+  secret/attribution/policy guard
+- [scripts/quality-check.sh](/Users/igornepipenko/work/ai-codex-framework/scripts/quality-check.sh)
+  repo-native quality gate
+- [scripts/post-change-check.sh](/Users/igornepipenko/work/ai-codex-framework/scripts/post-change-check.sh)
+  post-edit verification bundle
+- [scripts/framework-health.sh](/Users/igornepipenko/work/ai-codex-framework/scripts/framework-health.sh)
+  framework self-check
+- [scripts/doctor.sh](/Users/igornepipenko/work/ai-codex-framework/scripts/doctor.sh)
+  project readiness check
+
+### Spec, PR, and git flow
+
+- [scripts/extract-spec.sh](/Users/igornepipenko/work/ai-codex-framework/scripts/extract-spec.sh)
+- [scripts/spec-status.sh](/Users/igornepipenko/work/ai-codex-framework/scripts/spec-status.sh)
+- [scripts/browser-verify.sh](/Users/igornepipenko/work/ai-codex-framework/scripts/browser-verify.sh)
+- [scripts/pr-ready.sh](/Users/igornepipenko/work/ai-codex-framework/scripts/pr-ready.sh)
+- [scripts/pr-body.sh](/Users/igornepipenko/work/ai-codex-framework/scripts/pr-body.sh)
+- [scripts/pr-create.sh](/Users/igornepipenko/work/ai-codex-framework/scripts/pr-create.sh)
+- [scripts/safe-commit.sh](/Users/igornepipenko/work/ai-codex-framework/scripts/safe-commit.sh)
+
+### Coordination state
+
+- [scripts/handoff-state.sh](/Users/igornepipenko/work/ai-codex-framework/scripts/handoff-state.sh)
+- [scripts/retry-state.sh](/Users/igornepipenko/work/ai-codex-framework/scripts/retry-state.sh)
+
+## Commands You Actually Use
+
+### Start a normal framework session
+
+```bash
+codex
+```
+
+### Start task-first
+
+```bash
+codex --task "fix login timeout"
+```
+
+### Start issue/spec flow
+
+```bash
+codex -w 495
+```
+
+### Inspect readiness
+
+```bash
+codex-fw doctor
+```
+
+### Inspect repo intelligence
+
+```bash
+codex-fw intelligence .
+```
+
+### Generate brief or plan without launching a session
+
+```bash
+codex-fw brief "fix landing avatar copy"
+codex-fw plan "fix landing avatar copy"
+```
+
+### Run verification after changes
+
+```bash
+codex-fw post-change-check
+```
+
+## Runtime Profile And Permissions
+
+After [scripts/setup.sh](/Users/igornepipenko/work/ai-codex-framework/scripts/setup.sh), the wrapper defaults the local runtime profile to:
+
+- approval mode: `never`
+- sandbox mode: `danger-full-access`
+
+This is a workstation default, not a repo-side self-grant.
+
+For stricter behavior:
+
+```bash
+codex --raw
+```
+
+or override with shell env vars.
+
+## How A New Run Understands The Repo Immediately
+
+The framework now relies on cached repo intelligence.
+
+At session start it:
+
+1. bootstraps `.codex/` if needed
+2. loads `.codex/cache/repo-intelligence.env`
+3. refreshes it if the fingerprint is stale
+4. includes it in the session context as a required read
+
+That means the orchestrator does not need to rediscover the repo from scratch every run.
+
+## Current Strengths
+
+The framework is now strong at:
+
+- visible orchestration
+- structured session startup
+- role/tier/skill planning
+- issue/spec workflows
+- repo-intelligence caching
+- requirement-sensitive gating
+- explicit guard and quality checks
+
+## Current Limits
+
+The framework is still not perfect.
+
+Remaining gaps are mostly in:
+
+- convention extraction depth on real repos
+- helper reuse detection
+- boundary detection in mixed repos
+- file-path-driven routing refinement
+- making quality checks more repo-native across backend/mobile/infra, not only frontend-heavy cases
+
+So this is production-oriented, but still needs tuning against real codebases.
+
+## Recommended Way To Evaluate It
+
+Run it in a real repo with:
+
+```bash
+codex-fw doctor
+codex-fw intelligence .
+codex --task "your real task"
+```
+
+Then inspect:
+
+- chosen role
+- chosen tier/model
+- generated brief
+- repo policy and conventions
+- verification and quality output
+
+That is the fastest way to see whether the framework is behaving like the engineering system you want.

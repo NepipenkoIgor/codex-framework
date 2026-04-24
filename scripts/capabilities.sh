@@ -4,7 +4,9 @@ set -euo pipefail
 . "$(dirname "$0")/lib.sh"
 
 ROOT="${1:-$(project_root)}"
-STACK="$(bash "$(framework_root)/scripts/detect-project-stack.sh" "$ROOT" 2>/dev/null || echo unknown)"
+refresh_repo_intelligence >/dev/null
+load_repo_intelligence
+STACK="$RI_STACK"
 
 has_cmd() {
   command -v "$1" >/dev/null 2>&1

@@ -26,6 +26,7 @@ Files, modules, or system slice owned by this task.
 - Do not revert unrelated changes.
 - Keep the implementation narrow.
 - For JS/TS repos, prefer the detected package runner and local binary executor above for direct commands.
+- For requirement-sensitive tasks, restate the requirement and mismatch before editing.
 
 ## Skills
 - Primary:
@@ -34,6 +35,13 @@ Files, modules, or system slice owned by this task.
 ## Spec
 - Path:
 - Status:
+
+## Requirement Check
+- Required:
+- Requirement:
+- Current behavior:
+- Mismatch:
+- Fix intent:
 
 ## Verification
 - Required checks:
@@ -48,5 +56,9 @@ Files, modules, or system slice owned by this task.
 
 ## Output Contract
 - Status: done | partial | blocked
+- Requirement: [restated requirement or `not required`]
+- Current behavior: [observed behavior or `not required`]
+- Mismatch: [why prior/current behavior was wrong or `none`]
+- Fix intent: [correction applied or `none`]
 - Changed: [file paths]
 - Notes: [blockers or non-obvious decisions only]

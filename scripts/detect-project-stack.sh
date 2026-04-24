@@ -49,6 +49,9 @@ if has_file pubspec.yaml; then
 fi
 
 if has_file package.json; then
+  if pkg_has_dep '"tailwindcss"'; then
+    add_stack "tailwind"
+  fi
   if pkg_has_dep '"(react|react-dom)"'; then
     add_stack "react"
   fi
@@ -70,6 +73,12 @@ if has_file package.json; then
   if pkg_has_dep '"(@playwright/test|playwright)"'; then
     add_stack "playwright"
   fi
+  if pkg_has_dep '"(vitest|jest)"'; then
+    add_stack "unit-test"
+  fi
+  if pkg_has_dep '"(@testing-library/react|@testing-library/vue|@testing-library/jest-dom)"'; then
+    add_stack "testing-library"
+  fi
   if pkg_has_dep '"(stripe|@stripe/[^"]+)"'; then
     add_stack "stripe"
   fi
@@ -79,6 +88,10 @@ if has_file package.json; then
   if pkg_has_dep '"(firebase|firebase-admin)"'; then
     add_stack "firebase"
   fi
+fi
+
+if find "$ROOT" -maxdepth 2 \( -name 'tailwind.config.js' -o -name 'tailwind.config.cjs' -o -name 'tailwind.config.mjs' -o -name 'tailwind.config.ts' \) | grep -q .; then
+  add_stack "tailwind"
 fi
 
 if find "$ROOT" -type f -name '*.razor' | grep -q .; then

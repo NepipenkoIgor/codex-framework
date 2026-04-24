@@ -12,7 +12,7 @@ This framework ports the useful operating concepts from the Claude framework int
 - script-driven verification
 - concise outcome reporting
 
-The framework does not rely on hidden hooks. It uses `CODEX.md`, `CODEX.skills.md`, role briefs, and helper scripts as the visible control plane.
+The framework does not rely on hidden hooks. It uses `CODEX.md`, `CODEX.concepts.md`, `CODEX.permissions.md`, `ORCHESTRATOR_REFERENCE.md`, `SKILLS_MAP.*.md`, role briefs, and helper scripts as the visible control plane.
 
 ## Core Principles
 
@@ -29,12 +29,13 @@ Every non-trivial task follows these phases:
 
 1. Classify the task
 2. Detect stack and relevant project commands
-3. Route to the correct role
-4. Inject the smallest useful skill set
-5. Generate a structured task brief
-6. Execute
-7. Verify
-8. Report outcome and residual risk
+3. Detect cached repo features and relevant domains
+4. Route to the correct role
+5. Inject the smallest useful skill set lazily through domain maps
+6. Generate a structured task brief
+7. Execute
+8. Verify
+9. Report outcome and residual risk
 
 Use `scripts/task-brief.sh` or `codex-fw brief` to produce the explicit brief for execution.
 
@@ -54,7 +55,9 @@ Use this routing order. Earlier matches win.
 | design, architecture, API contract, schema, new dependency | `architect` |
 | mobile, React Native, Expo, Flutter | `builder-mobile` |
 | Next.js full-stack, Blazor, page plus API route in one framework | `builder-fullstack` |
-| n8n, workflow automation, AI feature, LLM, RAG, prompt system | `builder-automation` |
+| n8n, webhook-chain automation, workflow-node logic | `builder-n8n` |
+| AI feature, LLM, RAG, prompt system, agents, multimodal | `builder-ai` |
+| mixed automation work across workflows and AI systems | `builder-automation` |
 | infra, deployment, CI/CD, Docker, Kubernetes | `builder-infra` |
 | UI, page, component, styling, accessibility, frontend state | `builder-frontend` |
 | API, backend, service, job, auth, persistence, integration | `builder-backend` |
@@ -65,9 +68,12 @@ Use this routing order. Earlier matches win.
 - Use `architect` first when the task introduces a new API, schema, dependency, or cross-system contract.
 - Use `builder-fullstack` only when frontend and backend live inside the same framework boundary such as Next.js or Blazor.
 - Use `builder-mobile` for mobile-native platform concerns, not generic frontend work.
-- Use `builder-automation` for AI, agents, prompts, RAG, multimodal, or n8n workflow logic.
+- Use `builder-ai` for AI, agents, prompts, RAG, or multimodal product logic.
+- Use `builder-n8n` for n8n workflow topology, retries, payload shaping, and webhook chains.
+- Use `builder-automation` for mixed automation work that spans both workflow orchestration and AI-product behavior.
 - Use `reviewer` as read-only. Reviewers do not modify code.
 - Use `tester` after substantial implementation or fixes, or when the task is primarily test work.
+- Domain roles are senior-engineer baselines. A mobile or backend task should assume framework/runtime choice, security, delivery, documentation, and performance concerns unless the task is explicitly narrow.
 
 ## Reasoning Tiers
 
@@ -77,10 +83,12 @@ Use this routing order. Earlier matches win.
 - `xhigh`: rescue attempts or unusually ambiguous high-risk changes
 
 Use low reasoning only when the task is clearly mechanical. Otherwise prefer medium.
+In this framework, `medium` intentionally uses the stronger default model so normal work does not fall onto a cheaper tier unless the task is explicitly mechanical.
 
 ## Skill Injection
 
 Skill injection is explicit and governed by [CODEX.skills.md](/Users/igornepipenko/work/ai-codex-framework/CODEX.skills.md).
+The execution model and invariants are governed by [CODEX.concepts.md](/Users/igornepipenko/work/ai-codex-framework/CODEX.concepts.md) and [ORCHESTRATOR_REFERENCE.md](/Users/igornepipenko/work/ai-codex-framework/ORCHESTRATOR_REFERENCE.md).
 
 Rules:
 
@@ -137,6 +145,17 @@ For non-trivial task sessions:
 
 Status blocks should favor fast scanning over verbose prose.
 
+## Runtime Profile
+
+The framework wrapper is allowed to choose a default Codex runtime profile for local workstations.
+
+Current default after `scripts/setup.sh`:
+
+- approval mode: `never`
+- sandbox mode: `danger-full-access`
+
+This is the framework's Codex-native replacement for the broader Claude permission preset. Use `codex --raw` or explicit Codex flags when you want stricter behavior for a session.
+
 ## Verification
 
 Codex verification is explicit.
@@ -155,6 +174,8 @@ Use these scripts when helpful:
 - `scripts/task-brief.sh`
 - `scripts/framework-health.sh`
 - `scripts/post-change-check.sh`
+- `scripts/guard-scan.sh`
+- `scripts/doctor.sh`
 - `scripts/spec-status.sh`
 - `scripts/browser-verify.sh`
 
@@ -169,6 +190,30 @@ When asked for review:
 
 If no findings are discovered, say so explicitly and mention residual risk or unverified areas.
 
+## Requirement Fidelity
+
+For issue-comment-driven, spec-driven, correction, or acceptance-criteria tasks:
+
+- do not jump straight into edits
+- restate the relevant requirement first
+- compare current behavior to that requirement
+- explain the mismatch in plain terms
+- only then implement the smallest correction
+
+If the user is effectively asking "is this right?" or "what is wrong here?", the first answer must be the judgment, not the patch.
+
+## Repo-Native Quality
+
+For implementation work, especially UI work:
+
+- identify the actual stack first
+- infer local repo conventions from nearby files
+- prefer existing helpers, shared components, and styling patterns
+- prefer existing validation, testing, logging, and boundary patterns in non-UI code too
+- do not introduce inline styles in Tailwind-first repos unless there is a real runtime-only need and the file is marked with `codex-allow-inline-style`
+
+Generic “valid” code is not enough. Code should look native to the repo.
+
 ## Framework Maintenance
 
 The Codex framework itself is maintained in this repo.
@@ -181,7 +226,8 @@ For framework changes:
 4. update affected skills in `skills/`
 5. update scripts and templates when execution flow changes
 6. run `scripts/framework-health.sh`
-7. document meaningful changes in `README.md`
+7. run `scripts/doctor.sh` for production-readiness checks
+8. document meaningful changes in `README.md`
 
 ## Task Brief Format
 
@@ -208,6 +254,10 @@ Commands and checks expected before close-out
 
 ## Output Contract
 - Status: done | partial | blocked
+- Requirement: [restated requirement or `not required`]
+- Current behavior: [observed behavior or `not required`]
+- Mismatch: [why prior/current behavior was wrong or `none`]
+- Fix intent: [correction applied or `none`]
 - Changed: [files]
 - Notes: [only blockers or non-obvious decisions]
 

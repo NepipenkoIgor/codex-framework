@@ -20,6 +20,8 @@ while [ $# -gt 0 ]; do
 done
 
 ensure_project_bootstrap "$ROOT"
+refresh_repo_intelligence >/dev/null
+load_repo_intelligence
 ensure_run_root
 
 preflight_file="$(run_root)/$(date -u +"%Y%m%dT%H%M%SZ")-preflight.txt"
@@ -47,8 +49,12 @@ Project root: $ROOT
 
 - $ROOT/CODEX.md
 - $FRAMEWORK_ROOT/CODEX.md
+- $FRAMEWORK_ROOT/CODEX.concepts.md
 - $FRAMEWORK_ROOT/CODEX.skills.md
 - $FRAMEWORK_ROOT/CODEX.capabilities.md
+- $FRAMEWORK_ROOT/CODEX.permissions.md
+- $FRAMEWORK_ROOT/ORCHESTRATOR_REFERENCE.md
+- $(cached_repo_intelligence_file)
 
 ## Startup Banner
 
@@ -66,6 +72,12 @@ $(cat "$preflight_file")
 
 \`\`\`text
 $(cat "$capabilities_file")
+\`\`\`
+
+## Repo Intelligence
+
+\`\`\`text
+$(repo_intelligence_summary)
 \`\`\`
 EOF
 
@@ -110,4 +122,4 @@ else
 fi
 
 cd "$ROOT"
-exec codex "$prompt"
+codex_exec "$prompt"

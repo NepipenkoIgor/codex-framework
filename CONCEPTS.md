@@ -3,11 +3,15 @@
 ## Core Invariants
 
 - `CODEX.md` is the main orchestration document for this framework.
+- `CODEX.concepts.md` is the hard-invariant constitution for orchestration behavior.
 - `CODEX.skills.md` is the explicit skill injection map for Codex task briefs.
 - `CODEX.capabilities.md` is the runtime capability and fallback model for Codex environments.
+- `ORCHESTRATOR_REFERENCE.md` defines execution patterns, fallback chains, and coordination semantics.
+- `SKILLS_MAP.*.md` are the lazy-loaded domain routing maps for skill resolution.
 - `agents/` contains role briefs, not runtime-registered agent configs.
 - `skills/` contains reusable prompt modules and operating guidance.
 - `scripts/` replaces Claude-style hook enforcement with explicit commands.
+- `.githooks/` and `.codex/handoffs/` provide Codex-native enforcement and coordination state when projects adopt the framework.
 - This framework repo is the source of truth for reusable Codex framework assets.
 
 ## Architectural Decisions
@@ -15,6 +19,7 @@
 - The framework keeps the portable knowledge layer from `ai-skills` and rewrites orchestration to be Codex-native.
 - Project adoption is bootstrap-based, not hook-based.
 - Verification is explicit and script-driven rather than event-driven.
+- Commit-time enforcement is repo-local and git-hook based rather than IDE/runtime hook based.
 - Generated task briefs replace hidden skill injection and carry stack, spec, and verification context.
 - Capability detection replaces Claude plugin assumptions with explicit preferred and fallback tool paths.
 

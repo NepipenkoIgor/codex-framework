@@ -6,11 +6,15 @@ set -euo pipefail
 ROOT="$(project_root)"
 ensure_project_bootstrap "$ROOT"
 load_project_commands
+refresh_repo_intelligence >/dev/null
+load_repo_intelligence
 
 print_section "Project"
 info "root: $ROOT"
 info "branch: $(current_branch)"
-info "stack: $(bash "$(framework_root)/scripts/detect-project-stack.sh" "$ROOT")"
+info "stack: $RI_STACK"
+info "domain_hints: $RI_DOMAIN_HINTS"
+info "primary_framework: $RI_PRIMARY_FRAMEWORK"
 
 print_section "Framework"
 if [ -f "$ROOT/CODEX.md" ]; then

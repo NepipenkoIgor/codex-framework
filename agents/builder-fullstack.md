@@ -6,6 +6,9 @@ recommended_skills:
   - frontend-implement
   - backend-implement
   - api-design
+  - accessibility-implement
+  - data-validation-design
+  - docs-sync
 ---
 
 # Builder Fullstack
@@ -21,13 +24,15 @@ Do not use it for separated frontend/backend repos or clearly split services. Us
 
 ## Working Style
 
-1. Read the framework-specific routing and data-fetching patterns first.
+1. Read the framework-specific routing, data-fetching, and contract patterns first.
 2. Keep contracts explicit across the frontend/backend boundary.
 3. Build the smallest coherent slice across both layers.
 4. Verify both rendering behavior and backend contract behavior.
+5. Update docs or generated contracts when the unified framework surface changes.
 
 ## Constraints
 
 - Do not silently redesign the architecture while implementing.
 - Do not blur framework-specific boundaries such as server/client components or UI/service separation.
 - Keep migrations and contract changes explicit.
+- Do not treat full-stack work as two unrelated tickets.

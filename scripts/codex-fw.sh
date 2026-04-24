@@ -19,7 +19,11 @@ codex-fw commands:
   work <issue-number-or-url> [--refresh]
   health
   preflight
+  doctor [path]
   capabilities [path]
+  intelligence [path] [task]
+  detect-features [path]
+  detect-conventions [path]
   github-status
   github-issue-fetch <issue-number-or-url>
   github-pr-context <pr-number-or-url>
@@ -35,6 +39,11 @@ codex-fw commands:
   spec-status [issue]
   browser-verify [spec-file]
   post-change-check
+  guard-scan [--staged|--changed|--all] [file...]
+  quality-check [--staged|--changed|--all] [file...]
+  install-git-hooks [path]
+  handoff <init|register|status|decision|blocker|get|clear> ...
+  retry-state <init|register|increment|set-model|get|clear> ...
   pr-ready
   pr-body [--output <file>]
   pr-create [--title "<title>"] [--body-file <file>] [--base <branch>] [--draft]
@@ -45,56 +54,30 @@ EOF
 
 route_task() {
   local task
-  local tier role skills reasoning model
+  local tier role skills reasoning model shape
   task="$(printf '%s' "$1" | tr '[:upper:]' '[:lower:]')"
-  local narrow_task=false
-  if printf '%s' "$task" | grep -Eq 'single-file|single file|one file|targeted|small fix|minor fix|typo|rename|copy change|small config|simple docs|narrow'; then
-    narrow_task=true
-  fi
-  if printf '%s' "$task" | grep -Eq 'framework health|new skill|role update|routing|codex framework'; then
-    role="framework-manager"; skills="framework-management"; tier="high"
-  elif printf '%s' "$task" | grep -Eq 'dependency audit|security audit|cve|plugin review'; then
-    role="auditor"; skills="security-audit,dependency-audit,plugin-security-review"; tier="medium"
-  elif printf '%s' "$task" | grep -Eq 'create pr|open pr|prepare pr|publish pr|pull request summary'; then
-    role="project-manager"; skills="project-setup,process-hygiene"; tier="low"
-  elif printf '%s' "$task" | grep -Eq 'backlog|sprint|milestone|ticket|repo setup'; then
-    role="project-manager"; skills="project-setup,process-hygiene"; tier="low"
-  elif printf '%s' "$task" | grep -Eq 'review|audit|pr'; then
-    role="reviewer"; skills="frontend-review,backend-review,security-audit"; tier="medium"
-    [ "$narrow_task" = true ] && tier="low"
-  elif printf '%s' "$task" | grep -Eq 'test|coverage|regression|e2e'; then
-    role="tester"; skills="frontend-test,backend-test"; tier="medium"
-    [ "$narrow_task" = true ] && tier="low"
-  elif printf '%s' "$task" | grep -Eq 'refactor|simplify|migrate|clean up'; then
-    role="refactorer"; skills="frontend-refactor,backend-refactor"; tier="high"
-    [ "$narrow_task" = true ] && tier="medium"
-  elif printf '%s' "$task" | grep -Eq 'fix|bug|crash|debug|wrong behavior|performance|failure|incident|race condition'; then
-    role="fixer"; skills="frontend-debug,backend-debug"; tier="medium"
-    [ "$narrow_task" = true ] && tier="low"
-    if printf '%s' "$task" | grep -Eq 'across|cross-system|cross system|multi-system|multi service|migration|webhook|concurrency|deadlock|race condition|distributed'; then
-      tier="high"
-    fi
-  elif printf '%s' "$task" | grep -Eq 'design|architecture|schema|api contract|technical plan|new dependency'; then
-    role="architect"; skills="api-design,backend-architecture,frontend-architecture"; tier="high"
-  elif printf '%s' "$task" | grep -Eq 'react native|expo|flutter|ios|android|mobile'; then
-    role="builder-mobile"; skills="mobile-implement,accessibility-implement"; tier="medium"
-  elif printf '%s' "$task" | grep -Eq 'next\.js|nextjs|blazor|app router|razor|page and api|full-stack framework'; then
-    role="builder-fullstack"; skills="frontend-implement,backend-implement,api-design"; tier="high"
-  elif printf '%s' "$task" | grep -Eq 'n8n|workflow|automation| ai |llm|rag|prompt|vector|agent'; then
-    role="builder-automation"; skills="automation-ai-workflows,llm-security,prompt-engineering"; tier="high"
-  elif printf '%s' "$task" | grep -Eq 'docker|kubernetes|infra|deploy|ci|cd'; then
-    role="builder-infra"; skills="devops-ci,infrastructure-as-code,deployment-validation"; tier="medium"
-  elif printf '%s' "$task" | grep -Eq 'ui|component|page|frontend|styling|form|accessibility'; then
-    role="builder-frontend"; skills="frontend-implement,accessibility-implement"; tier="medium"
-    [ "$narrow_task" = true ] && tier="low"
-  elif printf '%s' "$task" | grep -Eq 'api|backend|service|auth|job|database|persistence'; then
-    role="builder-backend"; skills="backend-implement,api-design"; tier="medium"
-    [ "$narrow_task" = true ] && tier="low"
-  elif printf '%s' "$task" | grep -Eq 'typo|rename|copy change|small config|simple docs|single-file'; then
-    role="builder"; skills="frontend-implement,backend-implement"; tier="low"
-  else
-    role="builder"; skills="frontend-implement,backend-implement"; tier="medium"
-  fi
+  shape="$(classify_task_shape "$task")"
+  role="$(choose_role_from_repo_intelligence "$task" "$shape")"
+  tier="$(choose_tier_from_role_and_task "$role" "$task" "$shape")"
+  case "$role" in
+    framework-manager) skills="framework-management,process-hygiene,docs-sync" ;;
+    auditor) skills="security-audit,dependency-audit,plugin-security-review,audit-logging,incident-response" ;;
+    project-manager) skills="project-setup,process-hygiene,release-management,adr-management,docs-sync" ;;
+    reviewer) skills="frontend-review,backend-review,security-audit,ui-consistency-audit,accessibility-audit,performance,docs-sync" ;;
+    tester) skills="frontend-test,backend-test,e2e-test,visual-regression,contract-testing" ;;
+    refactorer) skills="frontend-refactor,backend-refactor,ui-consistency-audit,code-reuse,performance" ;;
+    fixer) skills="frontend-debug,backend-debug,performance,security-audit,accessibility-audit" ;;
+    architect) skills="api-design,backend-architecture,frontend-architecture,design-system-architecture,data-modeling,database-migration,ddd-patterns,observability-design,adr-management,security-audit" ;;
+    builder-mobile) skills="mobile-implement,accessibility-implement,animation-motion,mobile-deployment,deployment-validation,offline-sync-design,auth-security" ;;
+    builder-fullstack) skills="frontend-implement,backend-implement,api-design,accessibility-implement,data-validation-design,docs-sync" ;;
+    builder-n8n) skills="automation-n8n-implement,automation-n8n-architecture,automation-n8n-debug,n8n-test,llm-security,prompt-management" ;;
+    builder-ai) skills="automation-ai-workflows,llm-security,prompt-engineering,ai-agent-architecture,prompt-management,rag-pipeline,vector-database,ai-streaming,multimodal-processing" ;;
+    builder-automation) skills="automation-ai-workflows,llm-security,prompt-engineering,automation-n8n-architecture,automation-n8n-debug,n8n-test,prompt-management,rag-pipeline,vector-database" ;;
+    builder-infra) skills="devops-ci,infrastructure-as-code,deployment-validation,deployment-strategies,environment-management,kubernetes-workload,observability-design,incident-response" ;;
+    builder-frontend) skills="frontend-implement,accessibility-implement,design-system-implement,animation-motion,responsive-design,ui-consistency-audit" ;;
+    builder-backend) skills="backend-implement,api-design,data-validation-design,auth-security,database-optimization,docs-sync,observability-design" ;;
+    *) skills="frontend-implement,backend-implement" ;;
+  esac
   reasoning="$(tier_reasoning "$tier")"
   model="$(tier_model "$tier")"
   echo "role=$role skills=$skills tier=$tier model=$model reasoning=$reasoning"
@@ -117,7 +100,7 @@ run_task() {
   brief_file="$(bash "$ROOT/scripts/task-brief.sh" --task "$prompt")"
   printf 'role=%s\nskills=%s\ntier=%s\nmodel=%s\nreasoning=%s\nlog=%s\n' \
     "$role" "$skills" "$tier" "$model" "$reasoning" "$log_file"
-  exec codex -m "$model" "Read $brief_file first, then execute the task."
+  codex_exec -m "$model" "Read $brief_file first, then execute the task."
 }
 
 start_cmd() {
@@ -163,7 +146,11 @@ case "$cmd" in
   work) [ $# -ge 1 ] || usage; bash "$ROOT/scripts/work.sh" "$@" ;;
   health) bash "$ROOT/scripts/framework-health.sh" ;;
   preflight) bash "$ROOT/scripts/preflight.sh" ;;
+  doctor) bash "$ROOT/scripts/doctor.sh" "${1:-$PWD}" ;;
   capabilities) bash "$ROOT/scripts/capabilities.sh" "${1:-$PWD}" ;;
+  intelligence) bash "$ROOT/scripts/detect-repo-intelligence.sh" "${1:-$PWD}" "${2:-}" ;;
+  detect-features) bash "$ROOT/scripts/detect-project-features.sh" "${1:-$PWD}" ;;
+  detect-conventions) bash "$ROOT/scripts/detect-project-conventions.sh" "${1:-$PWD}" "${2:-}" ;;
   github-status) bash "$ROOT/scripts/github-status.sh" ;;
   github-issue-fetch) [ $# -ge 1 ] || usage; bash "$ROOT/scripts/github-issue-fetch.sh" "$1" ;;
   github-pr-context) [ $# -ge 1 ] || usage; bash "$ROOT/scripts/github-pr-context.sh" "$1" ;;
@@ -184,6 +171,11 @@ case "$cmd" in
   spec-status) bash "$ROOT/scripts/spec-status.sh" "$@" ;;
   browser-verify) bash "$ROOT/scripts/browser-verify.sh" "$@" ;;
   post-change-check) bash "$ROOT/scripts/post-change-check.sh" ;;
+  guard-scan) bash "$ROOT/scripts/guard-scan.sh" "$@" ;;
+  quality-check) bash "$ROOT/scripts/quality-check.sh" "$@" ;;
+  install-git-hooks) bash "$ROOT/scripts/install-git-hooks.sh" "${1:-$PWD}" ;;
+  handoff) [ $# -ge 1 ] || usage; bash "$ROOT/scripts/handoff-state.sh" "$@" ;;
+  retry-state) [ $# -ge 1 ] || usage; bash "$ROOT/scripts/retry-state.sh" "$@" ;;
   pr-ready) bash "$ROOT/scripts/pr-ready.sh" ;;
   pr-body) bash "$ROOT/scripts/pr-body.sh" "$@" ;;
   pr-create) bash "$ROOT/scripts/pr-create.sh" "$@" ;;

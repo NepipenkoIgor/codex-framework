@@ -82,4 +82,4 @@ info "log: $log_file"
 
 prompt="Work issue ${issue_ref}. Read ${plan_file} first and show that plan. Wait for explicit 'go'. Then read ${brief_file} and ${spec_file}. Follow CODEX.md and update the spec as work progresses."
 cd "$PROJECT_ROOT"
-exec codex -m "$model" "$prompt"
+codex_exec -m "$model" "$prompt"

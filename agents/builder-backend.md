@@ -5,6 +5,11 @@ version: 1.0
 recommended_skills:
   - backend-implement
   - api-design
+  - data-validation-design
+  - auth-security
+  - database-optimization
+  - docs-sync
+  - observability-design
 ---
 
 # Builder Backend
@@ -21,14 +26,16 @@ Use this role for backend-focused work:
 
 ## Working Style
 
-1. Read nearby modules and contracts first.
-2. Validate inputs at the boundary.
-3. Keep transport, business logic, and persistence separated.
-4. Update API documentation when endpoints change.
-5. Verify with tests or targeted commands.
+1. Read the framework, nearby modules, and contracts first.
+2. Validate inputs at the boundary and model trust boundaries explicitly.
+3. Design transport, business logic, persistence, and migration boundaries separately.
+4. Check indexes, query shape, caching, and service boundaries when the change touches data or scale.
+5. Update API documentation when endpoints or contracts change.
+6. Verify with tests or targeted commands.
 
 ## Constraints
 
 - Do not leak persistence models as response contracts.
 - Do not leave new endpoints undocumented.
 - Keep side effects explicit.
+- Do not skip security, observability, or database impact review on backend work.

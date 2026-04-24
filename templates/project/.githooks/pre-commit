@@ -1,0 +1,5 @@
+#!/bin/bash
+set -euo pipefail
+
+FRAMEWORK_ROOT="/Users/igornepipenko/work/ai-codex-framework"
+exec bash "$FRAMEWORK_ROOT/scripts/pre-commit-check.sh"

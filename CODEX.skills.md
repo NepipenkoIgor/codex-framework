@@ -2,11 +2,13 @@
 
 Codex uses explicit, generated task briefs instead of hidden hook-based injection.
 This file defines how the framework chooses the smallest useful skill set for a task.
+The planner resolves skill names lazily through `SKILLS_MAP.*.md` and cached repo signals, then uses this file as the policy contract for how those names should be layered.
 
 ## Principles
 
 - Start from the routed role, then narrow by stack and feature signals.
-- Prefer 1 primary skill plus 1-3 supporting skills.
+- Prefer 1 primary skill plus a compact supporting bundle.
+- Senior domain baselines may be wider when the role owns design, security, docs, release, or performance concerns.
 - Mechanical low-reasoning work should skip broad skill injection.
 - Reviewers and architects should load audit or design variants, not implementor-only guidance.
 - Stack-specific skills refine the base domain skill; they do not replace it.
@@ -25,15 +27,26 @@ If two skills overlap heavily, keep the more specific one.
 
 ## Role Baselines
 
+Treat these baselines as senior-engineer bundles for the domain, not thin task executors.
+
 ### `builder-frontend`
 
 - `frontend-implement`
 - `accessibility-implement`
+- `design-system-implement`
+- `animation-motion`
+- `responsive-design`
+- `ui-consistency-audit`
 
 ### `builder-backend`
 
 - `backend-implement`
 - `api-design`
+- `data-validation-design`
+- `auth-security`
+- `database-optimization`
+- `docs-sync`
+- `observability-design`
 
 Use `data-validation-design` and `audit-logging` whenever the task adds or changes request boundaries.
 
@@ -47,34 +60,79 @@ Use `data-validation-design` and `audit-logging` whenever the task adds or chang
 - `frontend-implement`
 - `backend-implement`
 - `api-design`
+- `accessibility-implement`
+- `data-validation-design`
+- `docs-sync`
 
 ### `builder-mobile`
 
 - `mobile-implement`
 - `accessibility-implement`
+- `animation-motion`
+- `mobile-deployment`
+- `deployment-validation`
+- `offline-sync-design`
+- `auth-security`
 
 ### `builder-automation`
 
 - `automation-ai-workflows`
 - `llm-security`
+- `automation-n8n-architecture`
+- `automation-n8n-debug`
+- `n8n-test`
+- `prompt-management`
+- `rag-pipeline`
+- `vector-database`
 
 Use `automation-n8n-implement` for n8n work and `rag-pipeline` for retrieval systems.
+
+### `builder-ai`
+
+- `automation-ai-workflows`
+- `llm-security`
+- `ai-agent-architecture`
+- `prompt-engineering`
+- `prompt-management`
+- `rag-pipeline`
+- `vector-database`
+- `ai-streaming`
+- `multimodal-processing`
+
+### `builder-n8n`
+
+- `automation-n8n-implement`
+- `automation-n8n-architecture`
+- `automation-n8n-debug`
+- `n8n-test`
+- `llm-security`
+- `prompt-management`
 
 ### `builder-infra`
 
 - `devops-ci`
 - `infrastructure-as-code`
 - `deployment-validation`
+- `deployment-strategies`
+- `environment-management`
+- `kubernetes-workload`
+- `observability-design`
+- `incident-response`
 
 ### `fixer`
 
 - `frontend-debug` or `backend-debug`
+- `performance`
+- `security-audit`
+- `accessibility-audit`
 
 Choose the domain that actually owns the defect. Add only one secondary skill unless the bug is cross-system.
 
 ### `refactorer`
 
 - `frontend-refactor` or `backend-refactor`
+- `code-reuse`
+- `performance`
 
 Use both only for true cross-layer refactors.
 
@@ -84,12 +142,14 @@ Use both only for true cross-layer refactors.
 - `security-audit`
 
 Add `ui-consistency-audit` for UI changes and `performance` for backend/runtime risk.
+Use `accessibility-audit`, `docs-sync`, and `observability-design` when the review scope includes those concerns.
 
 ### `tester`
 
 - `frontend-test` or `backend-test`
 
 Add `e2e-test` only when the change is user-flow or browser verification heavy.
+Use `visual-regression` for UI diffs and `contract-testing` when API contract safety matters.
 
 ### `architect`
 
@@ -97,6 +157,7 @@ Add `e2e-test` only when the change is user-flow or browser verification heavy.
 - `api-design`
 
 Use both architecture skills for cross-system work.
+Add `data-modeling`, `database-migration`, `ddd-patterns`, `design-system-architecture`, `observability-design`, and `adr-management` when relevant.
 
 ### `auditor`
 
@@ -104,10 +165,19 @@ Use both architecture skills for cross-system work.
 - `dependency-audit`
 
 Use `plugin-security-review` when the audit scope is plugins or prompt-pack extensions.
+Add `audit-logging` and `incident-response` when the audit touches compliance or operational risk.
 
 ### `framework-manager`
 
 - `framework-management`
+
+### `project-manager`
+
+- `project-setup`
+- `process-hygiene`
+- `release-management`
+- `adr-management`
+- `docs-sync`
 
 ## Stack-Specific Skills
 
@@ -162,17 +232,24 @@ Add only the ones directly implied by the repo or task.
 - Forms: `advanced-forms`
 - State-heavy frontend: `state-management`
 - Design system work: `design-system-implement` or `design-system-architecture`
+- Tailwind or utility-class repos: add `ui-consistency-audit` and `design-system-implement` for visible UI changes; prefer utility classes over inline styles
 - Accessibility audits: `accessibility-audit`
 - Responsive UI: `responsive-design`
 - SEO work: `seo-optimization` or `seo-audit`
 - Internationalization: `i18n-implementation`
 - Analytics: `analytics-implementation`
+- Analytics strategy: `analytics-strategy`
 - Error tracking/observability: `error-tracking`, `observability-design`
 - RAG/vector search: `rag-pipeline`, `vector-database`
 - Streaming AI responses: `ai-streaming`
 - Prompt-heavy automation: `prompt-engineering`, `prompt-management`
 - n8n: `automation-n8n-architecture`, `automation-n8n-implement`, `automation-n8n-debug`, `n8n-test`
 - GDPR/compliance: `gdpr-compliance`, `audit-logging`
+- ADR/decision records: `adr-management`
+- AI cost planning: `ai-cost-modeling`
+- Runbooks: `runbook-generation`
+- Code reuse cleanup: `code-reuse`
+- Subscription plan changes: `upgrade-downgrade-flows`
 
 ## Task Extras
 

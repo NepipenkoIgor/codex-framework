@@ -64,14 +64,36 @@ check_file() {
 
 check_file "README.md"
 check_file "CODEX.md"
+check_file "CODEX.concepts.md"
 check_file "CODEX.skills.md"
 check_file "CODEX.capabilities.md"
+check_file "CODEX.permissions.md"
+check_file "ORCHESTRATOR_REFERENCE.md"
 check_file "CONCEPTS.md"
 check_file "routing.yaml"
+check_file "SKILLS_MAP.core.md"
+check_file "SKILLS_MAP.frontend.md"
+check_file "SKILLS_MAP.backend.md"
+check_file "SKILLS_MAP.mobile.md"
+check_file "SKILLS_MAP.infra.md"
+check_file "SKILLS_MAP.specialized.md"
+check_file "SKILLS_MAP.testing.md"
 check_file "scripts/setup.sh"
 check_file "scripts/detect-project-stack.sh"
+check_file "scripts/detect-project-features.sh"
+check_file "scripts/detect-project-policy.sh"
+check_file "scripts/detect-project-conventions.sh"
+check_file "scripts/detect-repo-intelligence.sh"
 check_file "scripts/detect-project-commands.sh"
 check_file "scripts/capabilities.sh"
+check_file "scripts/doctor.sh"
+check_file "scripts/guard-scan.sh"
+check_file "scripts/quality-check.sh"
+check_file "scripts/pre-commit-check.sh"
+check_file "scripts/commit-msg-check.sh"
+check_file "scripts/install-git-hooks.sh"
+check_file "scripts/handoff-state.sh"
+check_file "scripts/retry-state.sh"
 check_file "scripts/banner.sh"
 check_file "scripts/plan.sh"
 check_file "scripts/session-start.sh"
@@ -95,9 +117,13 @@ check_file "scripts/browser-verify.sh"
 check_file "scripts/codex-fw.sh"
 check_file "templates/project/CODEX.md"
 check_file "templates/project/.codex/project.env"
+check_file "templates/project/.githooks/pre-commit"
+check_file "templates/project/.githooks/commit-msg"
 check_file "agents/builder-mobile.md"
 check_file "agents/builder-fullstack.md"
 check_file "agents/builder-automation.md"
+check_file "agents/builder-ai.md"
+check_file "agents/builder-n8n.md"
 
 skill_count=$(find "$ROOT/skills" -name SKILL.md | wc -l | tr -d ' ')
 agent_count=$(find "$ROOT/agents" -maxdepth 1 -name '*.md' | wc -l | tr -d ' ')
@@ -158,13 +184,18 @@ check_model_consistency "medium"
 check_model_consistency "high"
 check_model_consistency "xhigh"
 
-check_route_expectation "review GitHub PR #123 and check CI" 'role=reviewer .*tier=medium .*model=gpt-5\.4-mini'
+check_route_expectation "review GitHub PR #123 and check CI" 'role=reviewer .*tier=medium .*model=gpt-5\.4'
 check_route_expectation "fix checkout race condition across API and webhook handling" 'role=fixer .*tier=high .*model=gpt-5\.4'
 check_route_expectation "create small config rename in single-file script" 'role=builder .*tier=low .*model=codex-mini-latest'
 check_route_expectation "design API contract for new billing service" 'role=architect .*tier=high .*model=gpt-5\.4'
 
 if ! bash "$ROOT/scripts/detect-project-commands.sh" "$ROOT" >/dev/null 2>&1; then
   echo "command detection failed"
+  failures=$((failures + 1))
+fi
+
+if ! bash "$ROOT/scripts/doctor.sh" "$ROOT" >/dev/null 2>&1; then
+  echo "doctor failed"
   failures=$((failures + 1))
 fi
 

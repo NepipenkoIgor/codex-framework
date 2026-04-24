@@ -67,8 +67,25 @@ fi
 cat >> "$SHELL_RC" <<EOF
 
 $START_MARKER
+export CODEX_APPROVAL_MODE="never"
+export CODEX_SANDBOX_MODE="danger-full-access"
+# export CODEX_FULL_AUTO="1"
+
+_codex_has_runtime_flags() {
+  local arg
+  for arg in "\$@"; do
+    case "\$arg" in
+      -a|--ask-for-approval|-s|--sandbox|--full-auto|--dangerously-bypass-approvals-and-sandbox)
+        return 0
+        ;;
+    esac
+  done
+  return 1
+}
+
 # -w <issue>  create/open issue worktree, extract spec, and launch Codex there
 codex() {
+  local -a runtime_args=()
   if [ \$# -eq 0 ]; then
     codex-fw session
     return
@@ -88,7 +105,16 @@ codex() {
     codex-fw go "\$*"
     return
   fi
-  command codex "\$@"
+  if _codex_has_runtime_flags "\$@"; then
+    command codex "\$@"
+    return
+  fi
+  [ -n "\${CODEX_APPROVAL_MODE:-}" ] && [ "\${CODEX_APPROVAL_MODE}" != "inherit" ] && runtime_args+=("-a" "\${CODEX_APPROVAL_MODE}")
+  [ -n "\${CODEX_SANDBOX_MODE:-}" ] && [ "\${CODEX_SANDBOX_MODE}" != "inherit" ] && runtime_args+=("-s" "\${CODEX_SANDBOX_MODE}")
+  case "\${CODEX_FULL_AUTO:-0}" in
+    1|true|TRUE|yes|YES) runtime_args+=("--full-auto") ;;
+  esac
+  command codex "\${runtime_args[@]}" "\$@"
 }
 $END_MARKER
 EOF
@@ -119,4 +145,8 @@ Next steps:
 10. Create a PR with gh using that body: codex-fw pr-create
 11. Use $REPO_DIR/agents as role briefs for delegated work.
 12. Run codex-fw health to validate the framework.
+13. Run codex-fw doctor in a project to confirm capabilities and hook installation.
+14. The default runtime profile is now: codex -a never -s danger-full-access
+15. Override it per shell with: export CODEX_APPROVAL_MODE=on-request or export CODEX_SANDBOX_MODE=workspace-write
+16. Read $REPO_DIR/CODEX.permissions.md for the Codex-native approval model and runtime defaults.
 EOF

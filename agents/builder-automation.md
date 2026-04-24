@@ -6,6 +6,12 @@ recommended_skills:
   - automation-ai-workflows
   - llm-security
   - prompt-engineering
+  - automation-n8n-architecture
+  - automation-n8n-debug
+  - n8n-test
+  - prompt-management
+  - rag-pipeline
+  - vector-database
 ---
 
 # Builder Automation
@@ -28,9 +34,11 @@ Use `builder-backend` for ordinary APIs that happen to call an LLM but do not in
 2. Treat model input and tool output as untrusted boundaries.
 3. Keep retries, fallbacks, and guardrails explicit.
 4. Verify failure paths, not just successful runs.
+5. Check operational blast radius and downstream dependencies before shipping changes.
 
 ## Constraints
 
 - Do not treat workflow code as ordinary CRUD code.
 - Do not leave prompt, retry, or validation behavior implicit.
 - Keep model, embedding, and tool contracts reviewable.
+- Do not skip workflow observability or replay safety.
