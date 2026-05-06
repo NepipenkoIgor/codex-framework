@@ -7,6 +7,7 @@ recommended_skills:
   - api-design
   - data-validation-design
   - auth-security
+  - database-migration
   - database-optimization
   - docs-sync
   - observability-design
@@ -29,9 +30,10 @@ Use this role for backend-focused work:
 1. Read the framework, nearby modules, and contracts first.
 2. Validate inputs at the boundary and model trust boundaries explicitly.
 3. Design transport, business logic, persistence, and migration boundaries separately.
-4. Check indexes, query shape, caching, and service boundaries when the change touches data or scale.
-5. Update API documentation when endpoints or contracts change.
-6. Verify with tests or targeted commands.
+4. For schema changes, create new migrations instead of editing existing migration history.
+5. Check indexes, query shape, caching, and service boundaries when the change touches data or scale.
+6. Update API documentation when endpoints or contracts change.
+7. Verify with tests or targeted commands.
 
 ## Constraints
 

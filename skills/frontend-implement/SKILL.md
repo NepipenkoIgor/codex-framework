@@ -19,9 +19,13 @@ Implement $ARGUMENTS.
 - Follow existing conventions, file structure, naming, and architecture.
 - Prefer consistency with the current codebase over introducing new patterns.
 - Keep components focused; separate UI, state, schemas, types, and data-access concerns.
+- Reuse the existing design system, UI kit, primitives, tokens, and component variants before adding new UI surface.
+- Prefer project utility classes, variant helpers, and shared class composition helpers over inline styles or arbitrary values.
+- Avoid hardcoded visual values when tokens, theme variables, or shared variants exist.
 - TypeScript-first; derive types from schemas to avoid duplication.
 - Build async flows with loading, error, empty, and success states.
 - Prefer explicit, predictable data flow.
+- Keep implementation simple: solve the current product problem without speculative abstraction.
 
 ## Dependencies and Imports
 
@@ -35,6 +39,16 @@ Implement $ARGUMENTS.
 - Avoid duplicate requests and race conditions.
 - Separate request DTOs, API types, UI view models, and form models when responsibilities differ.
 - Prefer architecture and state fixes before memoization.
+- Avoid render waterfalls, unstable keys, and unnecessary re-renders; measure before adding complex performance optimizations.
+
+## UI Consistency
+
+- Inspect nearby components and shared UI primitives before creating new elements.
+- Match existing spacing, typography, radius, shadow, icon, and focus patterns.
+- Use design tokens or semantic utility classes for colors and spacing.
+- Do not introduce a parallel UI kit or one-off styling system.
+- Keep interactive states complete: default, hover, focus-visible, active, disabled, loading, and error.
+- Design for responsive behavior with existing breakpoints and layout primitives.
 
 ## Forms
 
@@ -89,3 +103,4 @@ Implement $ARGUMENTS.
 - Produce production-ready code in the repository's existing style.
 - Keep the implementation narrow.
 - State assumptions when context is missing.
+- Mention any design-system, token, or UI consistency assumption that could not be verified.

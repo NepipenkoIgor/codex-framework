@@ -8,7 +8,7 @@ set -euo pipefail
 issue_ref="$1"
 mode="${2:-}"
 ROOT="$(project_root)"
-ensure_project_bootstrap "$ROOT"
+ensure_project_bootstrap "$ROOT" >/dev/null 2>&1 || fail "failed to bootstrap project state"
 ensure_spec_root
 
 parse_issue_number() {

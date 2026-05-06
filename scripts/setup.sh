@@ -83,7 +83,21 @@ _codex_has_runtime_flags() {
   return 1
 }
 
-# -w <issue>  create/open issue worktree, extract spec, and launch Codex there
+git() {
+  if [ "\${1:-}" = "commit" ]; then
+    for arg in "\$@"; do
+      case "\$arg" in
+        --no-verify|-n)
+          printf 'error: git commit --no-verify is blocked by the framework; fix the underlying checks instead.\n' >&2
+          return 1
+          ;;
+      esac
+    done
+  fi
+  command git "\$@"
+}
+
+# -w <issue>  create fresh issue worktree, extract spec, and launch Codex there
 codex() {
   local -a runtime_args=()
   if [ \$# -eq 0 ]; then
@@ -95,13 +109,19 @@ codex() {
     command codex "\$@"
     return
   fi
+  if [ "\$1" = "--worktrees" ]; then
+    codex-fw worktrees
+    return
+  fi
   if [ "\$1" = "-w" ] && [ \$# -ge 2 ]; then
     shift
-    codex-fw work "\$1"
+    printf '→ launching issue workflow for %s\n' "\$1"
+    codex-fw work "\$@"
     return
   fi
   if { [ "\$1" = "--task" ] || [ "\$1" = "-t" ]; } && [ \$# -ge 2 ]; then
     shift
+    printf '→ launching task session\n'
     codex-fw go "\$*"
     return
   fi
@@ -134,12 +154,12 @@ $(report_dep optional jq "jq")
 
 Next steps:
 1. Restart your shell or run: source "$SHELL_RC"
-2. Valid wrapped commands are: codex | codex --task "fix login bug" | codex -w 424 | codex --raw
+2. Valid wrapped commands are: codex | codex --task "fix login bug" | codex -w 424 | codex --worktrees | codex --raw
 3. Do not use: codex -row or codex --row
 4. In any repo, run: codex or codex-fw session
-5. For task bootstrap, run: codex --task "fix login bug" or codex-fw go "fix login bug"
+5. For task bootstrap, run: codex --task "fix login bug" or codex-fw go "fix login bug" (this now creates a sibling worktree by default)
 6. To bypass the framework and open plain Codex, run: codex --raw
-7. For issue workflow with a sibling worktree, run: codex-fw work 424 or codex -w 424
+7. For issue workflow with a fresh sibling worktree, run: codex-fw work 424 or codex -w 424
 8. To refresh a repo's detected commands manually, run: codex-fw refresh-commands
 9. Generate a PR body with: codex-fw pr-body
 10. Create a PR with gh using that body: codex-fw pr-create
@@ -148,5 +168,6 @@ Next steps:
 13. Run codex-fw doctor in a project to confirm capabilities and hook installation.
 14. The default runtime profile is now: codex -a never -s danger-full-access
 15. Override it per shell with: export CODEX_APPROVAL_MODE=on-request or export CODEX_SANDBOX_MODE=workspace-write
-16. Read $REPO_DIR/CODEX.permissions.md for the Codex-native approval model and runtime defaults.
+16. Set CODEX_TASK_WORKTREE=0 if you want task sessions to stay in the current checkout.
+17. Read $REPO_DIR/CODEX.permissions.md for the Codex-native approval model and runtime defaults.
 EOF

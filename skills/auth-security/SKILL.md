@@ -191,7 +191,8 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
     },
   },
 });
-// middleware.ts: export { auth as middleware }; export const config = { matcher: [...] };
+// proxy.ts in Next.js 16: export { auth as proxy }; export const config = { matcher: [...] };
+// middleware.ts is deprecated in Next.js 16; keep only for explicit Edge runtime or pre-migration projects.
 // Server Component/Action: const session = await auth(); if (!session) redirect('/login');
 ```
 

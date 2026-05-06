@@ -21,6 +21,7 @@ Set up the project for $ARGUMENTS.
 3. On approval, create or configure the repository and workflow assets.
 4. Bootstrap project-local `CODEX.md` instructions when requested.
 5. Report results with links and changed files.
+6. Verify required local files, remote settings, and documented next steps.
 
 ## Setup Scope
 
@@ -45,3 +46,30 @@ If the user wants the repository prepared for this framework:
 - Never create external resources without explicit approval.
 - Never overwrite an existing project `CODEX.md` without confirmation.
 - Keep traceability back to the source requirements or estimate.
+- Prefer repo-native templates and scripts over one-off setup.
+- Do not hardcode organization secrets, tokens, or environment-specific values in committed files.
+- Keep branch, label, issue, and PR conventions consistent with the team workflow.
+
+## Quality Bar
+
+- Setup should make the next contributor faster, not add ceremonial process.
+- Use minimal templates that encode real expectations.
+- Keep project instructions specific to the repo stack, commands, architecture, and quality gates.
+- Document local and remote setup separately.
+- Leave a clear verification path.
+
+## Verification
+
+- Check generated files exist and do not overwrite unrelated content.
+- Confirm local project commands are detected or documented.
+- Confirm hooks/templates/labels/branch guidance match the requested workflow.
+- Run `scripts/doctor.sh` or the project-equivalent readiness check when applicable.
+
+## Output Contract
+
+Status: done | partial | blocked
+Created/changed: [files, repo settings, templates]
+Approvals: [external actions approved or skipped]
+Verification: [doctor/checks/manual confirmation]
+Next: [follow-up setup step]
+Notes: [risks or missing permissions]

@@ -14,6 +14,7 @@ The core file relationships in this repo are:
 
 ```text
 CODEX.md                 <- global orchestration and routing
+CODEX.versions.md        <- target framework/runtime versions and upgrade-pressure policy
 README.md                <- framework overview and usage
 agents/*.md              <- role briefs for Codex delegation
 skills/*/SKILL.md        <- reusable skill definitions
@@ -63,8 +64,9 @@ Validate:
 1. required top-level files exist
 2. role briefs are readable and purpose-specific
 3. skill files exist and have frontmatter
-4. scripts needed by the framework are present
-5. docs match the actual repository structure
+4. platform version policy exists and is referenced by orchestration docs
+5. scripts needed by the framework are present
+6. docs match the actual repository structure
 
 ## Constraints
 

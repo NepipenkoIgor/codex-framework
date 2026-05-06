@@ -115,7 +115,7 @@ public async Task<CheckoutResult> ProcessAsync(CheckoutRequest request, Cancella
 - LaunchDarkly: `@launchdarkly/vercel-server-sdk` for edge/server
 - Server Component: evaluate flags server-side, pass as props (no client SDK needed)
 - Client Component: `launchdarkly-react-client-sdk` with `useFlags()` hook
-- Middleware: `middleware.ts` for flag-based routing/redirects
+- Proxy: `proxy.ts` for Next.js 16 flag-based routing/redirects; use `middleware.ts` only for explicit Edge runtime or pre-migration projects
 - Statsig: `statsig-node` in Server Components, `statsig-react` in Client Components
 
 ### React

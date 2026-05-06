@@ -6,7 +6,6 @@ set -euo pipefail
 ROOT="$(project_root)"
 ensure_project_bootstrap "$ROOT"
 load_project_commands
-refresh_repo_intelligence >/dev/null
 load_repo_intelligence
 
 print_section "Project"
@@ -31,6 +30,13 @@ fi
 
 ensure_spec_root
 info "spec root: $(spec_root)"
+
+memory_dir="$(bash "$(framework_root)/scripts/memory-state.sh" init 2>/dev/null || true)"
+if [ -n "$memory_dir" ]; then
+  info "memory root: $memory_dir"
+else
+  warn "memory root unavailable"
+fi
 
 print_section "Git"
 if git rev-parse --show-toplevel >/dev/null 2>&1; then

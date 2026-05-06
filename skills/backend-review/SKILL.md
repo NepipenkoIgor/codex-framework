@@ -13,8 +13,10 @@ Review $ARGUMENTS.
 - correctness and regressions
 - security and validation
 - performance and query shape
+- database consistency, migrations, transactions, and index impact
 - reliability and async behavior
 - contract integrity
+- hardcoded secrets, environment constants, tenant assumptions, or layer bypasses
 - missing tests
 
 ## Method

@@ -5,7 +5,6 @@ set -euo pipefail
 
 ROOT="${1:-$(project_root)}"
 TASK="${2:-}"
-refresh_repo_intelligence >/dev/null
 load_repo_intelligence
 STACK="$RI_STACK"
 CAP_FILE="$(mktemp)"

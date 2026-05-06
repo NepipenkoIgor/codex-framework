@@ -163,26 +163,26 @@ lib/
 ├── email.ts                        # Email provider wrapper
 ├── audit.ts                        # auditLog() helper
 └── plans.ts                        # Plan definitions + limits
-middleware.ts                       # Auth guard + tenant resolver
+proxy.ts                            # Auth guard + tenant resolver (Next.js 16)
 ```
 
-## Middleware Stack
+## Proxy Stack
 
 ```typescript
-// middleware.ts — runs on every request
-import { withAuth } from 'next-auth/middleware';
+// proxy.ts — runs before matched requests in Next.js 16
+import { auth } from '@/auth';
 import { NextResponse } from 'next/server';
 
-export default withAuth(
-  function middleware(req) {
+export default auth(
+  function proxy(req) {
     const { pathname } = req.nextUrl;
-    const token = req.nextauth.token;
+    const user = req.auth?.user;
 
     // 1. Verification gate — redirect unverified users
     const publicPaths = ['/login', '/signup', '/verify-email', '/api/auth'];
     const isPublic = publicPaths.some(p => pathname.startsWith(p));
 
-    if (!isPublic && token && !token.emailVerifiedAt) {
+    if (!isPublic && user && !user.emailVerifiedAt) {
       return NextResponse.redirect(new URL('/verify-email?required=true', req.url));
     }
 
@@ -195,8 +195,7 @@ export default withAuth(
     }
 
     return NextResponse.next();
-  },
-  { pages: { signIn: '/login' } }
+  }
 );
 
 export const config = { matcher: ['/((?!_next/static|_next/image|favicon.ico).*)'] };

@@ -2,21 +2,22 @@ version: 1
 
 models:
   low:
-    model: codex-mini-latest
+    model: gpt-5.4-mini
     reasoning: low
     use_for:
       - mechanical changes
+      - PR publishing and commit mechanics
       - quick repo questions
       - narrow single-file work
   medium:
-    model: gpt-5.4
+    model: gpt-5.5
     reasoning: medium
     use_for:
       - standard feature work
       - most debugging
       - normal review and test work
   high:
-    model: gpt-5.4
+    model: gpt-5.5
     reasoning: high
     use_for:
       - architecture
@@ -24,7 +25,7 @@ models:
       - hard debugging
       - migrations
   xhigh:
-    model: gpt-5.4
+    model: gpt-5.5
     reasoning: xhigh
     use_for:
       - unusually ambiguous or high-risk work
@@ -199,20 +200,6 @@ roles:
       - llm-security
       - prompt-management
     tier: high
-  builder-specialized:
-    signals:
-      - mobile
-      - blazor
-      - ai
-      - llm
-      - realtime
-      - graphql
-      - automation
-    skills:
-      - mobile-implement
-      - fullstack-blazor-implement
-      - ai-agent-architecture
-    tier: high
   fixer:
     signals:
       - bug
@@ -282,7 +269,7 @@ roles:
       - release-management
       - adr-management
       - docs-sync
-    tier: low
+    tier: medium
   estimator:
     signals:
       - estimate
@@ -313,8 +300,16 @@ roles:
       - role update
       - routing
       - codex framework
+      - orchestration audit
+      - framework orchestration
+      - human-like agents
+      - senior engineer agents
+      - agent quality
+      - валидация фреймворка
+      - оркестрация фреймворка
     skills:
       - framework-management
+      - framework-orchestration-audit
     tier: high
 
 verification:

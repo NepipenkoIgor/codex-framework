@@ -11,7 +11,7 @@ if ! conventional_commit_valid "$message"; then
 fi
 
 case "$message" in
-  *Co-Authored-By:*|*Generated\ with*|*AI\ attribution*|*🤖*)
+  *Co-Authored-By*:*|*Generated\ with\ A[I]*|*AI\ attribution*|*🤖*)
     fail "commit message contains forbidden attribution"
     ;;
 esac
@@ -27,6 +27,8 @@ if [ -n "${2:-}" ] && [ "$2" = "--all" ]; then
 fi
 
 git diff --cached --quiet && fail "nothing staged for commit"
+
+bash "$(framework_root)/scripts/pre-commit-check.sh"
 
 git commit -m "$message"
 git rev-parse --short HEAD

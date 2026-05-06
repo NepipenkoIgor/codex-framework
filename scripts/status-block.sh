@@ -15,12 +15,8 @@ icon="⏺"
 [ "$state" = "done" ] && icon="✅"
 [ "$state" = "blocked" ] && icon="⛔"
 
-state_label="In Progress"
-[ "$state" = "done" ] && state_label="Done"
-[ "$state" = "blocked" ] && state_label="Blocked"
-
-printf '%s %s %s~%s %s\n' "$icon" "$(role_emoji "$role")" "$(role_alias "$role")" "$(model_tag "$tier")" "$state_label"
-printf '🤖 %s | Tier: %s\n' "$model" "$tier"
 if [ -n "$skills" ] && [ "$skills" != "none" ]; then
-  printf '📚 %s\n' "$(decorate_skill_list "$skills")"
+  printf '%s %s %s | 📚 %s\n' "$icon" "$(role_emoji "$role")" "$(route_badge "$role" "$model" "$tier")" "$(plain_skill_list "$skills")"
+else
+  printf '%s %s %s\n' "$icon" "$(role_emoji "$role")" "$(route_badge "$role" "$model" "$tier")"
 fi

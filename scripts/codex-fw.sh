@@ -16,12 +16,14 @@ codex-fw commands:
   help
   start [path]
   session [--task "<task text>"]
-  work <issue-number-or-url> [--refresh]
+  work <issue-number-or-url> [--refresh] [--resume] [--cleanup|--cleanup-all]
+  worktrees
   health
   preflight
   doctor [path]
   capabilities [path]
   intelligence [path] [task]
+  memory <init|status|context|search|add-episode|add-decision|compact|prune|get> ...
   detect-features [path]
   detect-conventions [path]
   github-status
@@ -52,6 +54,19 @@ codex-fw commands:
 EOF
 }
 
+show_worktrees() {
+  local rows
+  rows="$(bash "$ROOT/scripts/issue-worktrees.sh" list "${1:-$PWD}")"
+  if [ -z "$rows" ]; then
+    printf 'no issue worktrees found\n'
+    return 0
+  fi
+  {
+    printf 'ISSUE\tSHA\tBASE\tSTATE\tBRANCH\tPATH\tCREATED\n'
+    printf '%s\n' "$rows" | awk -F '\t' '{ print $1 "\t" ($2 ? $2 : "-") "\t" $3 "\t" $4 "\t" $5 "\t" $6 "\t" $7 }'
+  } | column -t -s $'\t'
+}
+
 route_task() {
   local task
   local tier role skills reasoning model shape
@@ -60,7 +75,7 @@ route_task() {
   role="$(choose_role_from_repo_intelligence "$task" "$shape")"
   tier="$(choose_tier_from_role_and_task "$role" "$task" "$shape")"
   case "$role" in
-    framework-manager) skills="framework-management,process-hygiene,docs-sync" ;;
+    framework-manager) skills="framework-management,framework-orchestration-audit,process-hygiene,docs-sync" ;;
     auditor) skills="security-audit,dependency-audit,plugin-security-review,audit-logging,incident-response" ;;
     project-manager) skills="project-setup,process-hygiene,release-management,adr-management,docs-sync" ;;
     reviewer) skills="frontend-review,backend-review,security-audit,ui-consistency-audit,accessibility-audit,performance,docs-sync" ;;
@@ -75,7 +90,7 @@ route_task() {
     builder-automation) skills="automation-ai-workflows,llm-security,prompt-engineering,automation-n8n-architecture,automation-n8n-debug,n8n-test,prompt-management,rag-pipeline,vector-database" ;;
     builder-infra) skills="devops-ci,infrastructure-as-code,deployment-validation,deployment-strategies,environment-management,kubernetes-workload,observability-design,incident-response" ;;
     builder-frontend) skills="frontend-implement,accessibility-implement,design-system-implement,animation-motion,responsive-design,ui-consistency-audit" ;;
-    builder-backend) skills="backend-implement,api-design,data-validation-design,auth-security,database-optimization,docs-sync,observability-design" ;;
+    builder-backend) skills="backend-implement,api-design,data-validation-design,auth-security,database-migration,database-optimization,docs-sync,observability-design" ;;
     *) skills="frontend-implement,backend-implement" ;;
   esac
   reasoning="$(tier_reasoning "$tier")"
@@ -144,11 +159,13 @@ case "$cmd" in
   start) start_cmd "${1:-$PWD}" ;;
   session) bash "$ROOT/scripts/session-start.sh" "$@" ;;
   work) [ $# -ge 1 ] || usage; bash "$ROOT/scripts/work.sh" "$@" ;;
+  worktrees) show_worktrees "${1:-$PWD}" ;;
   health) bash "$ROOT/scripts/framework-health.sh" ;;
   preflight) bash "$ROOT/scripts/preflight.sh" ;;
   doctor) bash "$ROOT/scripts/doctor.sh" "${1:-$PWD}" ;;
   capabilities) bash "$ROOT/scripts/capabilities.sh" "${1:-$PWD}" ;;
   intelligence) bash "$ROOT/scripts/detect-repo-intelligence.sh" "${1:-$PWD}" "${2:-}" ;;
+  memory) [ $# -ge 1 ] || usage; bash "$ROOT/scripts/memory-state.sh" "$@" ;;
   detect-features) bash "$ROOT/scripts/detect-project-features.sh" "${1:-$PWD}" ;;
   detect-conventions) bash "$ROOT/scripts/detect-project-conventions.sh" "${1:-$PWD}" "${2:-}" ;;
   github-status) bash "$ROOT/scripts/github-status.sh" ;;
@@ -176,7 +193,7 @@ case "$cmd" in
   install-git-hooks) bash "$ROOT/scripts/install-git-hooks.sh" "${1:-$PWD}" ;;
   handoff) [ $# -ge 1 ] || usage; bash "$ROOT/scripts/handoff-state.sh" "$@" ;;
   retry-state) [ $# -ge 1 ] || usage; bash "$ROOT/scripts/retry-state.sh" "$@" ;;
-  pr-ready) bash "$ROOT/scripts/pr-ready.sh" ;;
+  pr-ready) bash "$ROOT/scripts/pr-ready.sh" "$@" ;;
   pr-body) bash "$ROOT/scripts/pr-body.sh" "$@" ;;
   pr-create) bash "$ROOT/scripts/pr-create.sh" "$@" ;;
   safe-commit) bash "$ROOT/scripts/safe-commit.sh" "$@" ;;

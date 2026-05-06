@@ -44,11 +44,13 @@ Treat these baselines as senior-engineer bundles for the domain, not thin task e
 - `api-design`
 - `data-validation-design`
 - `auth-security`
+- `database-migration`
 - `database-optimization`
 - `docs-sync`
 - `observability-design`
 
 Use `data-validation-design` and `audit-logging` whenever the task adds or changes request boundaries.
+Use `database-migration` whenever backend work adds or changes schema, migrations, seed/reference data, or persistent data shape.
 
 ### `builder`
 
@@ -170,6 +172,7 @@ Add `audit-logging` and `incident-response` when the audit touches compliance or
 ### `framework-manager`
 
 - `framework-management`
+- `framework-orchestration-audit`
 
 ### `project-manager`
 

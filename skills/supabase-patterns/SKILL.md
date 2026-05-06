@@ -112,10 +112,10 @@ export function createClient() {
 }
 ```
 
-### Middleware -- protect routes, refresh session
+### Proxy / Middleware -- protect routes, refresh session
 
 ```typescript
-export async function middleware(request: NextRequest) {
+export async function proxy(request: NextRequest) {
   let response = NextResponse.next({ request });
   const supabase = createServerClient(URL, KEY, { cookies: { /* getAll/setAll on request+response */ } });
   const { data: { user } } = await supabase.auth.getUser();
@@ -124,6 +124,8 @@ export async function middleware(request: NextRequest) {
   return response;
 }
 ```
+
+Use `proxy.ts` for Next.js 16 request interception. Keep `middleware.ts` only for explicit Edge runtime cases or projects not yet migrated.
 
 ### Auth Rules
 
@@ -210,7 +212,7 @@ const { data } = await supabase.from('projects')
 
 ### Next.js App Router
 - `@supabase/ssr`: `createServerClient()` in Server Components and Route Handlers using `cookies()`
-- Middleware: `middleware.ts` refreshing session with `supabase.auth.getUser()` on every request
+- Proxy: `proxy.ts` refreshing session with `supabase.auth.getUser()` on every request in Next.js 16; keep `middleware.ts` only for Edge runtime or pre-migration projects
 - Server Action: create Supabase client per-request with cookie access for mutations
 - Client Component: `createBrowserClient()` from `@supabase/ssr` for real-time and auth state
 - Real-time in Client Component: `useEffect` + `supabase.channel().on('postgres_changes', ...).subscribe()`

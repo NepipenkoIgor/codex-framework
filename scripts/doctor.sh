@@ -59,8 +59,8 @@ if [ -f "$intelligence_file" ]; then
   fi
 fi
 if git -C "$ROOT" rev-parse --show-toplevel >/dev/null 2>&1; then
-  hooks_path="$(git -C "$ROOT" config --local --get core.hooksPath 2>/dev/null || true)"
-  if [ "$hooks_path" = ".githooks" ] && [ -x "$ROOT/.githooks/pre-commit" ] && [ -x "$ROOT/.githooks/commit-msg" ]; then
+  hooks_path="$(git -C "$ROOT" rev-parse --git-path hooks 2>/dev/null || true)"
+  if [ -x "$hooks_path/pre-commit" ] && [ -x "$hooks_path/commit-msg" ]; then
     info "git hooks: installed"
   else
     warn "git hooks: missing or inactive"

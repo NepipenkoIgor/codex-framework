@@ -4,6 +4,7 @@ description: Codex role brief for maintaining this framework repo.
 version: 1.0
 recommended_skills:
   - framework-management
+  - framework-orchestration-audit
 ---
 
 # Framework Manager
@@ -14,6 +15,8 @@ Use this role for:
 - role updates
 - skill creation or normalization
 - routing changes
+- orchestration maturity audits
+- human-like agent quality reviews
 - repository structure improvements
 
 ## Owned Files
@@ -30,7 +33,8 @@ Use this role for:
 1. Treat this repo as the source of truth for the Codex framework.
 2. Validate before creating duplicates.
 3. Keep role briefs, skills, and top-level docs aligned.
-4. Run `scripts/framework-health.sh` after meaningful framework edits.
+4. Use executable checks for routing, skills, and generated brief behavior.
+5. Run `scripts/framework-health.sh` after meaningful framework edits.
 
 ## Constraints
 

@@ -66,6 +66,7 @@ check_file "README.md"
 check_file "CODEX.md"
 check_file "CODEX.concepts.md"
 check_file "CODEX.skills.md"
+check_file "CODEX.versions.md"
 check_file "CODEX.capabilities.md"
 check_file "CODEX.permissions.md"
 check_file "ORCHESTRATOR_REFERENCE.md"
@@ -79,6 +80,12 @@ check_file "SKILLS_MAP.infra.md"
 check_file "SKILLS_MAP.specialized.md"
 check_file "SKILLS_MAP.testing.md"
 check_file "scripts/setup.sh"
+check_file "scripts/framework-eval.sh"
+check_file "scripts/framework-maturity.sh"
+check_file "scripts/framework-drift-check.sh"
+check_file "scripts/framework-benchmark.sh"
+check_file "scripts/framework-skill-quality.sh"
+check_file "scripts/framework-skill-corpus-audit.sh"
 check_file "scripts/detect-project-stack.sh"
 check_file "scripts/detect-project-features.sh"
 check_file "scripts/detect-project-policy.sh"
@@ -93,6 +100,7 @@ check_file "scripts/pre-commit-check.sh"
 check_file "scripts/commit-msg-check.sh"
 check_file "scripts/install-git-hooks.sh"
 check_file "scripts/handoff-state.sh"
+check_file "scripts/memory-state.sh"
 check_file "scripts/retry-state.sh"
 check_file "scripts/banner.sh"
 check_file "scripts/plan.sh"
@@ -104,6 +112,8 @@ check_file "scripts/github-pr-context.sh"
 check_file "scripts/github-review-prep.sh"
 check_file "scripts/task-brief.sh"
 check_file "scripts/lib.sh"
+check_file "scripts/lib/git-flow.sh"
+check_file "scripts/lib/repo-detection.sh"
 check_file "scripts/preflight.sh"
 check_file "scripts/post-change-check.sh"
 check_file "scripts/spec-status.sh"
@@ -124,6 +134,7 @@ check_file "agents/builder-fullstack.md"
 check_file "agents/builder-automation.md"
 check_file "agents/builder-ai.md"
 check_file "agents/builder-n8n.md"
+check_file "skills/framework-orchestration-audit/SKILL.md"
 
 skill_count=$(find "$ROOT/skills" -name SKILL.md | wc -l | tr -d ' ')
 agent_count=$(find "$ROOT/agents" -maxdepth 1 -name '*.md' | wc -l | tr -d ' ')
@@ -184,10 +195,45 @@ check_model_consistency "medium"
 check_model_consistency "high"
 check_model_consistency "xhigh"
 
-check_route_expectation "review GitHub PR #123 and check CI" 'role=reviewer .*tier=medium .*model=gpt-5\.4'
-check_route_expectation "fix checkout race condition across API and webhook handling" 'role=fixer .*tier=high .*model=gpt-5\.4'
-check_route_expectation "create small config rename in single-file script" 'role=builder .*tier=low .*model=codex-mini-latest'
-check_route_expectation "design API contract for new billing service" 'role=architect .*tier=high .*model=gpt-5\.4'
+check_route_expectation "review GitHub PR #123 and check CI" 'role=reviewer .*tier=medium .*model=gpt-5\.5'
+check_route_expectation "fix checkout race condition across API and webhook handling" 'role=fixer .*tier=high .*model=gpt-5\.5'
+check_route_expectation "create small config rename in single-file script" 'role=builder .*tier=low .*model=gpt-5\.4-mini'
+check_route_expectation "create PR with release summary" 'role=project-manager .*tier=low .*model=gpt-5\.4-mini'
+check_route_expectation "estimate scope and cost for checkout migration" 'role=estimator .*tier=medium .*model=gpt-5\.5'
+check_route_expectation "design API contract for new billing service" 'role=architect .*tier=high .*model=gpt-5\.5'
+check_route_expectation "update API schema for billing webhooks" 'role=(architect|builder-backend|fixer) .*tier=high .*model=gpt-5\.5'
+check_route_expectation "analyze framework orchestration and human-like engineer agents with domain knowledge" 'role=framework-manager .*tier=xhigh .*model=gpt-5\.5'
+check_route_expectation "проанализируй оркестрацию фреймворка и агентов с доменными знаниями" 'role=framework-manager .*tier=xhigh .*model=gpt-5\.5'
+
+if ! bash "$ROOT/scripts/framework-eval.sh" >/dev/null 2>&1; then
+  echo "framework eval failed"
+  failures=$((failures + 1))
+fi
+
+if ! bash "$ROOT/scripts/framework-maturity.sh" >/dev/null 2>&1; then
+  echo "framework maturity check failed"
+  failures=$((failures + 1))
+fi
+
+if ! bash "$ROOT/scripts/framework-drift-check.sh" >/dev/null 2>&1; then
+  echo "framework drift check failed"
+  failures=$((failures + 1))
+fi
+
+if ! bash "$ROOT/scripts/framework-benchmark.sh" >/dev/null 2>&1; then
+  echo "framework benchmark failed"
+  failures=$((failures + 1))
+fi
+
+if ! bash "$ROOT/scripts/framework-skill-quality.sh" >/dev/null 2>&1; then
+  echo "framework skill quality audit failed"
+  failures=$((failures + 1))
+fi
+
+if ! bash "$ROOT/scripts/framework-skill-corpus-audit.sh" >/dev/null 2>&1; then
+  echo "framework skill corpus audit failed"
+  failures=$((failures + 1))
+fi
 
 if ! bash "$ROOT/scripts/detect-project-commands.sh" "$ROOT" >/dev/null 2>&1; then
   echo "command detection failed"

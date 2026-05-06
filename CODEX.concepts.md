@@ -45,14 +45,18 @@ Fallback behavior belongs in `ORCHESTRATOR_REFERENCE.md`, not scattered shell he
 
 ### 7. Structured output is mandatory for delegated work
 
-Delegated work should always return:
+Delegated work should always use the canonical route-badge closeout:
 
-- `Status`
+- `✅ route-badge — done | partial | blocked`
+- `Requirement`
+- `Current Behavior`
+- `Mismatch`
+- `Fix Intent`
 - `Changed`
 - `Verification`
 - `Notes`
 
-The framework should bias toward compact, parseable outputs over prose.
+The framework should bias toward compact, parseable outputs over prose and must not reintroduce the legacy `Status: ...` label format for normal closeout.
 
 ### 8. Contract-first coordination is required for parallel ownership
 
