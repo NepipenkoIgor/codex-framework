@@ -30,6 +30,7 @@ models:
     use_for:
       - unusually ambiguous or high-risk work
       - second-attempt rescue work
+      - strategic framework status and orchestration audits
 
 roles:
   architect:
@@ -300,11 +301,15 @@ roles:
       - role update
       - routing
       - codex framework
+      - framework status
       - orchestration audit
       - framework orchestration
+      - prompt coding capability gaps
       - human-like agents
       - senior engineer agents
       - agent quality
+      - статус фреймворка
+      - больше чем промпт кодинг
       - валидация фреймворка
       - оркестрация фреймворка
     skills:

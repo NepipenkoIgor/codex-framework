@@ -42,9 +42,6 @@ else
       ;;
   esac
 
-  print_section "Sync"
-  sync_branch_for_pr 0 "$BASE_BRANCH"
-
   print_section "Git"
   git status --short || true
   git diff --stat HEAD || true
@@ -117,11 +114,7 @@ else
   info "no active spec found"
 fi
 
-if git rev-parse --show-toplevel >/dev/null 2>&1; then
-  print_section "Push"
-  push_branch_for_pr
-fi
-
 print_section "Result"
 info "PR readiness checks finished"
+info "publish with: codex-fw pr-publish"
 info "report: $report_file"

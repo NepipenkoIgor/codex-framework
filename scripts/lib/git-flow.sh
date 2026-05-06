@@ -200,45 +200,8 @@ rebase_in_progress() {
   return 1
 }
 
-auto_resolve_rebase_conflicts() {
-  local unresolved iteration path
-  iteration=0
-
-  while rebase_in_progress; do
-    unresolved="$(git diff --name-only --diff-filter=U)"
-    if [ -z "$unresolved" ]; then
-      if GIT_EDITOR=true git rebase --continue; then
-        iteration=$((iteration + 1))
-        [ "$iteration" -lt 50 ] || fail "rebase exceeded the auto-resolve safety limit"
-        continue
-      fi
-      if ! rebase_in_progress; then
-        return 0
-      fi
-      unresolved="$(git diff --name-only --diff-filter=U)"
-      [ -n "$unresolved" ] || fail "rebase stalled without unresolved paths"
-    fi
-
-    while IFS= read -r path; do
-      [ -n "$path" ] || continue
-      git checkout --theirs -- "$path" >/dev/null 2>&1 || git rm -f -- "$path" >/dev/null 2>&1 || true
-    done <<EOF
-$unresolved
-EOF
-
-    git add -A
-    iteration=$((iteration + 1))
-    [ "$iteration" -lt 50 ] || fail "rebase exceeded the auto-resolve safety limit"
-
-    if GIT_EDITOR=true git rebase --continue; then
-      continue
-    fi
-  done
-}
-
 sync_branch_for_pr() {
-  local push="${1:-0}"
-  local base_override="${2:-}"
+  local base_override="${1:-}"
   local branch base
   branch="$(current_branch)"
   [ "$branch" != "no-git" ] || fail "not inside a git repository"
@@ -250,23 +213,10 @@ sync_branch_for_pr() {
   git config rerere.autoUpdate true
   git fetch origin --prune
 
-  if ! git rebase --autostash -X theirs "origin/$base"; then
+  if ! git rebase --autostash "origin/$base"; then
     if rebase_in_progress; then
-      auto_resolve_rebase_conflicts
-    else
-      fail "rebase failed before conflict resolution could begin"
+      fail "rebase found conflicts; resolve them manually, then run git rebase --continue and rerun pr-publish"
     fi
+    fail "rebase failed"
   fi
-
-  if [ "$push" = "1" ]; then
-    git push --force-with-lease -u origin "$branch"
-  fi
-}
-
-push_branch_for_pr() {
-  local branch
-  branch="$(current_branch)"
-  [ "$branch" != "no-git" ] || fail "not inside a git repository"
-  [ "$branch" != "HEAD" ] || fail "cannot push a detached HEAD"
-  git push --force-with-lease -u origin "$branch"
 }

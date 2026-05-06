@@ -46,7 +46,8 @@ codex-fw commands:
   install-git-hooks [path]
   handoff <init|register|status|decision|blocker|get|clear> ...
   retry-state <init|register|increment|set-model|get|clear> ...
-  pr-ready
+  pr-ready [--base <branch>]
+  pr-publish [--base <branch>]
   pr-body [--output <file>]
   pr-create [--title "<title>"] [--body-file <file>] [--base <branch>] [--draft]
   safe-commit "<message>" [--all]
@@ -194,6 +195,7 @@ case "$cmd" in
   handoff) [ $# -ge 1 ] || usage; bash "$ROOT/scripts/handoff-state.sh" "$@" ;;
   retry-state) [ $# -ge 1 ] || usage; bash "$ROOT/scripts/retry-state.sh" "$@" ;;
   pr-ready) bash "$ROOT/scripts/pr-ready.sh" "$@" ;;
+  pr-publish) bash "$ROOT/scripts/pr-publish.sh" "$@" ;;
   pr-body) bash "$ROOT/scripts/pr-body.sh" "$@" ;;
   pr-create) bash "$ROOT/scripts/pr-create.sh" "$@" ;;
   safe-commit) bash "$ROOT/scripts/safe-commit.sh" "$@" ;;

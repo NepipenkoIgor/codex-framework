@@ -114,12 +114,14 @@ check_file "scripts/task-brief.sh"
 check_file "scripts/lib.sh"
 check_file "scripts/lib/git-flow.sh"
 check_file "scripts/lib/repo-detection.sh"
+check_file "scripts/lib/routing-skills.sh"
 check_file "scripts/preflight.sh"
 check_file "scripts/post-change-check.sh"
 check_file "scripts/spec-status.sh"
 check_file "scripts/extract-spec.sh"
 check_file "scripts/work.sh"
 check_file "scripts/pr-ready.sh"
+check_file "scripts/pr-publish.sh"
 check_file "scripts/pr-body.sh"
 check_file "scripts/pr-create.sh"
 check_file "scripts/safe-commit.sh"
@@ -204,6 +206,7 @@ check_route_expectation "design API contract for new billing service" 'role=arch
 check_route_expectation "update API schema for billing webhooks" 'role=(architect|builder-backend|fixer) .*tier=high .*model=gpt-5\.5'
 check_route_expectation "analyze framework orchestration and human-like engineer agents with domain knowledge" 'role=framework-manager .*tier=xhigh .*model=gpt-5\.5'
 check_route_expectation "проанализируй оркестрацию фреймворка и агентов с доменными знаниями" 'role=framework-manager .*tier=xhigh .*model=gpt-5\.5'
+check_route_expectation "проверь статус нашего фреймворка что хорошо что плохо что легаси и грязь нужно удалить что мешает эффективно выжимать из codex больше чем просто промпт кодинг" 'role=framework-manager .*tier=xhigh .*model=gpt-5\.5'
 
 if ! bash "$ROOT/scripts/framework-eval.sh" >/dev/null 2>&1; then
   echo "framework eval failed"

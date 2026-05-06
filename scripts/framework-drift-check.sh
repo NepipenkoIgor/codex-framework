@@ -80,6 +80,7 @@ check_route_probe project-manager "create PR with release summary"
 check_route_probe estimator "estimate scope and cost"
 check_route_probe auditor "dependency audit CVE"
 check_route_probe framework-manager "framework orchestration audit"
+check_route_probe framework-manager "статус фреймворка что легаси удалить"
 
 if ! grep -q 'framework-orchestration-audit' "$ROOT/CODEX.skills.md"; then
   fail_check "CODEX.skills.md does not register framework-orchestration-audit"
@@ -101,6 +102,25 @@ fi
 
 if ! grep -q 'codex/\*)' "$ROOT/scripts/pr-ready.sh"; then
   fail_check "pr-ready does not reject tool-revealing codex/* branches"
+fi
+
+if grep -q 'sync_branch_for_pr' "$ROOT/scripts/pr-ready.sh" || grep -q 'push_branch_for_pr' "$ROOT/scripts/pr-ready.sh"; then
+  fail_check "pr-ready must be check-only; sync and push belong in pr-publish"
+fi
+
+if [ ! -f "$ROOT/scripts/pr-publish.sh" ] \
+  || ! grep -q 'sync_branch_for_pr "$base"' "$ROOT/scripts/pr-publish.sh" \
+  || ! grep -q 'pr-ready.sh' "$ROOT/scripts/pr-publish.sh" \
+  || ! grep -q 'git push --force-with-lease' "$ROOT/scripts/pr-publish.sh"; then
+  fail_check "pr-publish does not own explicit sync/check/push"
+fi
+
+if grep -q 'auto_resolve_rebase_conflicts' "$ROOT/scripts/lib/git-flow.sh" || grep -q -- '-X theirs' "$ROOT/scripts/lib/git-flow.sh"; then
+  fail_check "git-flow contains unsafe automatic conflict resolution"
+fi
+
+if grep -q 'ensure_project_bootstrap\|ensure_spec_root' "$ROOT/scripts/spec-status.sh"; then
+  fail_check "spec-status must stay read-only"
 fi
 
 if [ "$failures" -ne 0 ]; then

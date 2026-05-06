@@ -9,7 +9,7 @@ Reference for routing, execution patterns, and model fallback behavior.
 | `low` | `gpt-5.4-mini` | purely mechanical edits, narrow test fixes, obvious config changes |
 | `medium` | `gpt-5.5` | normal implementation, review, and test work |
 | `high` | `gpt-5.5` | architecture, multi-system work, migrations, hard debugging |
-| `xhigh` | `gpt-5.5` | rescue attempts, framework redesign, ambiguous high-risk work |
+| `xhigh` | `gpt-5.5` | rescue attempts, framework redesign, strategic framework status audits, ambiguous high-risk work |
 
 ## Fallback Chains
 

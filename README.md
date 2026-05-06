@@ -384,12 +384,14 @@ When the environment blocks writes under `.codex/`, the framework falls back to 
 - [scripts/spec-status.sh](/Users/igornepipenko/work/ai-codex-framework/scripts/spec-status.sh)
 - [scripts/browser-verify.sh](/Users/igornepipenko/work/ai-codex-framework/scripts/browser-verify.sh)
 - [scripts/pr-ready.sh](/Users/igornepipenko/work/ai-codex-framework/scripts/pr-ready.sh)
+- [scripts/pr-publish.sh](/Users/igornepipenko/work/ai-codex-framework/scripts/pr-publish.sh)
 - [scripts/pr-body.sh](/Users/igornepipenko/work/ai-codex-framework/scripts/pr-body.sh)
 - [scripts/pr-create.sh](/Users/igornepipenko/work/ai-codex-framework/scripts/pr-create.sh)
 - [scripts/safe-commit.sh](/Users/igornepipenko/work/ai-codex-framework/scripts/safe-commit.sh)
 
-`pr-ready` now rebases the branch onto the detected base, auto-resolves simple rebase conflicts in favor of the feature branch, and pushes with `--force-with-lease` only after checks pass.
-`pr-create` runs `pr-ready`, rejects shared or `codex/*` head branches, creates/updates the PR with explicit `--base` and `--head`, and generates a `## Test Plan` from the readiness report and active spec.
+`pr-ready` is check-only: it rejects shared or `codex/*` head branches, runs configured lint/test/build commands, and writes the readiness report.
+`pr-publish` is the explicit publish step: it rebases, stops on conflicts for manual resolution, runs `pr-ready` on the rebased branch, then pushes with `--force-with-lease`.
+`pr-create` runs `pr-publish`, creates or updates the PR with explicit `--base` and `--head`, and generates a `## Test Plan` from the readiness report and active spec.
 `codex-fw work` now auto-submits issue work by default after the Codex session finishes: it commits any remaining changes, pushes the branch, and creates or updates the PR. Set `CODEX_AUTO_SUBMIT=0` if you want to keep the branch local.
 
 ### Coordination state

@@ -1,6 +1,7 @@
 # task	expected_route_regex
 analyze framework orchestration and human-like engineer agents with domain knowledge	role=framework-manager .*tier=xhigh
 проанализируй оркестрацию фреймворка и агентов с доменными знаниями	role=framework-manager .*tier=xhigh
+проверь статус нашего фреймворка что хорошо что плохо что легаси и грязь нужно удалить что мешает эффективно выжимать из codex больше чем просто промпт кодинг	role=framework-manager .*tier=xhigh
 framework orchestration gap analysis	role=framework-manager .*tier=xhigh
 new skill for repo-native browser verification	role=framework-manager .*tier=high
 update routing rules for mobile tasks	role=framework-manager .*tier=high

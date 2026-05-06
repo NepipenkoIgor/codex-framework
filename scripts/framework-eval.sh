@@ -29,6 +29,7 @@ check_route "framework orchestration gap analysis for human-like engineer agents
 check_route "проанализируй оркестрацию фреймворка и агентов с доменными знаниями" 'role=framework-manager .*tier=xhigh .*model=gpt-5\.5'
 check_route "аудит codex framework на human-like engineer поведение" 'role=framework-manager .*tier=xhigh .*model=gpt-5\.5'
 check_route "проведи валидацию фреймворка на orchestration maturity" 'role=framework-manager .*tier=xhigh .*model=gpt-5\.5'
+check_route "проверь статус нашего фреймворка что хорошо что плохо что легаси и грязь нужно удалить что мешает эффективно выжимать из codex больше чем просто промпт кодинг" 'role=framework-manager .*tier=xhigh .*model=gpt-5\.5'
 check_route "new skill for repo-native browser verification" 'role=framework-manager .*tier=high .*model=gpt-5\.5'
 check_route "update routing rules for mobile tasks" 'role=framework-manager .*tier=high .*model=gpt-5\.5'
 check_route "review GitHub PR #123 and check CI" 'role=reviewer .*tier=medium .*model=gpt-5\.5'
@@ -72,6 +73,14 @@ mkdir -p "$brief_dir"
 check_brief \
   "проанализируй оркестрацию фреймворка и агентов с доменными знаниями" \
   "$brief_dir/framework-orchestration-brief.md" \
+  'Chosen owner: framework-manager' \
+  'Reasoning depth: xhigh' \
+  'Primary skill: framework-management' \
+  'framework-orchestration-audit'
+
+check_brief \
+  "проверь статус нашего фреймворка что хорошо что плохо что легаси и грязь нужно удалить что мешает эффективно выжимать из codex больше чем просто промпт кодинг" \
+  "$brief_dir/framework-status-brief.md" \
   'Chosen owner: framework-manager' \
   'Reasoning depth: xhigh' \
   'Primary skill: framework-management' \

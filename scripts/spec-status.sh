@@ -3,9 +3,6 @@ set -euo pipefail
 
 . "$(dirname "$0")/lib.sh"
 
-ensure_project_bootstrap "$(project_root)"
-ensure_spec_root
-
 if [ $# -gt 0 ]; then
   spec_file="$(spec_root)/$1/spec.md"
   [ -f "$spec_file" ] || fail "spec not found: $spec_file"

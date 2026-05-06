@@ -51,11 +51,11 @@ git rev-parse --show-toplevel >/dev/null 2>&1 || fail "not inside a git reposito
 has_command gh || fail "gh CLI is required"
 gh auth status >/dev/null 2>&1 || fail "gh auth is required"
 
-pr_ready_args=()
+pr_publish_args=()
 if [ -n "$BASE_BRANCH" ]; then
-  pr_ready_args+=(--base "$BASE_BRANCH")
+  pr_publish_args+=(--base "$BASE_BRANCH")
 fi
-bash "$(framework_root)/scripts/pr-ready.sh" "${pr_ready_args[@]}"
+bash "$(framework_root)/scripts/pr-publish.sh" "${pr_publish_args[@]}"
 
 HEAD_BRANCH="$(current_branch)"
 case "$HEAD_BRANCH" in

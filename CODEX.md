@@ -63,7 +63,7 @@ Use this routing order. Earlier matches win.
 
 | Signal | Role |
 |---|---|
-| framework health, new skill, role updates, routing rules | `framework-manager` |
+| framework health/status, new skill, role updates, routing rules, orchestration audits | `framework-manager` |
 | dependency audit, CVE, plugin security | `auditor` |
 | backlog, triage, sprint, ticket shaping | `project-manager` |
 | review, audit, check quality, PR review | `reviewer` |
@@ -98,7 +98,7 @@ Use this routing order. Earlier matches win.
 - `low`: mechanical, well-bounded, usually single-file work, PR/commit mechanics
 - `medium`: normal implementation, debugging, review, and testing
 - `high`: architecture, migrations, cross-system work, hard debugging
-- `xhigh`: rescue attempts or unusually ambiguous high-risk changes
+- `xhigh`: rescue attempts, framework redesign/status audits, or unusually ambiguous high-risk changes
 
 Use low reasoning only when the task is clearly mechanical. Otherwise prefer medium.
 In this framework, `medium` intentionally uses the stronger default model so normal work stays on `gpt-5.5`; only clearly mechanical work drops to the low-tier model. Override models with `CODEX_LOW_MODEL`, `CODEX_MEDIUM_MODEL`, `CODEX_HIGH_MODEL`, and `CODEX_XHIGH_MODEL`.

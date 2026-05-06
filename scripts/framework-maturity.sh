@@ -76,12 +76,12 @@ has_brief_eval_case() {
 
 has_contract_policy() {
   grep -q 'Contract-bearing tasks should route to `high`' "$ROOT/ORCHESTRATOR_REFERENCE.md" \
-    && grep -q 'contract_task="yes"' "$ROOT/scripts/lib.sh"
+    && grep -Rq 'contract_task="yes"' "$ROOT/scripts/lib.sh" "$ROOT/scripts/lib"
 }
 
 has_requirement_gate() {
   grep -q 'Requirement Check' "$ROOT/scripts/task-brief.sh" \
-    && grep -q 'requires_requirement_check' "$ROOT/scripts/lib.sh"
+    && grep -Rq 'requires_requirement_check' "$ROOT/scripts/lib.sh" "$ROOT/scripts/lib"
 }
 
 has_handoff_controls() {
@@ -101,6 +101,10 @@ has_verification_gates() {
     && [ -f "$ROOT/scripts/quality-check.sh" ] \
     && [ -f "$ROOT/scripts/framework-health.sh" ] \
     && [ -f "$ROOT/scripts/framework-eval.sh" ]
+}
+
+has_read_only_status_checks() {
+  ! grep -q 'ensure_project_bootstrap\|ensure_spec_root' "$ROOT/scripts/spec-status.sh"
 }
 
 has_drift_checker() {
@@ -156,7 +160,15 @@ pr_flow_is_explicit() {
     && grep -q -- '--base "$BASE_BRANCH"' "$ROOT/scripts/pr-create.sh" \
     && grep -q 'codex/\*)' "$ROOT/scripts/pr-ready.sh" \
     && grep -q 'latest-pr-ready.env' "$ROOT/scripts/pr-ready.sh" \
-    && grep -q '## Test Plan' "$ROOT/scripts/pr-body.sh"
+    && grep -q '## Test Plan' "$ROOT/scripts/pr-body.sh" \
+    && grep -q 'sync_branch_for_pr "$base"' "$ROOT/scripts/pr-publish.sh" \
+    && grep -q 'pr-ready.sh' "$ROOT/scripts/pr-publish.sh" \
+    && grep -q 'git push --force-with-lease' "$ROOT/scripts/pr-publish.sh" \
+    && ! grep -q 'sync_branch_for_pr' "$ROOT/scripts/pr-ready.sh" \
+    && ! grep -q 'push_branch_for_pr' "$ROOT/scripts/pr-ready.sh" \
+    && ! grep -q 'auto_resolve_rebase_conflicts' "$ROOT/scripts/lib/git-flow.sh" \
+    && ! grep -q -- '-X theirs' "$ROOT/scripts/lib/git-flow.sh" \
+    && grep -q 'rebase found conflicts' "$ROOT/scripts/lib/git-flow.sh"
 }
 
 strict_maturity_threshold() {
@@ -179,13 +191,14 @@ if has_requirement_gate; then metric "requirement gate" 10 10 "requirement-sensi
 if has_handoff_controls; then metric "handoff controls" 10 10 "handoff state wired into briefs"; else metric "handoff controls" 0 10 "missing handoff controls"; fi
 if has_runtime_capabilities; then metric "runtime capability model" 10 10 "capabilities and approval knobs visible"; else metric "runtime capability model" 0 10 "missing capability model"; fi
 if has_verification_gates; then metric "verification gates" 10 10 "guard, quality, health, eval present"; else metric "verification gates" 0 10 "missing verification gates"; fi
+if has_read_only_status_checks; then metric "read-only status checks" 10 10 "spec-status has no bootstrap/write side effects"; else metric "read-only status checks" 0 10 "status checks still mutate project state"; fi
 if has_drift_checker; then metric "source drift detection" 10 10 "routing roles and probes checked"; else metric "source drift detection" 0 10 "missing drift checker"; fi
 if has_benchmark_dataset; then metric "benchmark dataset" 10 10 "routing benchmark dataset present"; else metric "benchmark dataset" 0 10 "missing benchmark dataset"; fi
 if has_skill_quality_audit; then metric "skill quality coverage" 10 10 "baseline engineering policies checked"; else metric "skill quality coverage" 0 10 "missing skill quality audit"; fi
 if has_skill_corpus_audit; then metric "skill corpus scorecard" 10 10 "all skills can be scored"; else metric "skill corpus scorecard" 0 10 "missing corpus audit"; fi
 if runtime_state_is_untracked; then metric "runtime state untracked" 10 10 ".codex and .githooks stay out of git"; else metric "runtime state untracked" 0 10 "tracked .codex/.githooks files create status drift"; fi
 if gitignore_blocks_runtime_state; then metric "runtime gitignore policy" 10 10 "local state ignored"; else metric "runtime gitignore policy" 0 10 "missing runtime ignore rules"; fi
-if pr_flow_is_explicit; then metric "explicit PR flow" 10 10 "base/head, report, test plan, codex/* guard"; else metric "explicit PR flow" 0 10 "PR flow can drift from intended protocol"; fi
+if pr_flow_is_explicit; then metric "explicit PR flow" 10 10 "base/head, report, test plan, guarded publish"; else metric "explicit PR flow" 0 10 "PR flow can drift from intended protocol"; fi
 
 lib_score="$(core_library_size_score)"
 metric "core library modularity" "${lib_score%%:*}" 10 "${lib_score#*:}"
