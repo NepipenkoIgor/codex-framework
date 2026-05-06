@@ -4,7 +4,6 @@ set -euo pipefail
 . "$(dirname "$0")/lib.sh"
 
 ROOT="${1:-$(project_root)}"
-refresh_repo_intelligence >/dev/null
 load_repo_intelligence
 STACK="$RI_STACK"
 

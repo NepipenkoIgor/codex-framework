@@ -30,7 +30,7 @@ done
 collect_files() {
   case "$mode" in
     staged) git diff --cached --name-only ;;
-    changed) git diff --name-only HEAD ;;
+    changed) git_changed_files ;;
     all)
       find . -type f \
         -not -path '*/.git/*' \

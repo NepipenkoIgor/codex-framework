@@ -292,12 +292,14 @@ Rules: document every override with a link to the advisory; review monthly; remo
 7. Test in staging — deploy and verify critical flows
 8. Gradual rollout — deploy behind a feature flag if risky
 
+For framework targets maintained by this Codex framework, compare the project version with `CODEX.versions.md`. If the project is below target, report version drift and recommend a focused migration branch before broad feature work that would deepen deprecated patterns.
+
 ### Framework Migration Guide Locations
 
 | Framework | Guide location | Typical effort |
 |-----------|---------------|----------------|
 | React | reactjs.org/blog | Low-Medium (codemods available) |
-| Next.js | nextjs.org/docs/upgrading | Medium (codemod + manual) |
+| Next.js | nextjs.org/docs/upgrading | Medium (official codemod + manual checks; target from `CODEX.versions.md`) |
 | Angular | update.angular.io | Medium-High (ng update) |
 | Vue | v3-migration.vuejs.org | Medium |
 | .NET | learn.microsoft.com/dotnet/core/migration | Medium-High |

@@ -19,7 +19,7 @@ has_file() {
 
 tree_has() {
   local pattern="$1"
-  search_tree_regex "$pattern" "$ROOT"
+  search_project_tree_regex "$pattern" "$ROOT"
 }
 
 stack_has "$stack" "tailwind" && add_policy "tailwind-first"

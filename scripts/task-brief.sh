@@ -42,10 +42,16 @@ done
 
 ROOT="$(project_root)"
 FRAMEWORK_ROOT="$(framework_root)"
-ensure_project_bootstrap "$ROOT"
+if [ "${CODEX_SKIP_BOOTSTRAP:-0}" != "1" ]; then
+  ensure_project_bootstrap "$ROOT"
+fi
 load_project_commands
-refresh_repo_intelligence >/dev/null
-load_repo_intelligence
+if [ "${CODEX_SKIP_REPO_REFRESH:-0}" = "1" ]; then
+  load_repo_intelligence
+else
+  refresh_repo_intelligence >/dev/null
+  load_repo_intelligence
+fi
 ensure_run_root
 ensure_cache_dir
 
@@ -57,6 +63,7 @@ decision="$(bash "$FRAMEWORK_ROOT/scripts/codex-fw.sh" route "$TASK")"
 role="$(printf '%s\n' "$decision" | sed -n 's/.*role=\([^ ]*\).*/\1/p')"
 model="$(printf '%s\n' "$decision" | sed -n 's/.*model=\([^ ]*\).*/\1/p')"
 reasoning="$(printf '%s\n' "$decision" | sed -n 's/.*reasoning=\([^ ]*\).*/\1/p')"
+route="$(route_badge "$role" "$model" "$reasoning")"
 task_lc="$(printf '%s' "$TASK" | tr '[:upper:]' '[:lower:]')"
 stack="$RI_STACK"
 features="$RI_FEATURES"
@@ -69,6 +76,26 @@ task_shape="$(classify_task_shape "$task_lc")"
 requirement_check="no"
 requires_requirement_check "$task_lc" && requirement_check="yes"
 capabilities_report="$(bash "$FRAMEWORK_ROOT/scripts/capabilities.sh" "$ROOT" 2>/dev/null || true)"
+memory_context="$(bash "$FRAMEWORK_ROOT/scripts/memory-state.sh" context "$TASK" 2>/dev/null || echo "none")"
+
+package_manager_from_package_json() {
+  [ -f "$ROOT/package.json" ] || return 1
+  python3 - <<PY 2>/dev/null
+import json
+from pathlib import Path
+
+package_json = Path("$ROOT/package.json")
+try:
+    data = json.loads(package_json.read_text(encoding="utf-8"))
+except Exception:
+    raise SystemExit(1)
+
+value = str(data.get("packageManager", "")).strip()
+if not value:
+    raise SystemExit(1)
+print(value.split("@", 1)[0].strip())
+PY
+}
 
 package_runner="${PACKAGE_RUNNER:-none}"
 package_exec="${PACKAGE_EXEC:-none}"
@@ -81,7 +108,24 @@ elif [ "$package_runner" = "none" ] && [ -f "$ROOT/pnpm-lock.yaml" ]; then
 elif [ "$package_runner" = "none" ] && [ -f "$ROOT/yarn.lock" ]; then
   package_runner="yarn"
   package_exec="yarn"
-elif [ "$package_runner" = "none" ] && { [ -f "$ROOT/package-lock.json" ] || [ -f "$ROOT/package.json" ]; }; then
+elif [ "$package_runner" = "none" ]; then
+  case "$(package_manager_from_package_json || true)" in
+    bun)
+      package_runner="bun run"
+      package_exec="bunx"
+      ;;
+    pnpm)
+      package_runner="pnpm"
+      package_exec="pnpm exec"
+      ;;
+    yarn)
+      package_runner="yarn"
+      package_exec="yarn"
+      ;;
+  esac
+fi
+
+if [ "$package_runner" = "none" ] && { [ -f "$ROOT/package-lock.json" ] || [ -f "$ROOT/package.json" ]; }; then
   package_runner="npm run"
   package_exec="npx"
 fi
@@ -91,8 +135,26 @@ stack_skills="$(resolve_stack_skills "$role" "$stack")"
 map_skills="$(resolve_skills_for_domains "$domains" "$task_lc")"
 feature_skills="$(resolve_feature_skills "$features")"
 task_extra_skills="none"
+tailwind_first_repo="no"
+if csv_contains "$policy" "tailwind-first" || csv_contains "$policy" "avoid-inline-styles"; then
+  tailwind_first_repo="yes"
+elif stack_has "$stack" "tailwind"; then
+  tailwind_first_repo="yes"
+elif printf '%s' "$features" | grep -Eq '(^|,)(tailwind|utility-classes|ui-primitives|design-system)(,|$)'; then
+  tailwind_first_repo="yes"
+fi
+
+task_is_ui_like="no"
+if task_contains "$task_lc" 'ui|frontend|component|page|style|css|layout|accessibility|responsive|visual|avatar|image|hero|section|copy|text|landing|menu|modal|drawer|sidebar|navbar|header|footer|card|button|input|form|sheet|popover|dropdown|tabs|toast|dialog|overlay|panel'; then
+  task_is_ui_like="yes"
+fi
+
+if [ "$tailwind_first_repo" = "yes" ] && [ "$task_is_ui_like" = "yes" ]; then
+  task_extra_skills="$(merge_skill_csvs "$task_extra_skills" "design-system-implement,ui-consistency-audit,responsive-design")"
+fi
 
 task_contains "$task_lc" 'new api|endpoint|request boundary|schema change' && task_extra_skills="$(merge_skill_csvs "$task_extra_skills" "api-design,data-validation-design,audit-logging")"
+task_contains "$task_lc" 'migration|migrations|schema change|db change|database change|seed data|reference data|миграц|схем' && task_extra_skills="$(merge_skill_csvs "$task_extra_skills" "database-migration")"
 task_contains "$task_lc" 'review|audit' && task_extra_skills="$(merge_skill_csvs "$task_extra_skills" "security-audit")"
 task_contains "$task_lc" 'review' && csv_contains "$domains" "frontend" && task_extra_skills="$(merge_skill_csvs "$task_extra_skills" "ui-consistency-audit,accessibility-audit")"
 task_contains "$task_lc" 'review' && csv_contains "$domains" "backend" && task_extra_skills="$(merge_skill_csvs "$task_extra_skills" "backend-review,performance")"
@@ -134,7 +196,7 @@ else
 fi
 
 if git rev-parse --show-toplevel >/dev/null 2>&1; then
-  scope_summary="$(git diff --stat HEAD 2>/dev/null || true)"
+  scope_summary="$(git diff --name-only HEAD 2>/dev/null | sed 's#^\./##' | head -n 8)"
 else
   scope_summary=""
 fi
@@ -198,67 +260,111 @@ if [ -z "$OUTPUT_FILE" ]; then
   OUTPUT_FILE="$(run_root)/$(date -u +"%Y%m%dT%H%M%SZ")-brief.md"
 fi
 
+human_capabilities_summary() {
+  local lines=""
+  if printf '%s\n' "$capabilities_report" | grep -q 'git=yes'; then
+    lines="$lines- Git access is available.\n"
+  fi
+  if printf '%s\n' "$capabilities_report" | grep -q 'github_cli=yes'; then
+    lines="$lines- GitHub CLI is available.\n"
+  fi
+  if printf '%s\n' "$capabilities_report" | grep -q 'github_auth_ready=yes'; then
+    lines="$lines- GitHub auth is ready.\n"
+  fi
+  if printf '%s\n' "$capabilities_report" | grep -q 'browser_checks_local=yes'; then
+    lines="$lines- Browser checks can run locally.\n"
+  fi
+  if printf '%s\n' "$capabilities_report" | grep -q 'browser_checks_local=no'; then
+    lines="$lines- Browser checks are not available here.\n"
+  fi
+  if [ -z "$lines" ]; then
+    printf -- '- Capabilities could not be summarized.\n'
+    return 0
+  fi
+  printf '%b' "$lines"
+}
+
+human_repo_habits_summary() {
+  local lines=""
+  if printf '%s' "$policy" | grep -Eq '(^|,)(tailwind-first|utility-classes)(,|$)'; then
+    lines="$lines- This repo prefers utility classes and shared UI tokens.\n"
+  fi
+  if printf '%s' "$policy" | grep -Eq '(^|,)prefer-cva-variants(,|$)'; then
+    lines="$lines- Variant helpers are preferred for component styling.\n"
+  fi
+  if [ -z "$lines" ]; then
+    printf -- '- No special repo habits were detected.\n'
+    return 0
+  fi
+  printf '%b' "$lines"
+}
+
 cat > "$OUTPUT_FILE" <<EOF
 ## Goal
 $TASK
 
-## Route
-- Role: $role
+## Routing
+- Route badge: $route
+- Chosen owner: $role
 - Model: $model
-- Reasoning: $reasoning
-- Retry chain: $retry_chain
+- Reasoning depth: $reasoning
+- Fallback path: $retry_chain
 
-## Stack
-- Detected: $stack
+## What We Found
+- Stack: $stack
 - Features: $features
 - Repo policy: $policy
-- Domains: $domains
-- Framework signals: read CODEX.md, CODEX.concepts.md, ORCHESTRATOR_REFERENCE.md, and CODEX.skills.md first
+- Relevant areas: $domains
 - Task flags: $task_flags
 - Task shape: $task_shape
+- Framework notes: read CODEX.md, CODEX.concepts.md, ORCHESTRATOR_REFERENCE.md, and CODEX.skills.md first
 
-## Scope
-$(if [ -n "$scope_summary" ]; then printf '%s\n' "$scope_summary"; else echo "No current git diff summary available."; fi)
+## Nearby Changes
+$(if [ -n "$scope_summary" ]; then printf -- '- %s\n' "$scope_summary"; else echo "- No current diff to review."; fi)
 
-## Commands
+## Checks We Have
 - Package runner: $package_runner
 - Direct local binaries: $package_exec
-- Test: ${TEST_CMD:-}
-- Lint: ${LINT_CMD:-}
-- Build: ${BUILD_CMD:-}
-- Dev: ${DEV_CMD:-}
+- Test command: ${TEST_CMD:-}
+- Lint command: ${LINT_CMD:-}
+- Build command: ${BUILD_CMD:-}
+- Dev command: ${DEV_CMD:-}
 
-## Capabilities
-$(if [ -n "$capabilities_report" ]; then printf '%s\n' "$capabilities_report"; else echo "- unavailable"; fi)
+## Existing Capabilities
+$(human_capabilities_summary)
 
-## Repo Conventions
-$(if [ -n "$conventions" ]; then printf '%s\n' "$conventions"; else echo "none"; fi)
+## Repo Habits
+$(human_repo_habits_summary)
+
+## Memory Context
+\`\`\`text
+$memory_context
+\`\`\`
 
 ## GitHub
-- Preferred: $github_preferred
-- Fallback: $github_fallback
+- Preferred path: $github_preferred
+- Backup path: $github_fallback
 - Local fallback: $github_local
 
-## Constraints
-- Respect existing project patterns.
-- Do not revert unrelated changes.
-- Keep the implementation narrow.
-- Treat skills as lazy context: identify names first, load bodies only when executing work.
-- Prefer domain maps over ad hoc skill guesses.
-- For JS/TS repos, prefer the detected package runner and local binary executor above for direct commands.
+## Working Rules
+- Respect the repo's existing patterns.
+- Leave unrelated changes alone.
+- Keep the change narrow.
+- Treat skills as lazy context: identify names first, load bodies only when they are needed.
+- Prefer the repo's own maps and helpers over ad hoc guesses.
+- For JS/TS repos, use the detected package runner and local binary executor for direct commands.
 - Update specs when the task is spec-driven.
 - Run guard scans before close-out for code or config changes.
 - Use a contract-first approach when the task crosses API, schema, or parallel ownership boundaries.
-- For requirement-sensitive tasks, do not edit first. Restate the requirement, compare current behavior to that requirement, identify the mismatch, and only then implement the correction.
-- If the user is asking for judgment or correction, lead with the mismatch before proposing or applying edits.
-- If repo policy includes tailwind-first or avoid-inline-styles, prefer utility classes and existing tokens/components over inline style objects.
+- For requirement-sensitive tasks, restate the requirement, compare it to current behavior, identify the mismatch, and only then change code.
+- If the repo is Tailwind-first or asks to avoid inline styles, prefer utility classes and shared tokens/components over inline style objects.
 - Read nearby files and shared UI primitives before introducing a new styling pattern.
-- Prefer existing helpers, shared components, and established file-layer boundaries over new one-off abstractions.
-- If repo conventions mention use-zod-validation, use-cn-helper, use-cva-variants, or shared test helpers, follow them instead of inventing a parallel pattern.
+- Prefer existing helpers, shared components, and file-layer boundaries over one-off abstractions.
+- If the repo conventions mention use-zod-validation, use-cn-helper, use-cva-variants, or shared test helpers, follow them instead of inventing a parallel pattern.
 
-## Skills
-- Primary: $primary_skill
-- Supporting: $supporting_skills
+## Best-Fit Skills
+- Primary skill: $primary_skill
+- Supporting skills: $supporting_skills
 - Resolution path: domain baseline -> stack -> features -> maps -> task extras
 
 ## Spec
@@ -266,33 +372,50 @@ $(if [ -n "$conventions" ]; then printf '%s\n' "$conventions"; else echo "none";
 - Status: $spec_status
 
 ## Requirement Check
-- Required: $requirement_check
-- Before edits, produce:
+- Needed: $requirement_check
+- Before edits, spell out:
   - Requirement: the intended behavior from the user, spec, or comment
   - Current behavior: what the code or current change actually does
   - Mismatch: why that behavior does not satisfy the requirement
   - Fix intent: the smallest correction that closes the gap
-- If requirement evidence is ambiguous, stop and resolve that ambiguity before editing.
+- If the requirement evidence is ambiguous, stop and resolve that ambiguity before editing.
 
 ## Coordination
 - Execution pattern: $execution_pattern
 - Contract required: $contract_required
 - Handoff state: $handoff_id
 
-## Verification
+## How We'll Verify
 $(printf -- '- %s\n' "${verification[@]}")
 - guard: bash $FRAMEWORK_ROOT/scripts/guard-scan.sh --changed
 - quality: bash $FRAMEWORK_ROOT/scripts/quality-check.sh --changed
 
 ## Output Contract
-- Status: done | partial | blocked
-- Requirement: [restated requirement or \`not required\`]
-- Current behavior: [observed behavior or \`not required\`]
-- Mismatch: [why prior/current behavior was wrong or \`none\`]
-- Fix intent: [correction applied or \`none\`]
-- Changed: [file paths]
-- Verification: [checks run or skipped]
-- Notes: [blockers or non-obvious decisions only]
+Use this exact final response shape. Keep section names and ordering. Use \`not required\`, \`none\`, or \`not run\` instead of omitting sections.
+Do not use the legacy label format \`Status: ...\`, \`Requirement: ...\`, or \`Fix intent applied: ...\`.
+
+✅ $route — done | partial | blocked
+
+**Requirement**
+[restated requirement or \`not required\`]
+
+**Current Behavior**
+[observed behavior or \`not required\`]
+
+**Mismatch**
+[why the previous/current behavior was wrong or \`none\`]
+
+**Fix Intent**
+[short statement of the correction]
+
+**Changed**
+- [file or behavior changed]
+
+**Verification**
+- [command/check run, or \`not run\` with reason]
+
+**Notes**
+- [blockers, residual risk, pre-existing unrelated changes, or \`none\`]
 EOF
 
 printf '%s\n' "$OUTPUT_FILE"

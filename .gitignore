@@ -1,0 +1,8 @@
+/.codex/cache/
+/.codex/runs/
+/.codex/specs/
+/.codex/handoffs/
+/.codex/memory/
+/.codex/project.env
+/.githooks/
+/.idea/

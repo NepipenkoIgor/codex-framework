@@ -6,17 +6,17 @@ Reference for routing, execution patterns, and model fallback behavior.
 
 | Tier | Preferred model | Use for |
 |---|---|---|
-| `low` | `codex-mini-latest` | mechanical edits, narrow test fixes, obvious config changes |
-| `medium` | `gpt-5.4` | normal implementation, review, and test work |
-| `high` | `gpt-5.4` | architecture, multi-system work, migrations, hard debugging |
-| `xhigh` | `gpt-5.4` | rescue attempts, framework redesign, ambiguous high-risk work |
+| `low` | `gpt-5.4-mini` | purely mechanical edits, narrow test fixes, obvious config changes |
+| `medium` | `gpt-5.5` | normal implementation, review, and test work |
+| `high` | `gpt-5.5` | architecture, multi-system work, migrations, hard debugging |
+| `xhigh` | `gpt-5.5` | rescue attempts, framework redesign, ambiguous high-risk work |
 
 ## Fallback Chains
 
 Deterministic fallback order:
 
-- `codex-mini-latest -> gpt-5.4`
-- `gpt-5.4 -> codex-mini-latest`
+- `gpt-5.4-mini -> gpt-5.5`
+- `gpt-5.5`
 
 Each step may be attempted at most once before the framework reports exhaustion.
 
@@ -30,6 +30,7 @@ Use for one clear mechanical action.
 - low tier
 - no contract work
 - no architecture step
+- no judgment-heavy coordination
 
 ### Implement Standard
 
@@ -45,6 +46,8 @@ Use when the task crosses API, schema, or shared ownership boundaries.
 1. architecture/contract step
 2. implementation step(s)
 3. verification step
+
+Contract-bearing tasks should route to `high` by default even when the implementation looks locally small, because schema and boundary changes are the part most likely to hide regressions.
 
 ### Review First
 
@@ -74,13 +77,43 @@ Use when many independent cosmetic or low-risk edits are present.
 
 Delegated work should return:
 
-- `Status: done | partial | blocked`
-- `Requirement: ...`
-- `Current behavior: ...`
-- `Mismatch: ...`
-- `Fix intent: ...`
-- `Changed: [...]`
-- `Verification: [...]`
-- `Notes: [...]`
+```md
+✅ route-badge — done | partial | blocked
+
+**Requirement**
+...
+
+**Current Behavior**
+...
+
+**Mismatch**
+...
+
+**Fix Intent**
+...
+
+**Changed**
+- ...
+
+**Verification**
+- ...
+
+**Notes**
+- ...
+```
+
+Do not use the legacy label format `Status: ...`, `Requirement: ...`, or `Fix intent applied: ...` for normal task closeout.
 
 For requirement-sensitive work, the first substantive output must be the mismatch report, not code edits.
+
+## Evaluation Contract
+
+Framework routing changes should add or update golden cases in `scripts/framework-eval.sh`.
+Framework maturity changes should keep `scripts/framework-maturity.sh` at a full score.
+The eval suite should include:
+
+- English requests
+- Russian or mixed-language requests
+- strategic framework orchestration audits
+- ordinary build, review, fix, test, and architecture tasks
+- expected role, tier, model, and high-signal skills when relevant

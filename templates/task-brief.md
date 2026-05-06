@@ -2,6 +2,7 @@
 Short, outcome-focused objective.
 
 ## Route
+- Route badge:
 - Role:
 - Model:
 - Reasoning:
@@ -48,17 +49,32 @@ Files, modules, or system slice owned by this task.
 - Optional checks:
 
 ## Closeout Style
-- Prefer a short prose handoff over `Summary / Verification / Notes` headings.
-- Start with what changed and why in one compact paragraph.
-- Keep verification compact and concrete.
-- Mention blockers or residual risk only if they matter.
-- Sound like a teammate, not a generated changelog.
+- Use the canonical output contract below for final task reports.
+- Keep section names and ordering exactly as shown.
+- Use `not required`, `none`, or `not run` instead of omitting sections.
+- Keep prose compact and concrete.
+- Do not use the legacy label format `Status: ...`, `Requirement: ...`, or `Fix intent applied: ...`.
 
 ## Output Contract
-- Status: done | partial | blocked
-- Requirement: [restated requirement or `not required`]
-- Current behavior: [observed behavior or `not required`]
-- Mismatch: [why prior/current behavior was wrong or `none`]
-- Fix intent: [correction applied or `none`]
-- Changed: [file paths]
-- Notes: [blockers or non-obvious decisions only]
+✅ [route-badge] — done | partial | blocked
+
+**Requirement**
+[restated requirement or `not required`]
+
+**Current Behavior**
+[observed behavior or `not required`]
+
+**Mismatch**
+[why the previous/current behavior was wrong or `none`]
+
+**Fix Intent**
+[short statement of the correction]
+
+**Changed**
+- [file or behavior changed]
+
+**Verification**
+- [command/check run, or `not run` with reason]
+
+**Notes**
+- [blockers, residual risk, pre-existing unrelated changes, or `none`]

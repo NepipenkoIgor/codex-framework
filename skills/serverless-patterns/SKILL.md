@@ -112,7 +112,7 @@ export async function GET(request: Request) {
   const country = request.headers.get('x-vercel-ip-country') ?? 'US';
   return Response.json({ message: 'Hello', country });
 }
-// middleware.ts: check session cookie, redirect by geo, etc.
+// proxy.ts in Next.js 16: check session cookie, redirect by geo, etc.
 // export const config = { matcher: ['/((?!_next|api|static).*)'] }
 ```
 

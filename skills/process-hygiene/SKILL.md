@@ -71,7 +71,7 @@ Never suggest or implement legacy/deprecated patterns when a current idiomatic a
 3. If you see a legacy pattern in the codebase, do NOT replicate it — use the current approach and note the discrepancy
 
 **Examples of what this means in practice:**
-- Next.js: App Router patterns over Pages Router (`middleware.ts` re-exports are legacy — use route handlers, middleware directly)
+- Next.js: App Router patterns over Pages Router; in Next.js 16, prefer `proxy.ts` over new `middleware.ts` unless Edge runtime is required
 - React: hooks and server components over class components and HOC patterns
 - .NET: minimal API / top-level statements over legacy controller boilerplate where appropriate
 - Auth: platform-native auth (NextAuth v5, ASP.NET Identity) over hand-rolled JWT middleware

@@ -1,8 +1,8 @@
 ---
 name: fullstack-nextjs-test
-description: Next.js 15 testing — Route Handlers, Server Actions, Server Components, next/navigation mocks, vitest config
+description: Next.js 16 testing — Route Handlers, Server Actions, Server Components, async request APIs, next/navigation mocks, vitest config
 metadata:
-  version: 1.0
+  version: 2.0
   domain: frontend
   keywords: [nextjs, next.js, testing, route handler test, server action test, server component, vitest, jest, next/navigation mock, next/headers mock, next-auth test]
 ---
@@ -10,6 +10,8 @@ metadata:
 # Full-Stack Next.js Test
 
 Pair with `frontend-test` for universal principles and `frontend-test-react` for Client Component testing.
+
+Target Next.js guidance is governed by `CODEX.versions.md`. Prefer Next.js 16 test shapes, but follow the project version under test and report version drift when tests must preserve older behavior.
 
 ## Setup
 
@@ -33,12 +35,14 @@ vi.mock('next/navigation', () => ({
 
 // next/headers — for Server Components and Server Actions
 vi.mock('next/headers', () => ({
-  cookies: () => ({ get: vi.fn(), set: vi.fn(), delete: vi.fn() }),
-  headers: () => new Headers(),
+  cookies: async () => ({ get: vi.fn(), set: vi.fn(), delete: vi.fn() }),
+  headers: async () => new Headers(),
 }))
 
 // next/cache
 vi.mock('next/cache', () => ({
+  refresh: vi.fn(),
+  updateTag: vi.fn(),
   revalidatePath: vi.fn(),
   revalidateTag: vi.fn(),
   unstable_cache: vi.fn((fn) => fn),
@@ -107,13 +111,13 @@ import UserPage from '@/app/users/[id]/page'
 
 it('renders user name', async () => {
   mockPrisma.user.findUnique.mockResolvedValue({ id: '1', name: 'Igor' })
-  const jsx = await UserPage({ params: { id: '1' } })
+  const jsx = await UserPage({ params: Promise.resolve({ id: '1' }) })
   const { getByText } = render(jsx)
   expect(getByText('Igor')).toBeInTheDocument()
 })
 ```
 
-- Pass `params`, `searchParams` as plain objects — no routing needed
+- Pass `params`, `searchParams` as resolved promises for Next.js 16 App Router components
 - Mock all DB calls and `auth()` calls at module level
 
 ## Auth Testing
@@ -136,6 +140,7 @@ mockAuth.mockResolvedValue(null)
 
 - Never call real DB in Route Handler or Server Action unit tests — mock at module boundary
 - Always mock `next/navigation`, `next/headers`, `next/cache` before importing server code
+- Mock request-time APIs as async functions in Next.js 16 code
 - Always test 401/403 paths explicitly
 - Never test Client Components here — use `frontend-test-react` for those
 
@@ -143,6 +148,7 @@ mockAuth.mockResolvedValue(null)
 
 - All Route Handlers tested: auth enforcement, validation rejection, happy path
 - All Server Actions tested: validation rejection, DB call, revalidation call
-- `next/navigation` and `next/headers` mocked in all server-side test files
+- `next/navigation`, `next/headers`, and `next/cache` mocked in all server-side test files
+- App Router `params` and `searchParams` passed as promises in Next.js 16 tests
 - No real DB calls in unit tests
 - Tests pass with `vitest` or `jest` in node environment

@@ -3,6 +3,7 @@
 | Skill | Keywords | Description |
 |---|---|---|
 | `framework-management` | framework, routing, skill architecture, orchestration, codex framework | framework orchestration and maintenance |
+| `framework-orchestration-audit` | orchestration audit, human-like agents, senior engineer agents, agent quality, framework evaluation, валидация фреймворка, оркестрация фреймворка | framework orchestration maturity audit |
 | `security-audit` | security, audit, vulnerability, owasp, auth bypass, secret leakage | security review and controls |
 | `error-tracking` | sentry, bugsnag, rollbar, error tracking, crash reporting | error tracking patterns |
 | `feature-flags` | feature flag, launchdarkly, growthbook, flagsmith, unleash, kill switch | feature rollout and kill switches |
@@ -25,4 +26,3 @@
 | `gdpr-compliance` | gdpr, privacy, data deletion, retention, consent | privacy and compliance |
 | `plugin-security-review` | plugin, extension, third-party script, marketplace | plugin review |
 | `runbook-generation` | runbook, operational playbook, on-call procedure | operational runbooks |
-

@@ -75,6 +75,7 @@ This layer should be mostly provider-agnostic.
 - [CODEX.md](/Users/igornepipenko/work/ai-codex-framework/CODEX.md)
 - [CODEX.skills.md](/Users/igornepipenko/work/ai-codex-framework/CODEX.skills.md)
 - [CODEX.concepts.md](/Users/igornepipenko/work/ai-codex-framework/CODEX.concepts.md)
+- [CODEX.versions.md](/Users/igornepipenko/work/ai-codex-framework/CODEX.versions.md)
 - [CODEX.capabilities.md](/Users/igornepipenko/work/ai-codex-framework/CODEX.capabilities.md)
 - [CODEX.permissions.md](/Users/igornepipenko/work/ai-codex-framework/CODEX.permissions.md)
 - [ORCHESTRATOR_REFERENCE.md](/Users/igornepipenko/work/ai-codex-framework/ORCHESTRATOR_REFERENCE.md)
@@ -85,6 +86,7 @@ This layer defines policy:
 
 - what the orchestrator is allowed to do
 - how skills are layered
+- which framework/runtime versions are current targets
 - what model tiers mean
 - what execution patterns exist
 - what the output contract is
@@ -139,7 +141,7 @@ This layer turns repo facts + task intent into:
 - [scripts/framework-health.sh](/Users/igornepipenko/work/ai-codex-framework/scripts/framework-health.sh)
 - [scripts/doctor.sh](/Users/igornepipenko/work/ai-codex-framework/scripts/doctor.sh)
 - [scripts/install-git-hooks.sh](/Users/igornepipenko/work/ai-codex-framework/scripts/install-git-hooks.sh)
-- repo-local `.githooks/`
+- repo-local git hooks installed into the repository's hooks directory
 
 This layer catches:
 
@@ -160,9 +162,9 @@ The main session is expected to:
 
 1. read the generated session context
 2. show the startup banner
-3. show the plan
-4. wait for `go`
-5. execute the task with the routed role/tier/skills
+3. print the generated plan file verbatim
+4. wait for `go` on high-risk/contract/strategic work, or auto-start low-risk mechanical work
+5. execute the task with the routed route badge and skills
 6. verify and report
 
 The framework can also use sub-agents, but the main session remains the top-level coordinator.
@@ -175,14 +177,18 @@ Current tier mapping:
 
 | Tier | Model | Use |
 |---|---|---|
-| `low` | `codex-mini-latest` | mechanical edits, narrow single-file work |
-| `medium` | `gpt-5.4` | normal implementation, review, tests |
-| `high` | `gpt-5.4` | architecture, migrations, cross-system debugging |
-| `xhigh` | `gpt-5.4` | rescue/recovery, framework redesign, ambiguous high-risk work |
+| `low` | `gpt-5.4-mini` | purely mechanical edits, PR/commit mechanics, narrow single-file work |
+| `medium` | `gpt-5.5` | normal implementation, review, tests |
+| `high` | `gpt-5.5` | architecture, migrations, cross-system debugging |
+| `xhigh` | `gpt-5.5` | rescue/recovery, framework redesign, ambiguous high-risk work |
 
 Important policy decision:
 
-- `medium` already uses the stronger main model
+- `low` is reserved for almost fully mechanical work
+- `medium` is the normal default for most tasks, including coordination-heavy work
+- contract-bearing tasks should usually be routed to `high`
+- `high`, `xhigh`, strategic, production, spec-driven, requirement-check, and contract-bearing work pauses for `go` after the plan by default
+- low-risk mechanical work auto-starts after the plan by default
 - the framework is intentionally biased away from cheap-but-weak defaults for normal work
 
 ## Orchestration Flow
@@ -194,7 +200,7 @@ At a high level the framework does this:
 3. refresh repo intelligence if fingerprint is stale
 4. detect task intent
 5. choose role from repo intelligence + task
-6. choose tier/model
+6. choose role/model/tier
 7. resolve skills in layers
 8. generate brief and plan
 9. run work
@@ -270,6 +276,7 @@ codex-fw intelligence .
 ## Repo-Local Artifacts
 
 The framework uses `.codex/` inside a working repo.
+These are runtime artifacts and should stay out of git. The framework repo keeps templates under `templates/project/`, while local `.codex/` and `.githooks/` paths are ignored.
 
 Important files and directories:
 
@@ -283,6 +290,8 @@ Important files and directories:
   generated session, banner, plan, and brief artifacts
 - `.codex/handoffs/`
   multi-agent coordination state
+- `.codex/memory/`
+  local project memory, preferences, decisions, and task episodes
 
 When the environment blocks writes under `.codex/`, the framework falls back to `/tmp/ai-codex-framework/...`.
 
@@ -340,7 +349,7 @@ When the environment blocks writes under `.codex/`, the framework falls back to 
 - [scripts/banner.sh](/Users/igornepipenko/work/ai-codex-framework/scripts/banner.sh)
   startup banner
 - [scripts/status-block.sh](/Users/igornepipenko/work/ai-codex-framework/scripts/status-block.sh)
-  progress block rendering
+  compact progress block rendering with route badges like `fix-5.5-h`
 - [scripts/preflight.sh](/Users/igornepipenko/work/ai-codex-framework/scripts/preflight.sh)
   startup project state report
 
@@ -354,6 +363,18 @@ When the environment blocks writes under `.codex/`, the framework falls back to 
   post-edit verification bundle
 - [scripts/framework-health.sh](/Users/igornepipenko/work/ai-codex-framework/scripts/framework-health.sh)
   framework self-check
+- [scripts/framework-eval.sh](/Users/igornepipenko/work/ai-codex-framework/scripts/framework-eval.sh)
+  golden routing and orchestration evals
+- [scripts/framework-maturity.sh](/Users/igornepipenko/work/ai-codex-framework/scripts/framework-maturity.sh)
+  executable maturity score for routing, roles, briefs, handoffs, and verification gates
+- [scripts/framework-drift-check.sh](/Users/igornepipenko/work/ai-codex-framework/scripts/framework-drift-check.sh)
+  detects drift between routing policy, role briefs, skills, and reachable shell routes
+- [scripts/framework-benchmark.sh](/Users/igornepipenko/work/ai-codex-framework/scripts/framework-benchmark.sh)
+  runs the route benchmark dataset in `templates/framework-benchmark.tsv`
+- [scripts/framework-skill-quality.sh](/Users/igornepipenko/work/ai-codex-framework/scripts/framework-skill-quality.sh)
+  audits baseline skills and role bundles for UI kit, design-system, DRY/KISS, DB, hardcode, performance, and verification coverage
+- [scripts/framework-skill-corpus-audit.sh](/Users/igornepipenko/work/ai-codex-framework/scripts/framework-skill-corpus-audit.sh)
+  scores every skill file for structure, workflow, constraints, verification, output contract, domain depth, quality principles, safety, tooling, and repo-context coverage
 - [scripts/doctor.sh](/Users/igornepipenko/work/ai-codex-framework/scripts/doctor.sh)
   project readiness check
 
@@ -367,10 +388,50 @@ When the environment blocks writes under `.codex/`, the framework falls back to 
 - [scripts/pr-create.sh](/Users/igornepipenko/work/ai-codex-framework/scripts/pr-create.sh)
 - [scripts/safe-commit.sh](/Users/igornepipenko/work/ai-codex-framework/scripts/safe-commit.sh)
 
+`pr-ready` now rebases the branch onto the detected base, auto-resolves simple rebase conflicts in favor of the feature branch, and pushes with `--force-with-lease` only after checks pass.
+`pr-create` runs `pr-ready`, rejects shared or `codex/*` head branches, creates/updates the PR with explicit `--base` and `--head`, and generates a `## Test Plan` from the readiness report and active spec.
+`codex-fw work` now auto-submits issue work by default after the Codex session finishes: it commits any remaining changes, pushes the branch, and creates or updates the PR. Set `CODEX_AUTO_SUBMIT=0` if you want to keep the branch local.
+
 ### Coordination state
 
 - [scripts/handoff-state.sh](/Users/igornepipenko/work/ai-codex-framework/scripts/handoff-state.sh)
 - [scripts/retry-state.sh](/Users/igornepipenko/work/ai-codex-framework/scripts/retry-state.sh)
+
+### Local memory
+
+- [scripts/memory-state.sh](/Users/igornepipenko/work/ai-codex-framework/scripts/memory-state.sh)
+
+The memory layer is repo-local runtime state under `.codex/memory/`.
+It is ignored by git and is meant to help new sessions start with compact, curated context instead of rediscovering everything from scratch.
+
+Memory files:
+
+- `project.md`
+  stable local project notes generated from repo intelligence, then editable by the operator
+- `preferences.md`
+  local operator/workflow preferences
+- `decisions.local.md`
+  local decisions that should influence future sessions
+- `episodes.jsonl`
+  compact summaries of previous tasks
+- `summaries/`
+  archived older episode logs after compaction
+
+The session startup and task brief now include a compact memory block:
+
+1. project memory
+2. preferences
+3. local decisions
+4. relevant task episodes
+
+This is intentionally not a full transcript store. The goal is to spend fewer tokens on repeated repo discovery while preserving the facts and decisions that actually help the next task.
+
+CLI task and issue sessions automatically append a compact episode after the Codex run completes.
+Disable this with:
+
+```bash
+CODEX_MEMORY_AUTO_RECORD=0
+```
 
 ## Commands You Actually Use
 
@@ -386,11 +447,28 @@ codex
 codex --task "fix login timeout"
 ```
 
+Task-first sessions now create a sibling worktree from the repository default branch by default, so ad hoc work stays isolated from your primary checkout.
+Task-first branch names use product-facing prefixes inferred from the task text: `feature/` by default, `fix/` for bug fixes, `chore/` for polish/refactors/maintenance, `docs/` for docs, and `test/` for test work. Avoid tool-revealing prefixes such as `codex/` for any PR branch.
+Set `CODEX_TASK_WORKTREE=0` if you want to keep a task session in the current checkout.
+When a worktree is created, the framework copies root `.env` / `.env.*` files from the source checkout so local migrations, tests, and scripts can run with the same machine-specific config. It skips template files such as `.env.example`.
+Set `CODEX_WORKTREE_ENV_SYNC=symlink` to link those files instead, or `CODEX_WORKTREE_ENV_SYNC=0` to disable env sync.
+
 ### Start issue/spec flow
 
 ```bash
 codex -w 495
 ```
+
+Issue worktrees default to fresh-by-SHA. Each run fetches the repository default branch, creates a new sibling worktree from the current default-branch SHA, and names the branch/path with that SHA suffix.
+Fresh issue worktrees use the same `.env` sync behavior as task worktrees.
+
+```bash
+codex -w 495 --resume
+codex -w 495 --cleanup
+codex --worktrees
+```
+
+Use `--resume` only when you explicitly want the latest existing worktree for that issue without fetching. Use `--cleanup` or `--cleanup-all` to remove every worktree for an issue.
 
 ### Inspect readiness
 
@@ -402,6 +480,28 @@ codex-fw doctor
 
 ```bash
 codex-fw intelligence .
+```
+
+### Inspect local memory
+
+```bash
+codex-fw memory status
+codex-fw memory context "fix login timeout"
+codex-fw memory search "auth timeout"
+```
+
+### Add local memory
+
+```bash
+codex-fw memory add-decision "Use Bun as the default package runner for this repo."
+codex-fw memory add-episode --task "fix login timeout" --summary "Adjusted auth refresh handling." --files "src/lib/auth.ts" --verification "bunx vitest run src/lib/auth.test.ts" --tags "auth,session"
+```
+
+### Compact or prune local memory
+
+```bash
+codex-fw memory compact 200
+codex-fw memory prune 200
 ```
 
 ### Generate brief or plan without launching a session
@@ -453,7 +553,7 @@ The framework is now strong at:
 
 - visible orchestration
 - structured session startup
-- role/tier/skill planning
+- route badge and skill planning
 - issue/spec workflows
 - repo-intelligence caching
 - requirement-sensitive gating
@@ -486,7 +586,7 @@ codex --task "your real task"
 Then inspect:
 
 - chosen role
-- chosen tier/model
+- chosen route badge
 - generated brief
 - repo policy and conventions
 - verification and quality output

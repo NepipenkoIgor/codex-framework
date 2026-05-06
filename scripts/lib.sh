@@ -18,7 +18,14 @@ project_codex_dir() {
 }
 
 project_git_hooks_dir() {
-  printf '%s/.githooks\n' "$(project_root)"
+  local root hooks_dir
+  root="$(project_root)"
+  if git -C "$root" rev-parse --show-toplevel >/dev/null 2>&1; then
+    hooks_dir="$(git -C "$root" rev-parse --git-path hooks)"
+    printf '%s\n' "$hooks_dir"
+  else
+    printf '%s/.git/hooks\n' "$root"
+  fi
 }
 
 project_commands_file() {
@@ -125,6 +132,28 @@ info() {
   echo "$*"
 }
 
+run_with_spinner() {
+  local label="$1"
+  shift
+  local output_file status pid spinner i
+  output_file="$(mktemp)"
+  spinner='|/-\'
+  i=0
+  "$@" >"$output_file" 2>&1 &
+  pid=$!
+  while kill -0 "$pid" 2>/dev/null; do
+    printf '\r[%s] %s %s' "$(date +%H:%M:%S)" "$label" "${spinner:i:1}" >&2
+    i=$(( (i + 1) % 4 ))
+    sleep 1
+  done
+  wait "$pid"
+  status=$?
+  printf '\r\033[K' >&2
+  cat "$output_file"
+  rm -f "$output_file"
+  return "$status"
+}
+
 join_by() {
   local delimiter="$1"
   shift || true
@@ -144,7 +173,7 @@ role_emoji() {
   case "$1" in
     architect) echo "📐" ;;
     auditor) echo "🟪" ;;
-    builder|builder-frontend|builder-backend|builder-infra|builder-mobile|builder-fullstack|builder-automation|builder-ai|builder-n8n|builder-specialized) echo "🟢" ;;
+    builder|builder-frontend|builder-backend|builder-infra|builder-mobile|builder-fullstack|builder-automation|builder-ai|builder-n8n) echo "🟢" ;;
     fixer) echo "🔴" ;;
     refactorer) echo "🔷" ;;
     reviewer) echo "🟠" ;;
@@ -169,7 +198,6 @@ role_alias() {
     builder-automation) echo "build-auto" ;;
     builder-ai) echo "build-ai" ;;
     builder-n8n) echo "build-n8n" ;;
-    builder-specialized) echo "build-spec" ;;
     fixer) echo "fix" ;;
     refactorer) echo "refact" ;;
     reviewer) echo "review" ;;
@@ -191,12 +219,40 @@ model_tag() {
   esac
 }
 
+model_alias() {
+  printf '%s\n' "$1" | sed -E 's/^gpt-//'
+}
+
+route_badge() {
+  local role="$1"
+  local model="$2"
+  local tier="$3"
+  printf '%s-%s-%s\n' "$(role_alias "$role")" "$(model_alias "$model")" "$(model_tag "$tier")"
+}
+
+codex_low_model() {
+  printf '%s\n' "${CODEX_LOW_MODEL:-gpt-5.4-mini}"
+}
+
+codex_medium_model() {
+  printf '%s\n' "${CODEX_MEDIUM_MODEL:-gpt-5.5}"
+}
+
+codex_high_model() {
+  printf '%s\n' "${CODEX_HIGH_MODEL:-gpt-5.5}"
+}
+
+codex_xhigh_model() {
+  printf '%s\n' "${CODEX_XHIGH_MODEL:-gpt-5.5}"
+}
+
 tier_model() {
   case "$1" in
-    low) echo "codex-mini-latest" ;;
-    medium) echo "gpt-5.4" ;;
-    high|xhigh) echo "gpt-5.4" ;;
-    *) echo "gpt-5.4" ;;
+    low) codex_low_model ;;
+    medium) codex_medium_model ;;
+    high) codex_high_model ;;
+    xhigh) codex_xhigh_model ;;
+    *) codex_medium_model ;;
   esac
 }
 
@@ -220,6 +276,90 @@ codex_use_full_auto() {
     1|true|TRUE|yes|YES) return 0 ;;
     *) return 1 ;;
   esac
+}
+
+codex_wait_for_go() {
+  case "${CODEX_WAIT_FOR_GO:-0}" in
+    1|true|TRUE|yes|YES) return 0 ;;
+    *) return 1 ;;
+  esac
+}
+
+codex_wait_for_go_override_is_set() {
+  [ "${CODEX_WAIT_FOR_GO+x}" = "x" ]
+}
+
+codex_should_wait_for_go() {
+  local role="${1:-}"
+  local tier="${2:-medium}"
+  local task_shape="${3:-implementation}"
+  local task_flags="${4:-none}"
+  local task_text_lc
+  task_text_lc="$(printf '%s' "${5:-}" | tr '[:upper:]' '[:lower:]')"
+
+  if codex_wait_for_go_override_is_set; then
+    codex_wait_for_go
+    return $?
+  fi
+
+  case "$tier" in
+    high|xhigh) return 0 ;;
+    low) return 1 ;;
+  esac
+
+  case "$task_shape" in
+    mechanical) return 1 ;;
+    strategic) return 0 ;;
+  esac
+
+  if printf ',%s,' "$task_flags" | grep -Eq ',(contract|production|spec-driven|requirement-check),'; then
+    return 0
+  fi
+
+  case "$role" in
+    architect|framework-manager|refactorer) return 0 ;;
+  esac
+
+  if task_contains "$task_text_lc" 'migration|schema|contract|cross-system|cross system|multi-system|multi service|webhook|concurrency|deadlock|race condition|distributed|production|incident|outage|security'; then
+    return 0
+  fi
+
+  return 1
+}
+
+codex_auto_submit() {
+  case "${CODEX_AUTO_SUBMIT:-1}" in
+    0|false|FALSE|no|NO) return 1 ;;
+    *) return 0 ;;
+  esac
+}
+
+codex_memory_auto_record() {
+  case "${CODEX_MEMORY_AUTO_RECORD:-1}" in
+    0|false|FALSE|no|NO) return 1 ;;
+    *) return 0 ;;
+  esac
+}
+
+csv_from_lines() {
+  awk 'NF { gsub(/^[[:space:]]+|[[:space:]]+$/, ""); if ($0 != "") { if (out != "") out = out ","; out = out $0 } } END { print out }'
+}
+
+record_memory_episode() {
+  local task="$1"
+  local summary="${2:-Session completed.}"
+  local tags="${3:-session}"
+  local files
+
+  codex_memory_auto_record || return 0
+  [ -n "$task" ] || return 0
+
+  files="$(git_changed_files 2>/dev/null | head -n 20 | csv_from_lines || true)"
+  bash "$(framework_root)/scripts/memory-state.sh" add-episode \
+    --task "$task" \
+    --summary "$summary" \
+    --files "$files" \
+    --tags "$tags" >/dev/null 2>&1 || true
 }
 
 codex_runtime_args() {
@@ -276,6 +416,17 @@ decorate_skill_list() {
   done | awk 'BEGIN { first = 1 } { if (!first) printf ", "; printf "%s", $0; first = 0 } END { printf "\n" }' | tr -d '\n'
 }
 
+plain_skill_list() {
+  local raw="$1"
+  local skill
+  [ -n "$raw" ] && [ "$raw" != "none" ] || return 0
+  printf '%s\n' "$raw" | tr ',' '\n' | while IFS= read -r skill; do
+    skill="$(printf '%s' "$skill" | sed 's/^[[:space:]]*//; s/[[:space:]]*$//')"
+    [ -n "$skill" ] || continue
+    printf '%s\n' "$skill"
+  done | awk 'BEGIN { first = 1 } { if (!first) printf ", "; printf "%s", $0; first = 0 } END { printf "\n" }' | tr -d '\n'
+}
+
 has_command() {
   command -v "$1" >/dev/null 2>&1
 }
@@ -315,7 +466,10 @@ current_branch() {
 
 git_changed_files() {
   if git rev-parse --show-toplevel >/dev/null 2>&1; then
-    git diff --name-only HEAD
+    {
+      git diff --name-only HEAD
+      git ls-files --others --exclude-standard
+    } | awk 'NF && !seen[$0]++'
   fi
 }
 
@@ -332,6 +486,27 @@ spec_root() {
 
 ensure_spec_root() {
   mkdir -p "$(spec_root)"
+}
+
+memory_root() {
+  local preferred fallback project_name probe
+  preferred="$(project_codex_dir)/memory"
+  if mkdir -p "$preferred" >/dev/null 2>&1; then
+    probe="$preferred/.write-test.$$"
+    if touch "$probe" >/dev/null 2>&1; then
+      rm -f "$probe"
+      printf '%s\n' "$preferred"
+      return 0
+    fi
+  fi
+  project_name="$(basename "$(project_root)")"
+  fallback="/tmp/ai-codex-framework/$project_name/memory"
+  mkdir -p "$fallback"
+  printf '%s\n' "$fallback"
+}
+
+ensure_memory_root() {
+  mkdir -p "$(memory_root)"
 }
 
 run_root() {
@@ -551,14 +726,16 @@ scan_text_for_policy_violations() {
   printf '%s\n' "${findings:-none}"
 }
 
-git_core_hooks_path() {
-  git config --local --get core.hooksPath 2>/dev/null || true
-}
-
 ensure_project_git_hooks() {
   local root="${1:-$(project_root)}"
-  local hooks_dir="$root/.githooks"
+  local hooks_dir
+  if git -C "$root" rev-parse --show-toplevel >/dev/null 2>&1; then
+    hooks_dir="$(git -C "$root" rev-parse --git-path hooks)"
+  else
+    hooks_dir="$root/.git/hooks"
+  fi
   mkdir -p "$hooks_dir"
+  printf '%s\n' "$hooks_dir"
 }
 
 detect_missing_deps() {
@@ -586,51 +763,31 @@ cache_write() {
 }
 
 cached_stack_summary() {
-  local cached
-  cached="$(cache_read stack.txt 2>/dev/null || true)"
-  if [ -n "$cached" ]; then
-    printf '%s\n' "$cached"
-  else
-    cached="$(bash "$(framework_root)/scripts/detect-project-stack.sh" "$(project_root)")"
-    cache_write stack.txt "$cached"
-    printf '%s\n' "$cached"
-  fi
+  local detected
+  detected="$(bash "$(framework_root)/scripts/detect-project-stack.sh" "$(project_root)")"
+  cache_write stack.txt "$detected"
+  printf '%s\n' "$detected"
 }
 
 cached_feature_summary() {
-  local cached
-  cached="$(cache_read features.txt 2>/dev/null || true)"
-  if [ -n "$cached" ]; then
-    printf '%s\n' "$cached"
-  else
-    cached="$(bash "$(framework_root)/scripts/detect-project-features.sh" "$(project_root)")"
-    cache_write features.txt "$cached"
-    printf '%s\n' "$cached"
-  fi
+  local detected
+  detected="$(bash "$(framework_root)/scripts/detect-project-features.sh" "$(project_root)")"
+  cache_write features.txt "$detected"
+  printf '%s\n' "$detected"
 }
 
 cached_policy_summary() {
-  local cached
-  cached="$(cache_read policy.txt 2>/dev/null || true)"
-  if [ -n "$cached" ]; then
-    printf '%s\n' "$cached"
-  else
-    cached="$(bash "$(framework_root)/scripts/detect-project-policy.sh" "$(project_root)")"
-    cache_write policy.txt "$cached"
-    printf '%s\n' "$cached"
-  fi
+  local detected
+  detected="$(bash "$(framework_root)/scripts/detect-project-policy.sh" "$(project_root)")"
+  cache_write policy.txt "$detected"
+  printf '%s\n' "$detected"
 }
 
 cached_convention_summary() {
-  local cached
-  cached="$(cache_read conventions.txt 2>/dev/null || true)"
-  if [ -n "$cached" ]; then
-    printf '%s\n' "$cached"
-  else
-    cached="$(bash "$(framework_root)/scripts/detect-project-conventions.sh" "$(project_root)")"
-    cache_write conventions.txt "$cached"
-    printf '%s\n' "$cached"
-  fi
+  local detected
+  detected="$(bash "$(framework_root)/scripts/detect-project-conventions.sh" "$(project_root)")"
+  cache_write conventions.txt "$detected"
+  printf '%s\n' "$detected"
 }
 
 cached_repo_intelligence_file() {
@@ -690,17 +847,19 @@ load_repo_intelligence() {
 
 detect_task_intent() {
   local task_lc="$1"
-  if task_contains "$task_lc" '(^|[^a-z])(review|audit|findings|comment)([^a-z]|$)|pr review|review comment'; then
+  if task_contains "$task_lc" '(^|[^a-z])(review|audit|findings|comment)([^a-z]|$)|pr review|review comment|аудит|ревью|проверка|проанализируй|анализ'; then
     printf 'review\n'
-  elif task_contains "$task_lc" 'test|coverage|regression|e2e'; then
+  elif task_contains "$task_lc" 'test|coverage|regression|e2e|тест|покрытие|регресс'; then
     printf 'test\n'
-  elif task_contains "$task_lc" 'refactor|simplify|migrate|clean up|modernize'; then
+  elif task_contains "$task_lc" 'refactor|simplify|migrate|clean up|modernize|рефактор|упрости|миграц|модерниз'; then
     printf 'refactor\n'
-  elif task_contains "$task_lc" 'bug|fix|crash|wrong behavior|debug|incident|failure|performance'; then
+  elif task_contains "$task_lc" 'bug|fix|crash|wrong behavior|debug|incident|failure|performance|баг|почини|исправь|сломал|ошибк|инцидент|производительн'; then
     printf 'fix\n'
-  elif task_contains "$task_lc" 'design|architecture|schema|contract|technical plan|dependency'; then
+  elif task_contains "$task_lc" 'design|architecture|schema|contract|technical plan|dependency|архитект|схем|контракт|технический план|зависимост'; then
     printf 'design\n'
-  elif task_contains "$task_lc" 'backlog|sprint|milestone|ticket|repo setup|create pr|open pr'; then
+  elif task_contains "$task_lc" 'estimate|proposal|scope|cost|оценк|смет|стоимост|скоуп'; then
+    printf 'estimate\n'
+  elif task_contains "$task_lc" 'backlog|sprint|milestone|ticket|repo setup|create pr|open pr|создай pr|создать pr|открой pr|пулл реквест|беклог|спринт|тикет|задач'; then
     printf 'manage\n'
   else
     printf 'implement\n'
@@ -714,7 +873,7 @@ choose_role_from_repo_intelligence() {
   load_repo_intelligence
   intent="$(detect_task_intent "$task_lc")"
 
-  if task_contains "$task_lc" 'framework health|new skill|role update|routing|codex framework|framework gap|production readiness|operating model|orchestration redesign|skill architecture|runtime guard'; then
+  if task_contains "$task_lc" 'framework health|new skill|role update|routing|codex framework|framework gap|framework orchestration|orchestration audit|agent quality|human-like|human like|senior engineer agent|production readiness|operating model|orchestration redesign|skill architecture|runtime guard|фреймворк|фреймворка|оркестрац|агент|агентов|доменные знания|валидац.*фреймворк'; then
     printf 'framework-manager\n'
     return 0
   fi
@@ -724,16 +883,13 @@ choose_role_from_repo_intelligence() {
   fi
   case "$intent" in
     manage) printf 'project-manager\n'; return 0 ;;
+    estimate) printf 'estimator\n'; return 0 ;;
     review) printf 'reviewer\n'; return 0 ;;
     test) printf 'tester\n'; return 0 ;;
     refactor) printf 'refactorer\n'; return 0 ;;
     design) printf 'architect\n'; return 0 ;;
   esac
 
-  if task_contains "$task_lc" 'react native|expo|flutter|ios|android|mobile'; then
-    printf 'builder-mobile\n'
-    return 0
-  fi
   if task_contains "$task_lc" 'n8n|workflow node|workflow retry|webhook chain'; then
     printf 'builder-n8n\n'
     return 0
@@ -750,9 +906,25 @@ choose_role_from_repo_intelligence() {
     printf 'builder-infra\n'
     return 0
   fi
-  if { [ "$RI_PRIMARY_FRAMEWORK" = "nextjs" ] || [ "$RI_PRIMARY_FRAMEWORK" = "blazor" ]; } \
+  if { [ "$RI_PRIMARY_FRAMEWORK" = "nextjs" ] || [ "$RI_PRIMARY_FRAMEWORK" = "blazor" ] || task_contains "$task_lc" 'next\.js|nextjs|blazor'; } \
     && task_contains "$task_lc" 'route handler|server action|app router|razor|page and api|full-stack framework|full stack'; then
     printf 'builder-fullstack\n'
+    return 0
+  fi
+  if task_contains "$task_lc" 'react native|expo|flutter|native app|mobile app|ios|android'; then
+    printf 'builder-mobile\n'
+    return 0
+  fi
+  if task_contains "$task_lc" 'mobile' && printf '%s' "$RI_DOMAIN_HINTS" | grep -Eq '(^|,)mobile(,|$)'; then
+    printf 'builder-mobile\n'
+    return 0
+  fi
+  if task_contains "$task_lc" 'mobile menu|mobile nav|mobile drawer|mobile sidebar|mobile overlay|mobile sheet|mobile dialog|mobile dropdown' \
+    && { [ "$RI_PRIMARY_FRAMEWORK" = "nextjs" ] || [ "$RI_PRIMARY_FRAMEWORK" = "react" ] || [ "$RI_PRIMARY_FRAMEWORK" = "vue" ] || [ "$RI_PRIMARY_FRAMEWORK" = "angular" ] || [ "$RI_PRIMARY_FRAMEWORK" = "blazor" ]; }; then
+    case "$intent" in
+      fix) printf 'fixer\n' ;;
+      *) printf 'builder-frontend\n' ;;
+    esac
     return 0
   fi
   if printf '%s' "$RI_DOMAIN_HINTS" | grep -Eq '(^|,)mobile(,|$)'; then
@@ -794,11 +966,18 @@ choose_tier_from_role_and_task() {
   local role="$1"
   local task_lc="$2"
   local shape="$3"
+  local contract_task="no"
   local tier="medium"
-  [ "$shape" = "mechanical" ] && tier="low"
+  if task_contains "$task_lc" 'new api|schema|contract|migration|dependency|cross-system|cross system|parallel'; then
+    contract_task="yes"
+  fi
+  [ "$shape" = "mechanical" ] && [ "$contract_task" = "no" ] && tier="low"
   case "$role" in
+    estimator)
+      tier="medium"
+      ;;
     framework-manager)
-      if task_contains "$task_lc" 'framework gap|production readiness|operating model|orchestration redesign|skill architecture|runtime guard'; then
+      if task_contains "$task_lc" 'framework gap|framework orchestration|orchestration audit|agent quality|human-like|human like|senior engineer agent|production readiness|operating model|orchestration redesign|skill architecture|runtime guard|оркестрац|агент|агентов|доменные знания|валидац.*фреймворк'; then
         tier="xhigh"
       else
         tier="high"
@@ -808,17 +987,24 @@ choose_tier_from_role_and_task() {
       tier="high"
       ;;
     project-manager)
-      tier="low"
+      if task_contains "$task_lc" 'create pr|open pr|publish pr|pr body|release summary|commit|stage changes|git status|push branch|создай pr|создать pr|открой pr|пулл реквест|коммит'; then
+        tier="low"
+      else
+        tier="medium"
+      fi
       ;;
     fixer)
       tier="medium"
       task_contains "$task_lc" 'across|cross-system|cross system|multi-system|multi service|migration|webhook|concurrency|deadlock|race condition|distributed' && tier="high"
-      [ "$shape" = "mechanical" ] && tier="low"
+      [ "$shape" = "mechanical" ] && [ "$contract_task" = "no" ] && tier="low"
       ;;
     reviewer|tester|builder-frontend|builder-backend|builder-infra|builder-mobile|builder|auditor)
       [ "$tier" = "low" ] || tier="medium"
       ;;
   esac
+  if [ "$contract_task" = "yes" ] && [ "$tier" != "xhigh" ] && [ "$role" != "estimator" ]; then
+    tier="high"
+  fi
   printf '%s\n' "$tier"
 }
 
@@ -970,7 +1156,7 @@ feature_to_skills() {
     offline-sync) printf 'offline-sync-design\n' ;;
     video) printf 'video-streaming\n' ;;
     caching) printf 'caching-strategy\n' ;;
-    database-orm) printf 'database-optimization\n' ;;
+    database-orm) printf 'database-migration\ndatabase-optimization\n' ;;
     resilience) printf 'resilience-patterns\n' ;;
     stripe) printf 'payment-integration\nsaas-billing-portal\n' ;;
     auth) printf 'auth-security\nsaas-onboarding\n' ;;
@@ -1053,6 +1239,7 @@ resolve_domain_baseline_skills() {
         resolved="$(append_unique_csv "$resolved" "api-design")"
         resolved="$(append_unique_csv "$resolved" "data-validation-design")"
         resolved="$(append_unique_csv "$resolved" "auth-security")"
+        resolved="$(append_unique_csv "$resolved" "database-migration")"
         resolved="$(append_unique_csv "$resolved" "database-optimization")"
         resolved="$(append_unique_csv "$resolved" "docs-sync")"
         resolved="$(append_unique_csv "$resolved" "observability-design")"
@@ -1147,6 +1334,7 @@ resolve_domain_baseline_skills() {
     case "$role" in
       framework-manager)
         resolved="$(append_unique_csv "$resolved" "framework-management")"
+        resolved="$(append_unique_csv "$resolved" "framework-orchestration-audit")"
         resolved="$(append_unique_csv "$resolved" "docs-sync")"
         ;;
       auditor)
@@ -1279,8 +1467,11 @@ csv_to_multiline() {
 
 model_fallback_chain() {
   case "$1" in
-    codex-mini-latest) printf 'codex-mini-latest,gpt-5.4\n' ;;
-    gpt-5.4) printf 'gpt-5.4,codex-mini-latest\n' ;;
+    gpt-5.4-mini|gpt-5.1-codex-mini|codex-mini-latest) printf '%s,gpt-5.5\n' "$1" ;;
+    gpt-5.5) printf 'gpt-5.5\n' ;;
     *) printf '%s\n' "$1" ;;
   esac
 }
+
+. "$(framework_root)/scripts/lib/repo-detection.sh"
+. "$(framework_root)/scripts/lib/git-flow.sh"

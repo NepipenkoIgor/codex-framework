@@ -14,18 +14,29 @@ say_present() {
   local label="$1"
   local pattern="$2"
   local glob="${3:-}"
-  if search_tree_regex "$pattern" "$ROOT" "$glob"; then
+  if search_project_tree_regex "$pattern" "$ROOT" "$glob"; then
     printf '%s\n' "$label"
+  fi
+}
+
+project_file_list() {
+  if command -v rg >/dev/null 2>&1; then
+    if is_framework_repo_root "$ROOT"; then
+      rg --files "$ROOT" \
+        -g '!skills/**' -g '!agents/**' -g '!templates/**' -g '!scripts/**' \
+        -g '!CODEX*.md' -g '!CONCEPTS.md' -g '!ORCHESTRATOR_REFERENCE.md' \
+        -g '!README.md' -g '!SKILLS_MAP*.md'
+    else
+      rg --files "$ROOT"
+    fi
+  else
+    find "$ROOT" -type f | sed "s#^$ROOT/##"
   fi
 }
 
 find_first_path() {
   local pattern="$1"
-  if command -v rg >/dev/null 2>&1; then
-    rg --files "$ROOT" | grep -E "$pattern" | head -n 1
-  else
-    find "$ROOT" -type f | sed "s#^$ROOT/##" | grep -E "$pattern" | head -n 1
-  fi
+  project_file_list | grep -E "$pattern" | head -n 1
 }
 
 neighbor_files() {
@@ -49,11 +60,7 @@ neighbor_files() {
       [ -n "$path" ] || continue
       files+=("$path")
     done <<EOF
-$(if command -v rg >/dev/null 2>&1; then
-    rg --files "$ROOT" | grep -E '(^|/)(src/)?components/.*(landing|hero|avatar|section|page|card).*\.(tsx|ts|jsx|js)$' | head -n 5
-  else
-    find "$ROOT" -type f | sed "s#^$ROOT/##" | grep -E '(^|/)(src/)?components/.*(landing|hero|avatar|section|page|card).*\.(tsx|ts|jsx|js)$' | head -n 5
-  fi)
+$(project_file_list | grep -E '(^|/)(src/)?components/.*(landing|hero|avatar|section|page|card).*\.(tsx|ts|jsx|js)$' | head -n 5)
 EOF
   fi
 

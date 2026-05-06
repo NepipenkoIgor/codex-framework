@@ -22,7 +22,7 @@ pkg_has_dep() {
 
 tree_has() {
   local pattern="$1"
-  search_tree_regex "$pattern" "$ROOT"
+  search_project_tree_regex "$pattern" "$ROOT"
 }
 
 pkg_has_dep '"(next-auth|@auth/core|passport)"' && add_feature "auth"

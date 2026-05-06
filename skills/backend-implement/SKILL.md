@@ -33,6 +33,8 @@ If architecture is missing:
 - Prefer explicit contracts for requests, responses, commands, events, and jobs.
 - Handle timeout, retry, cancellation, and idempotency deliberately.
 - Avoid duplicated logic and unnecessary I/O.
+- Keep the implementation simple; do not add layers, repositories, services, or abstractions unless they remove real complexity.
+- Do not hardcode environment-specific values, secrets, tenant IDs, feature flags, or operational constants in application logic.
 
 ## Validation and Contracts
 
@@ -59,6 +61,8 @@ If architecture is missing:
 - Handle expected failures explicitly.
 - Avoid sync-over-async and hidden side effects.
 - Preserve useful error context without leaking sensitive information.
+- Use existing configuration, logging, metrics, and tracing patterns instead of parallel operational plumbing.
+- Keep security and authorization checks close to the boundary they protect.
 
 ## Verification
 

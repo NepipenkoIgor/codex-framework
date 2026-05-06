@@ -35,22 +35,6 @@ cd "$ROOT"
 
 git rev-parse --show-toplevel >/dev/null 2>&1 || fail "not inside a git repository"
 
-resolve_base_branch() {
-  local base=""
-  base="$(git symbolic-ref refs/remotes/origin/HEAD 2>/dev/null | sed 's#refs/remotes/origin/##' || true)"
-  if [ -n "$base" ]; then
-    printf '%s\n' "$base"
-    return 0
-  fi
-  for candidate in main master develop; do
-    if git rev-parse --verify "origin/$candidate" >/dev/null 2>&1 || git rev-parse --verify "$candidate" >/dev/null 2>&1; then
-      printf '%s\n' "$candidate"
-      return 0
-    fi
-  done
-  return 1
-}
-
 normalize_subject() {
   printf '%s\n' "$1" | sed -E 's/^(feat|fix|refactor|test|chore|docs|style|perf)(\([^)]+\))?:[[:space:]]*//'
 }
@@ -76,6 +60,26 @@ summary_lines_from_spec() {
       }
     }
   ' "$spec_file" | head -n 5
+}
+
+test_plan_lines_from_spec() {
+  local spec_file="$1"
+  [ -f "$spec_file" ] || return 1
+  awk -F'|' '
+    /^\|[[:space:]]*[0-9]+[[:space:]]*\|/ {
+      requirement=$3
+      status=$5
+      gsub(/^[[:space:]]+|[[:space:]]+$/, "", requirement)
+      gsub(/^[[:space:]]+|[[:space:]]+$/, "", status)
+      if (status ~ /✓/) {
+        print "- ✓ " requirement
+      } else if (status ~ /✗/) {
+        print "- ✗ " requirement " (failing)"
+      } else if (status ~ /☐/) {
+        print "- ☐ " requirement " (unverified)"
+      }
+    }
+  ' "$spec_file"
 }
 
 summary_lines_from_diff() {
@@ -108,34 +112,54 @@ sys.exit(0 if "$key" in scripts else 1)
 PY
 }
 
-hook_plan_lines() {
+verification_lines() {
   local emitted=0
   local hook_names=""
-  local common_dir hooks_path hook_file hook_name
+  local common_dir hook_file hook_name
+  local report_file lint_status lint_cmd tests_status tests_cmd build_status build_cmd
 
-  if [ -d "$ROOT/.husky" ]; then
-    printf -- '- [ ] Git hooks via Husky\n'
+  report_file="$(run_root)/latest-pr-ready.env"
+  if [ -f "$report_file" ]; then
+    # shellcheck disable=SC1090
+    . "$report_file"
+  fi
+
+  lint_status="${check_lint_status:-}"
+  lint_cmd="${check_lint_cmd:-${LINT_CMD:-}}"
+  tests_status="${check_tests_status:-}"
+  tests_cmd="${check_tests_cmd:-${TEST_CMD:-}}"
+  build_status="${check_build_status:-}"
+  build_cmd="${check_build_cmd:-${BUILD_CMD:-}}"
+
+  if [ -n "$lint_cmd" ]; then
+    case "$lint_status" in
+      passed) printf -- '- ✓ Lint passed: `%s`\n' "$lint_cmd" ;;
+      failed) printf -- '- ✗ Lint failed: `%s`\n' "$lint_cmd" ;;
+      *) printf -- '- ☐ Lint not run: `%s`\n' "$lint_cmd" ;;
+    esac
     emitted=1
   fi
 
-  if [ -f "$ROOT/lefthook.yml" ] || [ -f "$ROOT/lefthook.yaml" ]; then
-    printf -- '- [ ] Git hooks via Lefthook\n'
+  if [ -n "$tests_cmd" ]; then
+    case "$tests_status" in
+      passed) printf -- '- ✓ Tests passed: `%s`\n' "$tests_cmd" ;;
+      failed) printf -- '- ✗ Tests failed: `%s`\n' "$tests_cmd" ;;
+      *) printf -- '- ☐ Tests not run: `%s`\n' "$tests_cmd" ;;
+    esac
     emitted=1
   fi
 
-  if package_json_has_key "simple-git-hooks"; then
-    printf -- '- [ ] Git hooks via simple-git-hooks\n'
+  if [ -n "$build_cmd" ]; then
+    case "$build_status" in
+      passed) printf -- '- ✓ Build passed: `%s`\n' "$build_cmd" ;;
+      failed) printf -- '- ✗ Build failed: `%s`\n' "$build_cmd" ;;
+      *) printf -- '- ☐ Build not run: `%s`\n' "$build_cmd" ;;
+    esac
     emitted=1
   fi
 
-  if [ -d "$ROOT/.github/hooks" ]; then
-    printf -- '- [ ] Repository hook scripts from .github/hooks\n'
-    emitted=1
-  fi
-
-  hooks_path="$(git config core.hooksPath 2>/dev/null || true)"
-  if [ -n "$hooks_path" ]; then
-    printf -- '- [ ] Git hooks from core.hooksPath (`%s`)\n' "$hooks_path"
+  if [ -d "$ROOT/.husky" ] || [ -f "$ROOT/lefthook.yml" ] || [ -f "$ROOT/lefthook.yaml" ] || package_json_has_key "simple-git-hooks" || [ -d "$ROOT/.github/hooks" ]; then
+    printf -- '- ☐ Repository hooks are configured; let them run before landing the change\n'
     emitted=1
   fi
 
@@ -153,42 +177,20 @@ hook_plan_lines() {
   fi
 
   if [ -n "$hook_names" ]; then
-    printf -- '- [ ] Installed git hooks: %s\n' "$hook_names"
+    printf -- '- ☐ Installed git hooks detected: `%s`\n' "$hook_names"
     emitted=1
   fi
 
-  return $(( emitted == 0 ))
-}
-
-command_plan_lines() {
-  local emitted=0
-  for cmd in "${TEST_CMD:-}" "${LINT_CMD:-}" "${BUILD_CMD:-}"; do
-    [ -n "$cmd" ] || continue
-    printf -- '- [ ] `%s`\n' "$cmd"
-    emitted=1
-  done
-  return $(( emitted == 0 ))
-}
-
-manual_plan_lines() {
-  if package_json_has_script "test:watch"; then
-    printf -- '- [ ] Targeted manual verification in addition to configured hooks/scripts\n'
-  else
-    printf -- '- [ ] Targeted manual verification\n'
+  if [ "${emitted}" -eq 0 ]; then
+    if package_json_has_script "test:watch"; then
+      printf -- '- ☐ Do a targeted manual check and verify the result in the app\n'
+    else
+      printf -- '- ☐ Do a targeted manual check\n'
+    fi
   fi
 }
 
-verification_lines() {
-  if hook_plan_lines; then
-    return 0
-  fi
-  if command_plan_lines; then
-    return 0
-  fi
-  manual_plan_lines
-}
-
-base_branch="$(resolve_base_branch || true)"
+base_branch="$(resolve_pr_base_branch || true)"
 merge_base=""
 if [ -n "$base_branch" ]; then
   merge_base="$(git merge-base HEAD "origin/$base_branch" 2>/dev/null || git merge-base HEAD "$base_branch" 2>/dev/null || true)"
@@ -209,6 +211,18 @@ if [ -z "$summary_lines" ]; then
   summary_lines='- Update the implementation in this branch'
 fi
 
+test_plan_lines=""
+if [ -n "$spec_file" ]; then
+  test_plan_lines="$(test_plan_lines_from_spec "$spec_file" || true)"
+fi
+verification_lines="$(verification_lines)"
+if [ -n "$test_plan_lines" ]; then
+  test_plan_lines="$test_plan_lines
+$verification_lines"
+else
+  test_plan_lines="$verification_lines"
+fi
+
 if [ -z "$OUTPUT_FILE" ]; then
   OUTPUT_FILE="$(run_root)/$(date -u +"%Y%m%dT%H%M%SZ")-pr-body.md"
 fi
@@ -218,7 +232,7 @@ cat > "$OUTPUT_FILE" <<EOF
 $summary_lines
 
 ## Test Plan
-$(verification_lines)
+$test_plan_lines
 EOF
 
 printf '%s\n' "$OUTPUT_FILE"

@@ -201,8 +201,10 @@ React / Next.js:
 - Colocation: keep component, styles, types, and tests together
 - App Router patterns: layouts, loading, error, and not-found conventions
 - Avoid excessive context nesting; prefer composition
-- In Next.js 15+, `params` and `searchParams` are `Promise<>` — always `await params` before destructuring. Type as `Promise<{ slug: string }>`.
-- In Next.js 15+, Route Handlers and client navigations are not cached by default.
+- In Next.js 16, `params`, `searchParams`, `cookies()`, `headers()`, and `draftMode()` are async only — always await before destructuring. Type `params` as `Promise<{ slug: string }>`.
+- In Next.js 16, request-time rendering is dynamic by default unless caching is explicit.
+- In Next.js 16, prefer `proxy.ts` for request interception; use `middleware.ts` only for explicit Edge runtime cases or projects not yet migrated.
+- Check `CODEX.versions.md` before broad framework work and report version drift when a project is below target.
 
 Next.js App Router architecture:
 

@@ -1,8 +1,0 @@
-⏺ 🧭 Framework Session
-
-📁 Project: /Users/igornepipenko/work/ai-codex-framework
-🧱 Stack: unknown
-🌐 GitHub: gh CLI
-🧪 Diagnostics: local TS fallback
-🖥️ Browser: manual verification only
-

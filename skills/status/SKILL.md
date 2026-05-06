@@ -33,8 +33,34 @@ When user invokes `/status [arg]`:
    - only visual unverified rows -> suggest `/verify`
    - all rows passing -> indicate the work is ready for the next delivery step
 
+## Quality Bar
+
+- Report facts from specs, diffs, CI, or local checks; avoid guessing.
+- Separate done, failed, pending, blocked, and unverified work.
+- Prefer one clear next action over a long menu.
+- Mention stale or missing specs explicitly.
+- Keep output short enough to act on immediately.
+
+## Rules
+
+- Stay read-only.
+- Do not mark work done unless the spec or verification evidence says so.
+- Do not hide failed or unverified visual rows.
+- Do not run broad expensive checks unless the user asked for verification rather than status.
+
+## Verification
+
+- Confirm the spec path used.
+- If git changes exist, mention that status may include uncommitted work.
+- If no spec exists, report the fallback evidence used, or say that status is unavailable.
+
 ## Output Contract
 
-Status: done
+Status: done | partial | blocked
 Changed: none
-Notes: [spec summary inline]
+Spec: [path or none]
+Done: [count/summary]
+Failed: [count/summary]
+Pending: [count/summary]
+Next: [single recommended action]
+Notes: [staleness or missing evidence]

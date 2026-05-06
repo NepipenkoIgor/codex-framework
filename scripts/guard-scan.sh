@@ -34,7 +34,7 @@ collect_files() {
       git diff --cached --name-only
       ;;
     changed)
-      git diff --name-only HEAD
+      git_changed_files
       ;;
     all)
       find . -type f \

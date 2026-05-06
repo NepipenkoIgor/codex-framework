@@ -21,12 +21,14 @@ Migration workflow:
 
 1. Identify the schema change and its impact scope
 2. Classify the change: additive, breaking, data-only, or mixed
-3. Design the migration with forward safety and rollback path
-4. Define index strategy for new or modified columns
-5. Plan data backfill if existing data must change
-6. Verify zero-downtime compatibility for live systems
-7. Write the migration code; define rollback procedure
-8. Specify CI verification steps
+3. Inventory existing migration files and identify the migration ledger for the tool/database
+4. Check whether any migration file you might edit has already been applied
+5. Design the migration with forward safety and rollback path
+6. Define index strategy for new or modified columns
+7. Plan data backfill if existing data must change
+8. Verify zero-downtime compatibility for live systems
+9. Write the migration code; define rollback procedure
+10. Specify CI verification steps
 
 Migration immutability — CRITICAL:
 
@@ -35,6 +37,16 @@ Migration immutability — CRITICAL:
 - If a previous migration was wrong, create a corrective migration that undoes/fixes the issue
 - If a migration hasn't been applied anywhere yet and the user explicitly asks to replace it, only then delete and recreate
 - Modifying applied migrations causes checksum mismatches, deployment failures, and data corruption
+- Before touching a migration, check the migration ledger when access is available:
+  - Supabase/PostgreSQL: `supabase_migrations.schema_migrations` or the project migration history command
+  - Prisma: `_prisma_migrations`
+  - EF Core: `__EFMigrationsHistory`
+  - TypeORM: the configured migrations table, often `migrations`
+  - Knex: `knex_migrations`
+  - Drizzle: `__drizzle_migrations` or the configured migrations table
+- If the target migration appears in the ledger, create a new forward corrective migration; do not edit the old file
+- If database access is unavailable, assume shared or timestamped migrations may already be applied and create a new migration unless the user explicitly confirms the file is local-only/unapplied
+- When creating a corrective migration, mention the original migration name in a SQL/code comment only if that helps future operators understand the repair
 
 Migration strategy:
 
