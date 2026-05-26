@@ -34,6 +34,8 @@ cd "$ROOT"
 
 git rev-parse --show-toplevel >/dev/null 2>&1 || fail "not inside a git repository"
 
+ensure_product_facing_current_branch
+
 branch="$(current_branch)"
 case "$branch" in
   main|master|develop|staging|release/*)
@@ -52,9 +54,7 @@ info "head: $branch"
 info "base: $base"
 
 print_section "Publish"
-sync_branch_for_pr "$base"
-bash "$(framework_root)/scripts/pr-ready.sh" --base "$base"
-git push --force-with-lease -u origin "$branch"
+git push -u origin "$branch"
 
 report_file="$(run_root)/latest-pr-publish.env"
 {

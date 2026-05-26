@@ -9,11 +9,29 @@ TEMPLATE_DIR="$FRAMEWORK_ROOT/templates/project"
 TARGET_CODEX="$TARGET_DIR/CODEX.md"
 TARGET_CODEX_DIR="$TARGET_DIR/.codex"
 TARGET_COMMANDS="$TARGET_CODEX_DIR/project.env"
+TARGET_HOOKS="$TARGET_CODEX_DIR/hooks.json"
+TARGET_HOOK_CONFIG="$TARGET_CODEX_DIR/config.toml"
 TARGET_SPECS="$TARGET_CODEX_DIR/specs"
 TARGET_CACHE="$TARGET_CODEX_DIR/cache"
-TARGET_MEMORY="$TARGET_CODEX_DIR/memory"
+TARGET_MEMORY="$TARGET_DIR/.codex-memory"
+TARGET_LEGACY_MEMORY="$TARGET_CODEX_DIR/memory"
 tmp_commands="$(mktemp)"
 trap 'rm -f "$tmp_commands"' EXIT
+
+ensure_target_gitignore_entry() {
+  local entry="$1"
+  local gitignore="$TARGET_DIR/.gitignore"
+
+  if [ ! -f "$gitignore" ]; then
+    touch "$gitignore" 2>/dev/null || return 0
+    changed=1
+  fi
+
+  if ! grep -qxF "$entry" "$gitignore" 2>/dev/null; then
+    printf '%s\n' "$entry" >> "$gitignore" 2>/dev/null || return 0
+    changed=1
+  fi
+}
 
 project_package_manager() {
   if [ -f "$TARGET_DIR/bun.lockb" ] || [ -f "$TARGET_DIR/bun.lock" ]; then
@@ -162,25 +180,29 @@ mkdir -p "$TARGET_MEMORY" >/dev/null 2>&1 || true
 
 changed=0
 
+ensure_target_gitignore_entry '/.codex/cache/'
+ensure_target_gitignore_entry '/.codex/runs/'
+ensure_target_gitignore_entry '/.codex/specs/'
+ensure_target_gitignore_entry '/.codex/handoffs/'
+ensure_target_gitignore_entry '/.codex/hooks/'
+ensure_target_gitignore_entry '/.codex/hooks.json'
+ensure_target_gitignore_entry '/.codex/config.toml'
+ensure_target_gitignore_entry '/.codex/memory/'
+ensure_target_gitignore_entry '/.codex-memory/'
+ensure_target_gitignore_entry '/.codex/project.env'
+
 if [ ! -e "$TARGET_CODEX" ]; then
   cp "$TEMPLATE_DIR/CODEX.md" "$TARGET_CODEX"
   changed=1
 fi
 
-if git -C "$TARGET_DIR" rev-parse --show-toplevel >/dev/null 2>&1; then
-  TARGET_HOOKS="$(ensure_project_git_hooks "$TARGET_DIR")"
-  cp "$TEMPLATE_DIR/.githooks/pre-commit" "$TARGET_HOOKS/pre-commit"
-  cp "$TEMPLATE_DIR/.githooks/commit-msg" "$TARGET_HOOKS/commit-msg"
-  chmod +x "$TARGET_HOOKS/pre-commit" "$TARGET_HOOKS/commit-msg"
-
-  current_hooks="$(git -C "$TARGET_DIR" config --local --get core.hooksPath 2>/dev/null || true)"
-  if [ "$current_hooks" = ".githooks" ]; then
-    git -C "$TARGET_DIR" config --local --unset core.hooksPath >/dev/null 2>&1 || true
-  fi
-
-  if [ -d "$TARGET_DIR/.githooks" ] && ! git -C "$TARGET_DIR" ls-files --error-unmatch .githooks >/dev/null 2>&1; then
-    rm -rf "$TARGET_DIR/.githooks"
-  fi
+hooks_missing=false
+if [ ! -f "$TARGET_HOOKS" ] || [ ! -f "$TARGET_HOOK_CONFIG" ]; then
+  hooks_missing=true
+fi
+hooks_output="$(bash "$FRAMEWORK_ROOT/scripts/hooks.sh" install "$TARGET_DIR" 2>/dev/null || true)"
+if [ "$hooks_missing" = true ] && [ -n "$hooks_output" ]; then
+  changed=1
 fi
 
 if [ "${CODEX_SKIP_DEP_INSTALL:-0}" != "1" ] && project_needs_dependency_install; then
@@ -237,7 +259,6 @@ Project already bootstrapped:
   $TARGET_SPECS
   $TARGET_CACHE
   $TARGET_MEMORY
-  $(git -C "$TARGET_DIR" rev-parse --git-path hooks 2>/dev/null || printf '%s/.git/hooks' "$TARGET_DIR")
 EOF
   exit 0
 fi
@@ -253,8 +274,12 @@ Project cache directory:
   $TARGET_CACHE
 Project memory directory:
   $TARGET_MEMORY
-Project git hooks:
+Codex hook config:
+  $TARGET_HOOK_CONFIG
+Codex hooks:
   $TARGET_HOOKS
+Old memory cleanup source:
+  $TARGET_LEGACY_MEMORY
 
 Next steps:
 1. Review the project-specific rules in $TARGET_CODEX
@@ -264,7 +289,11 @@ Next steps:
    bash $FRAMEWORK_ROOT/scripts/detect-project-commands.sh "$TARGET_DIR" > "$TARGET_COMMANDS"
 5. Repo intelligence cache:
    $TARGET_CACHE/repo-intelligence.env
-6. Review roles in $FRAMEWORK_ROOT/agents
+6. Review named agents in $FRAMEWORK_ROOT/agents/registry.tsv
 7. Use skills from $FRAMEWORK_ROOT/skills
-8. Repo-local git hooks are installed in the repository's git hooks directory when this is a git repo
+8. Check hook wiring with:
+   bash $FRAMEWORK_ROOT/scripts/hooks.sh doctor "$TARGET_DIR"
+9. Check named-agent wiring with:
+   bash $FRAMEWORK_ROOT/scripts/agent-registry.sh validate
+10. Git hooks are project-owned; Codex runtime hooks are framework-generated local adapters
 EOF

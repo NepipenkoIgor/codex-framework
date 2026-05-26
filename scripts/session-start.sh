@@ -46,6 +46,7 @@ info "stage: collect preflight, capabilities, and banner"
 preflight_file="$(run_root)/$(date -u +"%Y%m%dT%H%M%SZ")-preflight.txt"
 capabilities_file="$(run_root)/$(date -u +"%Y%m%dT%H%M%SZ")-capabilities.txt"
 memory_file="$(run_root)/$(date -u +"%Y%m%dT%H%M%SZ")-memory.md"
+memory_status_file="$(run_root)/$(date -u +"%Y%m%dT%H%M%SZ")-memory-status.txt"
 session_file="$(run_root)/$(date -u +"%Y%m%dT%H%M%SZ")-session.md"
 banner_file="$(run_root)/$(date -u +"%Y%m%dT%H%M%SZ")-banner.txt"
 brief_file=""
@@ -55,6 +56,7 @@ wait_for_go="no"
 bash "$FRAMEWORK_ROOT/scripts/preflight.sh" > "$preflight_file"
 bash "$FRAMEWORK_ROOT/scripts/capabilities.sh" "$SESSION_ROOT" > "$capabilities_file"
 bash "$FRAMEWORK_ROOT/scripts/banner.sh" "$SESSION_ROOT" "$TASK" > "$banner_file"
+bash "$FRAMEWORK_ROOT/scripts/memory-state.sh" status > "$memory_status_file"
 bash "$FRAMEWORK_ROOT/scripts/memory-state.sh" context "$TASK" > "$memory_file"
 
 if [ -n "$TASK" ]; then
@@ -88,6 +90,7 @@ Project root: $SESSION_ROOT
 - $FRAMEWORK_ROOT/CODEX.capabilities.md
 - $FRAMEWORK_ROOT/CODEX.permissions.md
 - $FRAMEWORK_ROOT/ORCHESTRATOR_REFERENCE.md
+- $FRAMEWORK_ROOT/agents/registry.tsv
 - $(cached_repo_intelligence_file)
 
 ## Startup Banner
@@ -115,6 +118,12 @@ $(repo_intelligence_summary)
 \`\`\`
 
 ## Memory Context
+
+Status:
+
+\`\`\`text
+$(cat "$memory_status_file")
+\`\`\`
 
 \`\`\`text
 $(cat "$memory_file")
@@ -164,15 +173,15 @@ cat >> "$session_file" <<EOF
 - Proceed after the plan for low-risk mechanical work, or when \`CODEX_WAIT_FOR_GO=0\`.
 - During work, use short status blocks with a compact route badge such as `fix-5.5-h` and decorated skills.
 - Keep updates concise but make the active owner visible.
-- End task work with the canonical Output Contract from the task brief. Keep section names and ordering exactly. Do not use legacy `Status:` / `Requirement:` label-format closeouts.
+- End task work with the canonical Output Contract from the task brief. Keep section names and ordering exactly. Do not use old `Status:` / `Requirement:` label-format closeouts.
 EOF
 
 prompt="Read $session_file first. Use the framework for this project."
 if [ -n "$brief_file" ]; then
   if [ "$wait_for_go" = "yes" ]; then
-    prompt="$prompt Show the startup banner first. Then print $plan_file verbatim, preserving emoji, bullets, spacing, and wording. Wait for explicit 'go' before executing the task from $brief_file. Use the session display contract for progress updates and the task brief Output Contract for final closeout. Do not use legacy Status:/Requirement: closeout labels."
+    prompt="$prompt Show the startup banner first. Then print $plan_file verbatim, preserving emoji, bullets, spacing, and wording. Wait for explicit 'go' before executing the task from $brief_file. Use the session display contract for progress updates and the task brief Output Contract for final closeout. Do not use old Status:/Requirement: closeout labels."
   else
-    prompt="$prompt Show the startup banner first. Then print $plan_file verbatim, preserving emoji, bullets, spacing, and wording. Proceed directly into executing the task from $brief_file. Use the session display contract for progress updates and the task brief Output Contract for final closeout. Do not use legacy Status:/Requirement: closeout labels."
+    prompt="$prompt Show the startup banner first. Then print $plan_file verbatim, preserving emoji, bullets, spacing, and wording. Proceed directly into executing the task from $brief_file. Use the session display contract for progress updates and the task brief Output Contract for final closeout. Do not use old Status:/Requirement: closeout labels."
   fi
 else
   prompt="$prompt Show the startup banner first and use the session display contract for progress updates."

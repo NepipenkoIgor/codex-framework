@@ -47,6 +47,8 @@ When user invokes `/status [arg]`:
 - Do not mark work done unless the spec or verification evidence says so.
 - Do not hide failed or unverified visual rows.
 - Do not run broad expensive checks unless the user asked for verification rather than status.
+- Do not mutate `.codex/specs`, memory, branch state, or project files from this skill.
+- Treat missing or stale specs as a finding, not as permission to infer success.
 
 ## Verification
 
@@ -56,11 +58,18 @@ When user invokes `/status [arg]`:
 
 ## Output Contract
 
-Status: done | partial | blocked
-Changed: none
-Spec: [path or none]
-Done: [count/summary]
-Failed: [count/summary]
-Pending: [count/summary]
-Next: [single recommended action]
-Notes: [staleness or missing evidence]
+Use concise status fields:
+
+- Status: done | partial | blocked
+- Changed: none
+- Spec: path or none
+- Done: count/summary
+- Failed: count/summary
+- Pending: count/summary
+- Next: single recommended action
+- Notes: staleness, missing evidence, or none
+
+## Safety Notes
+
+- Status output is evidence, not authority. If evidence conflicts with the code, say which source is newer.
+- If GitHub, CI, or browser capability is unavailable, report the missing capability and use local evidence only.

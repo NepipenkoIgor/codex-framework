@@ -9,8 +9,7 @@ Codex-first engineering framework for running production-oriented work with:
 - repo-local state under `.codex/`
 
 This is the Codex counterpart to the Claude framework in `ai-skills`, but the runtime model is different.
-Claude relied heavily on product-native hooks and settings.
-This framework uses explicit scripts, cached repo intelligence, generated briefs, and repo-local artifacts as the control plane.
+This framework is hook-native and script-backed: Codex runtime hooks automate session start, prompt routing, tool guards, change tracking, and stop-state recording, while explicit scripts remain the source of truth for the hook behavior.
 
 ## Start Reading Here
 
@@ -21,7 +20,7 @@ If you want to understand the framework quickly, read in this order:
 2. [CODEX.md](/Users/igornepipenko/work/ai-codex-framework/CODEX.md)
    rules for the main Codex session and orchestration behavior
 3. [ORCHESTRATOR_REFERENCE.md](/Users/igornepipenko/work/ai-codex-framework/ORCHESTRATOR_REFERENCE.md)
-   model tiers, fallback chains, and execution patterns
+   model tiers, retry chains, and execution patterns
 4. [scripts/codex-fw.sh](/Users/igornepipenko/work/ai-codex-framework/scripts/codex-fw.sh)
    the actual framework entrypoint and command flow
 
@@ -61,12 +60,22 @@ The framework is split into five layers.
 ### 1. Knowledge Layer
 
 - `agents/`
+- `agents/registry.tsv`
 - `skills/`
 
 This is the portable knowledge base.
 
 - `agents/*.md` are role briefs
+- `agents/registry.tsv` maps role names to Codex runtime sub-agent types
 - `skills/*/SKILL.md` are reusable domain and workflow instructions
+
+Use this terminology consistently in generated context and chat:
+
+- skills are loaded or connected as instruction context
+- the active named agent is the framework role doing the current work
+- sub-agents are spawned only after explicit delegation
+
+For example, say "loading skill `fullstack-nextjs-implement`" when using `skills/*/SKILL.md`; say "spawning sub-agent `tester`" only when a separate delegated worker is actually launched.
 
 This layer should be mostly provider-agnostic.
 
@@ -133,30 +142,45 @@ This layer turns repo facts + task intent into:
 - task brief
 - session plan
 
-### 5. Enforcement Layer
+### 5. Hook Runtime Layer
+
+- [scripts/hooks.sh](/Users/igornepipenko/work/ai-codex-framework/scripts/hooks.sh)
+- [scripts/context-pack.sh](/Users/igornepipenko/work/ai-codex-framework/scripts/context-pack.sh)
+- `scripts/hooks/*.sh`
+
+This layer wires Codex lifecycle events to script-backed behavior:
+
+- `SessionStart` loads the context pack
+- `UserPromptSubmit` emits routing guidance
+- `PreToolUse` warns or blocks risky shell patterns
+- `PostToolUse` records changed-file state
+- `Stop` runs required checks and records memory
+
+Hooks are thin adapters over framework scripts. They are the Desktop lifecycle path.
+
+### 6. Enforcement Layer
 
 - [scripts/guard-scan.sh](/Users/igornepipenko/work/ai-codex-framework/scripts/guard-scan.sh)
 - [scripts/quality-check.sh](/Users/igornepipenko/work/ai-codex-framework/scripts/quality-check.sh)
 - [scripts/post-change-check.sh](/Users/igornepipenko/work/ai-codex-framework/scripts/post-change-check.sh)
 - [scripts/framework-health.sh](/Users/igornepipenko/work/ai-codex-framework/scripts/framework-health.sh)
 - [scripts/doctor.sh](/Users/igornepipenko/work/ai-codex-framework/scripts/doctor.sh)
-- [scripts/install-git-hooks.sh](/Users/igornepipenko/work/ai-codex-framework/scripts/install-git-hooks.sh)
-- repo-local git hooks installed into the repository's hooks directory
+- Git hooks are project-owned; Codex runtime hooks are framework-generated local adapters
 
 This layer catches:
 
 - secret and attribution violations
 - repo-quality issues
 - missing bootstrap state
-- stale hooks
+- stale runtime hook config
 - missing framework files
 
 ## Main Session Model
 
 The main Codex session is the orchestrator.
 
-It is not a hidden Claude-style hook runtime.
-It is a normal Codex session started with a generated context and explicit session contract.
+It is not a hidden hook runtime.
+It is a normal Codex session with generated context, explicit session contracts, and Codex lifecycle hooks that call visible framework scripts.
 
 The main session is expected to:
 
@@ -167,7 +191,22 @@ The main session is expected to:
 5. execute the task with the routed route badge and skills
 6. verify and report
 
-The framework can also use sub-agents, but the main session remains the top-level coordinator.
+The framework can also use named sub-agents, but the main session remains the top-level coordinator. Named agents such as `builder-backend`, `reviewer`, or `tester` are framework profiles mapped to Codex runtime types (`worker`, `explorer`, or `default`) by `agents/registry.tsv`.
+
+Do not blur skills and agents in user-facing status. A phrase like "using `backend-implement`" should be written as "loading skill `backend-implement`"; a phrase like "launching `tester`" should be reserved for actual sub-agent delegation.
+
+### Named Agents
+
+Use these commands to inspect or generate a spawn prompt:
+
+```bash
+codex-fw agent list
+codex-fw agent get builder-backend
+codex-fw agent prompt builder-backend --task "implement billing endpoint" --skills "backend-implement,api-design" --ownership "API route and service layer"
+codex-fw agent validate
+```
+
+Plans and task briefs show which named agent owns each step, what runtime spawn type to use, and which skills should be loaded lazily.
 
 ## Model Tiers
 
@@ -276,10 +315,16 @@ codex-fw intelligence .
 ## Repo-Local Artifacts
 
 The framework uses `.codex/` inside a working repo.
-These are runtime artifacts and should stay out of git. The framework repo keeps templates under `templates/project/`, while local `.codex/` and `.githooks/` paths are ignored.
+These are runtime artifacts and should stay out of git. The framework repo keeps templates under `templates/project/`, while local `.codex/` paths are ignored.
 
 Important files and directories:
 
+- `.codex/config.toml`
+  local Codex runtime hook config with inline TOML hook blocks
+- `.codex/hooks.json`
+  generated hook adapter artifact for inspection and compatibility
+- `.codex/hooks/`
+  hook logs and lightweight runtime state
 - `.codex/project.env`
   detected project commands
 - `.codex/specs/`
@@ -290,10 +335,10 @@ Important files and directories:
   generated session, banner, plan, and brief artifacts
 - `.codex/handoffs/`
   multi-agent coordination state
-- `.codex/memory/`
+- `.codex-memory/`
   local project memory, preferences, decisions, and task episodes
 
-When the environment blocks writes under `.codex/`, the framework falls back to `/tmp/ai-codex-framework/...`.
+`.codex-memory/` is the canonical memory store for both Desktop and CLI sessions. Older `.codex/memory/` and `/tmp/ai-codex-framework/.../memory` stores are cleanup sources only.
 
 ## Key Files And Responsibilities
 
@@ -310,7 +355,7 @@ When the environment blocks writes under `.codex/`, the framework falls back to 
 - [CODEX.permissions.md](/Users/igornepipenko/work/ai-codex-framework/CODEX.permissions.md)
   permission model and defaults
 - [ORCHESTRATOR_REFERENCE.md](/Users/igornepipenko/work/ai-codex-framework/ORCHESTRATOR_REFERENCE.md)
-  tiers, patterns, fallback rules
+  tiers, patterns, and retry rules
 - [CONCEPTS.md](/Users/igornepipenko/work/ai-codex-framework/CONCEPTS.md)
   broader framework notes and migration context
 
@@ -346,15 +391,21 @@ When the environment blocks writes under `.codex/`, the framework falls back to 
   structured execution brief
 - [scripts/plan.sh](/Users/igornepipenko/work/ai-codex-framework/scripts/plan.sh)
   user-visible plan with `go` gate
+- [scripts/context-pack.sh](/Users/igornepipenko/work/ai-codex-framework/scripts/context-pack.sh)
+  shared startup context for CLI sessions and SessionStart hooks
 - [scripts/banner.sh](/Users/igornepipenko/work/ai-codex-framework/scripts/banner.sh)
-  startup banner
+  startup banner, including memory source and episode count
 - [scripts/status-block.sh](/Users/igornepipenko/work/ai-codex-framework/scripts/status-block.sh)
-  compact progress block rendering with route badges like `fix-5.5-h`
+  compact progress block rendering with route badges like `fix-5.5-h`, including memory source when available
 - [scripts/preflight.sh](/Users/igornepipenko/work/ai-codex-framework/scripts/preflight.sh)
   startup project state report
 
 ### Verification and enforcement
 
+- [scripts/hooks.sh](/Users/igornepipenko/work/ai-codex-framework/scripts/hooks.sh)
+  installs, diagnoses, and smoke-tests Codex runtime hook adapters
+- `scripts/hooks/*.sh`
+  event adapters for `SessionStart`, `UserPromptSubmit`, `PreToolUse`, `PostToolUse`, and `Stop`
 - [scripts/guard-scan.sh](/Users/igornepipenko/work/ai-codex-framework/scripts/guard-scan.sh)
   secret/attribution/policy guard
 - [scripts/quality-check.sh](/Users/igornepipenko/work/ai-codex-framework/scripts/quality-check.sh)
@@ -362,11 +413,11 @@ When the environment blocks writes under `.codex/`, the framework falls back to 
 - [scripts/post-change-check.sh](/Users/igornepipenko/work/ai-codex-framework/scripts/post-change-check.sh)
   post-edit verification bundle
 - [scripts/framework-health.sh](/Users/igornepipenko/work/ai-codex-framework/scripts/framework-health.sh)
-  framework self-check
+  framework self-check, including routing, skill corpus, provider drift, and full-corpus guard scan
 - [scripts/framework-eval.sh](/Users/igornepipenko/work/ai-codex-framework/scripts/framework-eval.sh)
   golden routing and orchestration evals
 - [scripts/framework-maturity.sh](/Users/igornepipenko/work/ai-codex-framework/scripts/framework-maturity.sh)
-  executable maturity score for routing, roles, briefs, handoffs, and verification gates
+  executable maturity score for routing, roles, briefs, handoffs, corpus guard coverage, and verification gates
 - [scripts/framework-drift-check.sh](/Users/igornepipenko/work/ai-codex-framework/scripts/framework-drift-check.sh)
   detects drift between routing policy, role briefs, skills, and reachable shell routes
 - [scripts/framework-benchmark.sh](/Users/igornepipenko/work/ai-codex-framework/scripts/framework-benchmark.sh)
@@ -390,9 +441,10 @@ When the environment blocks writes under `.codex/`, the framework falls back to 
 - [scripts/safe-commit.sh](/Users/igornepipenko/work/ai-codex-framework/scripts/safe-commit.sh)
 
 `pr-ready` is check-only: it rejects shared or `codex/*` head branches, runs configured lint/test/build commands, and writes the readiness report.
-`pr-publish` is the explicit publish step: it rebases, stops on conflicts for manual resolution, runs `pr-ready` on the rebased branch, then pushes with `--force-with-lease`.
-`pr-create` runs `pr-publish`, creates or updates the PR with explicit `--base` and `--head`, and generates a `## Test Plan` from the readiness report and active spec.
+`pr-publish` is the explicit publish step: it first renames tool-revealing `codex/*` branches to product-facing names, then runs `git push -u origin <branch>`. It does not run lint, tests, build, rebase, clean-worktree checks, or framework quality gates.
+`pr-create` runs `pr-publish`, then creates or updates the PR with explicit `--base` and `--head`. Project hooks, Git, GitHub, and CI own checks; if one rejects the action, fix the underlying issue and rerun the same command.
 `codex-fw work` now auto-submits issue work by default after the Codex session finishes: it commits any remaining changes, pushes the branch, and creates or updates the PR. Set `CODEX_AUTO_SUBMIT=0` if you want to keep the branch local.
+Commit commands use normal Git semantics. If the project or user has Git hooks configured, Git runs them. The framework does not write Git hook files into the project; it only generates local Codex runtime hook adapters under `.codex/`.
 
 ### Coordination state
 
@@ -403,8 +455,9 @@ When the environment blocks writes under `.codex/`, the framework falls back to 
 
 - [scripts/memory-state.sh](/Users/igornepipenko/work/ai-codex-framework/scripts/memory-state.sh)
 
-The memory layer is repo-local runtime state under `.codex/memory/`.
+The memory layer is repo-local runtime state under `.codex-memory/`.
 It is ignored by git and is meant to help new sessions start with compact, curated context instead of rediscovering everything from scratch.
+Set `CODEX_MEMORY_DIR` only when you intentionally want a custom memory location.
 
 Memory files:
 
@@ -443,6 +496,17 @@ CODEX_MEMORY_AUTO_RECORD=0
 codex
 ```
 
+### Start a Desktop app task
+
+Desktop sessions load context through `SessionStart` and record stop-state through `Stop`.
+
+### Inspect Codex hooks
+
+```bash
+codex-fw hooks doctor
+codex-fw hooks smoke
+```
+
 ### Start task-first
 
 ```bash
@@ -450,7 +514,7 @@ codex --task "fix login timeout"
 ```
 
 Task-first sessions now create a sibling worktree from the repository default branch by default, so ad hoc work stays isolated from your primary checkout.
-Task-first branch names use product-facing prefixes inferred from the task text: `feature/` by default, `fix/` for bug fixes, `chore/` for polish/refactors/maintenance, `docs/` for docs, and `test/` for test work. Avoid tool-revealing prefixes such as `codex/` for any PR branch.
+Task-first branch names use product-facing prefixes inferred from the task text: `feature/` by default, `fix/` for bug fixes, `chore/` for polish/refactors/maintenance, `docs/` for docs, and `test/` for test work. Avoid tool-revealing prefixes such as `codex/` for any PR branch. Desktop-start and PR publish flows rename a current `codex/<slug>` branch to the matching product-facing branch before continuing.
 Set `CODEX_TASK_WORKTREE=0` if you want to keep a task session in the current checkout.
 When a worktree is created, the framework copies root `.env` / `.env.*` files from the source checkout so local migrations, tests, and scripts can run with the same machine-specific config. It skips template files such as `.env.example`.
 Set `CODEX_WORKTREE_ENV_SYNC=symlink` to link those files instead, or `CODEX_WORKTREE_ENV_SYNC=0` to disable env sync.
@@ -463,9 +527,11 @@ codex -w 495
 
 Issue worktrees default to fresh-by-SHA. Each run fetches the repository default branch, creates a new sibling worktree from the current default-branch SHA, and names the branch/path with that SHA suffix.
 Fresh issue worktrees use the same `.env` sync behavior as task worktrees.
+`codex -w` is delta-first: it reads the issue body and discussion, compares those requirements with the current project, and implements only the parts that are missing or incorrect. Already-satisfied requirements should be marked as covered, not rebuilt from scratch. When resuming an older worktree after new ticket discussion, pass `--refresh` so the spec is synced before continuing.
 
 ```bash
 codex -w 495 --resume
+codex -w 495 --resume --refresh
 codex -w 495 --cleanup
 codex --worktrees
 ```
@@ -488,9 +554,13 @@ codex-fw intelligence .
 
 ```bash
 codex-fw memory status
+codex-fw memory doctor
 codex-fw memory context "fix login timeout"
 codex-fw memory search "auth timeout"
+codex-fw memory refresh-project "auth timeout"
 ```
+
+Memory search ranks JSONL episodes by tag, task, summary, changed files, verification hits, and recency. `refresh-project` updates detected stack, features, policies, and conventions while preserving the `Stable Notes` section.
 
 ### Add local memory
 
@@ -499,11 +569,14 @@ codex-fw memory add-decision "Use Bun as the default package runner for this rep
 codex-fw memory add-episode --task "fix login timeout" --summary "Adjusted auth refresh handling." --files "src/lib/auth.ts" --verification "bunx vitest run src/lib/auth.test.ts" --tags "auth,session"
 ```
 
+`add-decision` skips exact duplicate decisions so local memory stays compact.
+
 ### Compact or prune local memory
 
 ```bash
 codex-fw memory compact 200
 codex-fw memory prune 200
+codex-fw memory cleanup-old-stores
 ```
 
 ### Generate brief or plan without launching a session
@@ -555,6 +628,7 @@ The framework is now strong at:
 
 - visible orchestration
 - structured session startup
+- hook-native startup, routing, guard, change-tracking, and stop adapters
 - route badge and skill planning
 - issue/spec workflows
 - repo-intelligence caching
@@ -572,6 +646,7 @@ Remaining gaps are mostly in:
 - boundary detection in mixed repos
 - file-path-driven routing refinement
 - making quality checks more repo-native across backend/mobile/infra, not only frontend-heavy cases
+- Codex hook wiring is now a required runtime contract; run `codex-fw hooks doctor` when a project is missing hook config
 
 So this is production-oriented, but still needs tuning against real codebases.
 

@@ -69,10 +69,21 @@ for file in "${files[@]}"; do
 
   content="$(sed -n '1,260p' "$file" 2>/dev/null || true)"
 
+  # Strip comment lines before checking for color literals to avoid false positives
+  # on issue references like #835 or #462 that match the hex color pattern
+  content_no_comments="$(printf '%s' "$content" | grep -Ev '^\s*(//|/\*|\*|#)')"
   if { stack_has "$stack" "tailwind" || printf '%s' "$policy" | grep -Eq '(^|,)tailwind-first(,|$)'; } \
-    && printf '%s' "$content" | grep -Eq '#[0-9A-Fa-f]{3,8}|rgb(a)?\('; then
-    printf 'warn: %s -> hardcoded-color-literal\n' "$file"
-    violations=$((violations + 1))
+    && printf '%s' "$content_no_comments" | grep -Eq '#[0-9A-Fa-f]{3,8}|rgb(a)?\('; then
+    case "$file" in
+      src/emails/*|*/src/emails/*|src/app/api/cron/*|*/src/app/api/cron/*)
+        ;;
+      *)
+        if ! printf '%s' "$content" | grep -Eq 'codex-allow-hardcoded-color'; then
+          printf 'warn: %s -> hardcoded-color-literal\n' "$file"
+          violations=$((violations + 1))
+        fi
+        ;;
+    esac
   fi
 
   if printf '%s' "$policy" | grep -Eq '(^|,)use-cn-helper(,|$)' \

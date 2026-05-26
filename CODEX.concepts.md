@@ -58,11 +58,17 @@ Delegated work should always use the canonical route-badge closeout:
 
 The framework should bias toward compact, parseable outputs over prose and must not reintroduce the legacy `Status: ...` label format for normal closeout.
 
-### 8. Contract-first coordination is required for parallel ownership
+### 8. Named agents are registry-backed
+
+`agents/*.md` are role briefs. `agents/registry.tsv` turns those briefs into framework-level named agents by mapping each role to a Codex runtime spawn type, work mode, ownership requirement, and parallel-safety flag.
+
+Native Codex runtime types remain `worker`, `explorer`, and `default`. Framework names such as `builder-backend`, `reviewer`, and `tester` must be passed through the registry and prompt builder before delegation.
+
+### 9. Contract-first coordination is required for parallel ownership
 
 If a task spans shared contracts such as API schema, DB changes, or shared types, the planner should create the contract before parallel work begins.
 
-### 9. Requirement-sensitive work must judge before it edits
+### 10. Requirement-sensitive work must judge before it edits
 
 If a task is driven by issue comments, acceptance criteria, correction requests, review feedback, or wording like `should`, `must`, `expected`, or `wrong`, the first execution step is:
 
@@ -73,7 +79,7 @@ If a task is driven by issue comments, acceptance criteria, correction requests,
 
 Implementation starts only after that mismatch report exists.
 
-### 10. The framework repo is the source of truth
+### 11. The framework repo is the source of truth
 
 Do not patch installed shell wrappers or copied project files and stop there.
 Changes must land in this repo first, then flow through bootstrap or setup.

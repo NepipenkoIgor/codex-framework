@@ -18,8 +18,21 @@ fi
 print_section "Changed Files"
 printf '%s\n' "$changed"
 
+print_section "Memory Contract"
+if bash "$(framework_root)/scripts/memory-contract-check.sh"; then
+  info "memory contract ok"
+else
+  fail "memory contract failed"
+fi
+
 if ! bash "$(framework_root)/scripts/guard-scan.sh" --changed; then
   fail "guard scan failed"
+fi
+
+if [ "$ROOT" = "$(framework_root)" ]; then
+  if ! bash "$(framework_root)/scripts/guard-scan.sh" --all; then
+    fail "framework corpus guard scan failed"
+  fi
 fi
 
 if ! bash "$(framework_root)/scripts/quality-check.sh" --changed; then

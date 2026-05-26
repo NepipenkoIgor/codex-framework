@@ -13,6 +13,10 @@ metadata:
 
 Extracts a structured spec from a GitHub issue, stores supporting attachments, and prepares the work for execution.
 
+## Workflow
+
+Convert issue discussion into a small, testable contract. The spec should preserve the newest maintainer clarification, separate already-satisfied requirements from missing behavior, and make visual verification explicit.
+
 ## Orchestrator Instructions
 
 When user invokes `/spec [arg]`:
@@ -41,8 +45,23 @@ When user invokes `/spec [arg]`:
 
 5. After extraction, read the spec and present the next execution plan.
 
+## Constraints
+
+- Do not overwrite an existing spec without reporting current status first.
+- Do not drop later issue comments when they refine or override the issue body.
+- Do not download or inline sensitive attachments into git-tracked files.
+- Do not convert ambiguous discussion into requirements; mark it as a question.
+
+## Verification
+
+- Confirm issue title, issue number, comment count, attachment count, and generated spec path.
+- Validate that every requirement row has an observable pass/fail condition.
+- Mark visual rows with enough target information for `/verify`.
+
 ## Output Contract
 
-Status: done | partial | blocked
-Changed: [.codex/specs/{N}/spec.md, .codex/specs/{N}/ref-*]
-Notes: [attachment count and requirement count]
+- Status: done | partial | blocked
+- Changed: `.codex/specs/{N}/spec.md`, downloaded refs, or none
+- Requirements: count and unresolved questions
+- Visual: yes | no
+- Notes: attachment count, source limitations, or blockers

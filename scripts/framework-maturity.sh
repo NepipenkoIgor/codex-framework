@@ -65,13 +65,25 @@ role_briefs_have_recommended_skills() {
   ' sh {} +
 }
 
+has_named_agent_runtime_controls() {
+  [ -f "$ROOT/agents/registry.tsv" ] \
+    && [ -x "$ROOT/scripts/agent-registry.sh" ] \
+    && bash "$ROOT/scripts/agent-registry.sh" validate >/dev/null 2>&1 \
+    && grep -q 'Primary named agent' "$ROOT/scripts/task-brief.sh" \
+    && grep -q 'Agent:' "$ROOT/scripts/plan.sh" \
+    && grep -q 'agent-registry.sh' "$ROOT/scripts/codex-fw.sh"
+}
+
 has_framework_routing_cases() {
   grep -q 'framework orchestration' "$ROOT/scripts/framework-eval.sh" \
     && grep -q 'оркестрацию фреймворка' "$ROOT/scripts/framework-eval.sh"
 }
 
 has_brief_eval_case() {
-  grep -q '^check_brief ' "$ROOT/scripts/framework-eval.sh"
+  grep -q '^check_brief ' "$ROOT/scripts/framework-eval.sh" \
+    && grep -q 'Task flags: .*review.*strategic' "$ROOT/scripts/framework-eval.sh" \
+    && grep -q 'Task shape: strategic' "$ROOT/scripts/framework-eval.sh" \
+    && grep -q 'Execution pattern: review-first' "$ROOT/scripts/framework-eval.sh"
 }
 
 has_contract_policy() {
@@ -94,6 +106,15 @@ has_runtime_capabilities() {
   [ -f "$ROOT/CODEX.capabilities.md" ] \
     && grep -q 'capabilities_report' "$ROOT/scripts/task-brief.sh" \
     && grep -q 'CODEX_WAIT_FOR_GO' "$ROOT/CODEX.md"
+}
+
+has_hook_native_controls() {
+  [ -f "$ROOT/scripts/hooks.sh" ] \
+    && [ -f "$ROOT/scripts/context-pack.sh" ] \
+    && [ -f "$ROOT/scripts/hooks/session-start.sh" ] \
+    && grep -q 'codex_hooks_configured' "$ROOT/scripts/capabilities.sh" \
+    && grep -q 'hooks.sh" smoke' "$ROOT/scripts/framework-health.sh" \
+    && grep -q 'hooks.sh" install' "$ROOT/scripts/bootstrap-project.sh"
 }
 
 has_verification_gates() {
@@ -129,8 +150,13 @@ has_skill_corpus_audit() {
     && grep -q 'average_score' "$ROOT/scripts/framework-skill-corpus-audit.sh"
 }
 
+has_corpus_guard_scan() {
+  grep -q 'guard-scan.sh" --all' "$ROOT/scripts/framework-health.sh" \
+    && grep -q 'Claude-era user-facing workflow references' "$ROOT/scripts/framework-health.sh"
+}
+
 runtime_state_is_untracked() {
-  [ -z "$(git -C "$ROOT" ls-files .codex .githooks)" ]
+  [ -z "$(git -C "$ROOT" ls-files .codex)" ]
 }
 
 gitignore_blocks_runtime_state() {
@@ -139,8 +165,11 @@ gitignore_blocks_runtime_state() {
     && grep -qx '/.codex/runs/' "$ROOT/.gitignore" \
     && grep -qx '/.codex/specs/' "$ROOT/.gitignore" \
     && grep -qx '/.codex/project.env' "$ROOT/.gitignore" \
+    && grep -qx '/.codex/hooks/' "$ROOT/.gitignore" \
+    && grep -qx '/.codex/hooks.json' "$ROOT/.gitignore" \
+    && grep -qx '/.codex/config.toml' "$ROOT/.gitignore" \
     && grep -qx '/.codex/memory/' "$ROOT/.gitignore" \
-    && grep -qx '/.githooks/' "$ROOT/.gitignore"
+    && grep -qx '/.codex-memory/' "$ROOT/.gitignore"
 }
 
 core_library_size_score() {
@@ -161,9 +190,15 @@ pr_flow_is_explicit() {
     && grep -q 'codex/\*)' "$ROOT/scripts/pr-ready.sh" \
     && grep -q 'latest-pr-ready.env' "$ROOT/scripts/pr-ready.sh" \
     && grep -q '## Test Plan' "$ROOT/scripts/pr-body.sh" \
-    && grep -q 'sync_branch_for_pr "$base"' "$ROOT/scripts/pr-publish.sh" \
-    && grep -q 'pr-ready.sh' "$ROOT/scripts/pr-publish.sh" \
-    && grep -q 'git push --force-with-lease' "$ROOT/scripts/pr-publish.sh" \
+    && ! grep -q 'sync_branch_for_pr' "$ROOT/scripts/pr-publish.sh" \
+    && ! grep -q 'pr-ready.sh' "$ROOT/scripts/pr-publish.sh" \
+    && ! grep -q 'quality-check.sh' "$ROOT/scripts/pr-publish.sh" \
+    && ! grep -q 'require_clean_worktree_for_pr' "$ROOT/scripts/pr-publish.sh" \
+    && ! grep -q 'require_branch_has_pr_commits' "$ROOT/scripts/pr-publish.sh" \
+    && grep -q 'git push -u origin "$branch"' "$ROOT/scripts/pr-publish.sh" \
+    && ! grep -q 'require_clean_worktree_for_pr' "$ROOT/scripts/pr-create.sh" \
+    && ! grep -q 'require_branch_has_pr_commits' "$ROOT/scripts/pr-create.sh" \
+    && ! grep -q 'pre-commit-check.sh' "$ROOT/scripts/safe-commit.sh" \
     && ! grep -q 'sync_branch_for_pr' "$ROOT/scripts/pr-ready.sh" \
     && ! grep -q 'push_branch_for_pr' "$ROOT/scripts/pr-ready.sh" \
     && ! grep -q 'auto_resolve_rebase_conflicts' "$ROOT/scripts/lib/git-flow.sh" \
@@ -180,6 +215,7 @@ strict_maturity_threshold() {
 if all_routing_skills_exist; then metric "routing skills exist" 10 10 "all routing.yaml skills resolve"; else metric "routing skills exist" 0 10 "missing skill directories"; fi
 if all_role_briefs_exist; then metric "role briefs exist" 10 10 "all routing.yaml roles have agents/*.md"; else metric "role briefs exist" 0 10 "missing role brief"; fi
 if role_briefs_have_recommended_skills; then metric "role skill declarations" 10 10 "all role briefs declare recommended_skills"; else metric "role skill declarations" 0 10 "some role briefs lack recommended_skills"; fi
+if has_named_agent_runtime_controls; then metric "named agent runtime controls" 10 10 "agent registry, prompt builder, and plan/brief wiring present"; else metric "named agent runtime controls" 0 10 "missing named agent runtime controls"; fi
 
 eval_cases="$(count_eval_cases)"
 if [ "$eval_cases" -ge 20 ]; then metric "golden route coverage" 10 10 "$eval_cases route cases"; else metric "golden route coverage" 5 10 "$eval_cases route cases"; fi
@@ -190,13 +226,15 @@ if has_contract_policy; then metric "contract-first controls" 10 10 "contract ta
 if has_requirement_gate; then metric "requirement gate" 10 10 "requirement-sensitive flow exists"; else metric "requirement gate" 0 10 "missing requirement gate"; fi
 if has_handoff_controls; then metric "handoff controls" 10 10 "handoff state wired into briefs"; else metric "handoff controls" 0 10 "missing handoff controls"; fi
 if has_runtime_capabilities; then metric "runtime capability model" 10 10 "capabilities and approval knobs visible"; else metric "runtime capability model" 0 10 "missing capability model"; fi
+if has_hook_native_controls; then metric "hook-native controls" 10 10 "runtime hooks use script-backed adapters"; else metric "hook-native controls" 0 10 "missing hook-native adapters"; fi
 if has_verification_gates; then metric "verification gates" 10 10 "guard, quality, health, eval present"; else metric "verification gates" 0 10 "missing verification gates"; fi
 if has_read_only_status_checks; then metric "read-only status checks" 10 10 "spec-status has no bootstrap/write side effects"; else metric "read-only status checks" 0 10 "status checks still mutate project state"; fi
 if has_drift_checker; then metric "source drift detection" 10 10 "routing roles and probes checked"; else metric "source drift detection" 0 10 "missing drift checker"; fi
 if has_benchmark_dataset; then metric "benchmark dataset" 10 10 "routing benchmark dataset present"; else metric "benchmark dataset" 0 10 "missing benchmark dataset"; fi
 if has_skill_quality_audit; then metric "skill quality coverage" 10 10 "baseline engineering policies checked"; else metric "skill quality coverage" 0 10 "missing skill quality audit"; fi
 if has_skill_corpus_audit; then metric "skill corpus scorecard" 10 10 "all skills can be scored"; else metric "skill corpus scorecard" 0 10 "missing corpus audit"; fi
-if runtime_state_is_untracked; then metric "runtime state untracked" 10 10 ".codex and .githooks stay out of git"; else metric "runtime state untracked" 0 10 "tracked .codex/.githooks files create status drift"; fi
+if has_corpus_guard_scan; then metric "corpus guard coverage" 10 10 "health checks full corpus guard and provider drift"; else metric "corpus guard coverage" 0 10 "health does not scan full corpus"; fi
+if runtime_state_is_untracked; then metric "runtime state untracked" 10 10 ".codex stays out of git"; else metric "runtime state untracked" 0 10 "tracked .codex files create status drift"; fi
 if gitignore_blocks_runtime_state; then metric "runtime gitignore policy" 10 10 "local state ignored"; else metric "runtime gitignore policy" 0 10 "missing runtime ignore rules"; fi
 if pr_flow_is_explicit; then metric "explicit PR flow" 10 10 "base/head, report, test plan, guarded publish"; else metric "explicit PR flow" 0 10 "PR flow can drift from intended protocol"; fi
 

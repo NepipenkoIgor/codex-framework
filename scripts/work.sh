@@ -181,12 +181,13 @@ info "reasoning: $reasoning"
 info "log: $log_file"
 info "stage: launch Codex session"
 
+delta_instruction="Treat this as delta-first issue work: use the issue body plus discussion comments as the active requirement source, compare them against the current project before editing, mark already-satisfied requirements as covered, and implement only missing or incorrect behavior."
 task_flags="$(sed -n 's/^- Task flags: //p' "$brief_file")"
 task_shape="$(sed -n 's/^- Task shape: //p' "$brief_file")"
 if codex_should_wait_for_go "$role" "$reasoning" "$task_shape" "$task_flags" "$title $summary"; then
-  prompt="Work issue ${issue_ref}. Print ${plan_file} verbatim first, preserving emoji, bullets, spacing, and wording. Wait for explicit 'go'. Then read ${brief_file} and ${spec_file}. Follow CODEX.md and update the spec as work progresses. End with the task brief Output Contract exactly. Do not use legacy Status:/Requirement: closeout labels."
+  prompt="Work issue ${issue_ref}. Print ${plan_file} verbatim first, preserving emoji, bullets, spacing, and wording. Wait for explicit 'go'. Then read ${brief_file} and ${spec_file}. ${delta_instruction} Follow CODEX.md and update the spec as work progresses. End with the task brief Output Contract exactly. Do not use old Status:/Requirement: closeout labels."
 else
-  prompt="Work issue ${issue_ref}. Print ${plan_file} verbatim first, preserving emoji, bullets, spacing, and wording. Then read ${brief_file} and ${spec_file}. Follow CODEX.md and update the spec as work progresses. End with the task brief Output Contract exactly. Do not use legacy Status:/Requirement: closeout labels."
+  prompt="Work issue ${issue_ref}. Print ${plan_file} verbatim first, preserving emoji, bullets, spacing, and wording. Then read ${brief_file} and ${spec_file}. ${delta_instruction} Follow CODEX.md and update the spec as work progresses. End with the task brief Output Contract exactly. Do not use old Status:/Requirement: closeout labels."
 fi
 
 commit_type_from_title() {

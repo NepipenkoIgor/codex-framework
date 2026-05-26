@@ -22,6 +22,43 @@ branch_prefix_for_task() {
   fi
 }
 
+product_branch_from_tool_branch() {
+  local branch="$1"
+  local task_text="${2:-}"
+  local slug prefix
+
+  case "$branch" in
+    codex/*)
+      slug="${branch#codex/}"
+      ;;
+    *)
+      return 1
+      ;;
+  esac
+
+  [ -n "$slug" ] || return 1
+  prefix="$(branch_prefix_for_task "${task_text:-$slug}")"
+  printf '%s/%s\n' "$prefix" "$slug"
+}
+
+ensure_product_facing_current_branch() {
+  local task_text="${1:-}"
+  local branch target
+
+  branch="$(current_branch)"
+  case "$branch" in
+    codex/*)
+      target="$(product_branch_from_tool_branch "$branch" "$task_text")" \
+        || fail "could not derive product-facing branch name from $branch"
+      if git show-ref --verify --quiet "refs/heads/$target"; then
+        fail "cannot rename tool-revealing branch $branch: target branch already exists: $target"
+      fi
+      git branch -m "$target"
+      printf 'renamed tool-revealing branch: %s -> %s\n' "$branch" "$target" >&2
+      ;;
+  esac
+}
+
 sync_worktree_env_files() {
   local source_root="$1"
   local wt_dir="$2"
@@ -198,6 +235,36 @@ rebase_in_progress() {
   [ -n "$rebase_merge" ] && [ -d "$rebase_merge" ] && return 0
   [ -n "$rebase_apply" ] && [ -d "$rebase_apply" ] && return 0
   return 1
+}
+
+git_has_uncommitted_changes() {
+  [ -n "$(git status --porcelain)" ]
+}
+
+require_clean_worktree_for_pr() {
+  if git_has_uncommitted_changes; then
+    git status --short >&2 || true
+    fail "working tree has uncommitted changes; commit or stash them before publishing a PR"
+  fi
+}
+
+require_branch_has_pr_commits() {
+  local base_override="${1:-}"
+  local base merge_base ahead_count
+  base="$(resolve_pr_base_branch "$base_override" || true)"
+  [ -n "$base" ] || fail "could not determine the PR base branch"
+
+  if git rev-parse --verify "origin/$base" >/dev/null 2>&1; then
+    merge_base="$(git merge-base HEAD "origin/$base" 2>/dev/null || true)"
+  else
+    merge_base="$(git merge-base HEAD "$base" 2>/dev/null || true)"
+  fi
+  [ -n "$merge_base" ] || fail "could not find merge base with PR base branch: $base"
+
+  ahead_count="$(git rev-list --count "$merge_base..HEAD" 2>/dev/null || echo 0)"
+  if [ "${ahead_count:-0}" -eq 0 ]; then
+    fail "current branch has no commits ahead of $base; commit the staged fix before creating a PR"
+  fi
 }
 
 sync_branch_for_pr() {

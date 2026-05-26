@@ -23,7 +23,7 @@ codex-fw commands:
   doctor [path]
   capabilities [path]
   intelligence [path] [task]
-  memory <init|status|context|search|add-episode|add-decision|compact|prune|get> ...
+  memory <init|status|doctor|context|search|refresh-project|start-session|finish-session|add-episode|add-decision|compact|prune|cleanup-old-stores|get> ...
   detect-features [path]
   detect-conventions [path]
   github-status
@@ -43,7 +43,8 @@ codex-fw commands:
   post-change-check
   guard-scan [--staged|--changed|--all] [file...]
   quality-check [--staged|--changed|--all] [file...]
-  install-git-hooks [path]
+  hooks <install|doctor|smoke> [path]
+  agent <list|get|validate|prompt> ...
   handoff <init|register|status|decision|blocker|get|clear> ...
   retry-state <init|register|increment|set-model|get|clear> ...
   pr-ready [--base <branch>]
@@ -191,7 +192,8 @@ case "$cmd" in
   post-change-check) bash "$ROOT/scripts/post-change-check.sh" ;;
   guard-scan) bash "$ROOT/scripts/guard-scan.sh" "$@" ;;
   quality-check) bash "$ROOT/scripts/quality-check.sh" "$@" ;;
-  install-git-hooks) bash "$ROOT/scripts/install-git-hooks.sh" "${1:-$PWD}" ;;
+  hooks) [ $# -ge 1 ] || usage; bash "$ROOT/scripts/hooks.sh" "$@" ;;
+  agent) [ $# -ge 1 ] || usage; bash "$ROOT/scripts/agent-registry.sh" "$@" ;;
   handoff) [ $# -ge 1 ] || usage; bash "$ROOT/scripts/handoff-state.sh" "$@" ;;
   retry-state) [ $# -ge 1 ] || usage; bash "$ROOT/scripts/retry-state.sh" "$@" ;;
   pr-ready) bash "$ROOT/scripts/pr-ready.sh" "$@" ;;

@@ -13,6 +13,10 @@ metadata:
 
 Triggers or resumes browser verification for the current spec's visual rows.
 
+## Workflow
+
+Use the current repo, spec, and capability model as the source of truth. Verify only rows that actually require browser or visual evidence, and keep non-visual requirements on their existing test path.
+
 ## Orchestrator Instructions
 
 When user invokes `/verify [arg]`:
@@ -44,8 +48,23 @@ When user invokes `/verify [arg]`:
 7. Report updated status:
    - If failures are found, suggest the next fix step.
 
+## Constraints
+
+- Do not auto-pass a visual row from code inspection alone.
+- Do not ask the user to authenticate until the verifier has confirmed an auth wall.
+- Do not start multiple dev servers if one matching local URL is already available.
+- Do not update unrelated spec rows.
+
+## Verification Evidence
+
+- Capture the local URL, viewport, route, row ids, and observed result.
+- If automation is unavailable, report the missing capability and leave rows unverified.
+- When a row fails, include the smallest visual mismatch and the next likely fix area.
+
 ## Output Contract
 
-Status: done | partial | blocked
-Changed: [.codex/specs/{N}/spec.md]
-Notes: [rows verified, any failures found]
+- Status: done | partial | blocked
+- Changed: `.codex/specs/{N}/spec.md` or none
+- Verified: row ids and result
+- Blocked: missing browser/dev/auth capability or none
+- Notes: failures, residual risk, or none

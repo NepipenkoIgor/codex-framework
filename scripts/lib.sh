@@ -21,7 +21,13 @@ project_git_hooks_dir() {
   local root hooks_dir
   root="$(project_root)"
   if git -C "$root" rev-parse --show-toplevel >/dev/null 2>&1; then
-    hooks_dir="$(git -C "$root" rev-parse --git-path hooks)"
+    hooks_dir="$(
+      cd "$root"
+      common_dir="$(git rev-parse --git-common-dir)"
+      mkdir -p "$common_dir/hooks"
+      cd "$common_dir/hooks"
+      pwd
+    )"
     printf '%s\n' "$hooks_dir"
   else
     printf '%s/.git/hooks\n' "$root"
@@ -33,7 +39,7 @@ project_commands_file() {
 }
 
 project_cache_dir() {
-  local preferred fallback project_name probe
+  local preferred scratch project_name probe
   preferred="$(project_codex_dir)/cache"
   if mkdir -p "$preferred" >/dev/null 2>&1; then
     probe="$preferred/.write-test.$$"
@@ -44,9 +50,9 @@ project_cache_dir() {
     fi
   fi
   project_name="$(basename "$(project_root)")"
-  fallback="/tmp/ai-codex-framework/$project_name/cache"
-  mkdir -p "$fallback"
-  printf '%s\n' "$fallback"
+  scratch="/tmp/ai-codex-framework/$project_name/cache"
+  mkdir -p "$scratch"
+  printf '%s\n' "$scratch"
 }
 
 repo_intelligence_fingerprint() {
@@ -489,8 +495,19 @@ ensure_spec_root() {
 }
 
 memory_root() {
-  local preferred fallback project_name probe
-  preferred="$(project_codex_dir)/memory"
+  local preferred old_store scratch project_name probe
+  if [ -n "${CODEX_MEMORY_DIR:-}" ]; then
+    if mkdir -p "$CODEX_MEMORY_DIR" >/dev/null 2>&1; then
+      probe="$CODEX_MEMORY_DIR/.write-test.$$"
+      if touch "$probe" >/dev/null 2>&1; then
+        rm -f "$probe"
+        printf '%s\n' "$CODEX_MEMORY_DIR"
+        return 0
+      fi
+    fi
+  fi
+
+  preferred="$(project_root)/.codex-memory"
   if mkdir -p "$preferred" >/dev/null 2>&1; then
     probe="$preferred/.write-test.$$"
     if touch "$probe" >/dev/null 2>&1; then
@@ -499,10 +516,21 @@ memory_root() {
       return 0
     fi
   fi
+
+  old_store="$(project_codex_dir)/memory"
+  if mkdir -p "$old_store" >/dev/null 2>&1; then
+    probe="$old_store/.write-test.$$"
+    if touch "$probe" >/dev/null 2>&1; then
+      rm -f "$probe"
+      printf '%s\n' "$old_store"
+      return 0
+    fi
+  fi
+
   project_name="$(basename "$(project_root)")"
-  fallback="/tmp/ai-codex-framework/$project_name/memory"
-  mkdir -p "$fallback"
-  printf '%s\n' "$fallback"
+  scratch="/tmp/ai-codex-framework/$project_name/memory"
+  mkdir -p "$scratch"
+  printf '%s\n' "$scratch"
 }
 
 ensure_memory_root() {
@@ -510,7 +538,7 @@ ensure_memory_root() {
 }
 
 run_root() {
-  local preferred fallback project_name probe
+  local preferred scratch project_name probe
   preferred="$(project_codex_dir)/runs"
   if mkdir -p "$preferred" >/dev/null 2>&1; then
     probe="$preferred/.write-test.$$"
@@ -521,9 +549,9 @@ run_root() {
     fi
   fi
   project_name="$(basename "$(project_root)")"
-  fallback="/tmp/ai-codex-framework/$project_name/runs"
-  mkdir -p "$fallback"
-  printf '%s\n' "$fallback"
+  scratch="/tmp/ai-codex-framework/$project_name/runs"
+  mkdir -p "$scratch"
+  printf '%s\n' "$scratch"
 }
 
 ensure_run_root() {

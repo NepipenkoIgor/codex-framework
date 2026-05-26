@@ -95,6 +95,9 @@ Supply chain security:
 Security headers:
 
 - CSP: script-src, style-src, connect-src restrictions; frame-ancestors
+- Strong CSP baseline: `default-src 'none'; base-uri 'self'; object-src 'none'; frame-ancestors 'none'; form-action 'self'; script-src 'self' 'nonce-{per-request}'; style-src 'self' 'nonce-{per-request}'; img-src 'self' data: blob:; font-src 'self'; connect-src 'self'; manifest-src 'self'; worker-src 'self' blob:; upgrade-insecure-requests`
+- Flag `script-src 'unsafe-inline'`, `style-src 'unsafe-inline'`, wildcard sources, broad `connect-src`, missing `base-uri`, missing `object-src`, or permissive `frame-ancestors` unless a documented platform constraint exists.
+- Frontend CSP compatibility: inline `style` attributes, inline `<style>`, and inline event handlers should be absent or covered by nonces/hashes with a documented reason.
 - HSTS: max-age, includeSubDomains, preload
 - X-Content-Type-Options: nosniff; Referrer-Policy; Permissions-Policy
 
@@ -220,7 +223,7 @@ Model access control:
 - No input length limits enabling context window abuse
 - Missing output filtering for harmful, toxic, or off-topic content
 
-Claude Code plugin security patterns:
+AI agent/plugin security patterns:
 
 When reviewing .md, .json, or configuration files that function as plugins, skills, or agent instructions:
 

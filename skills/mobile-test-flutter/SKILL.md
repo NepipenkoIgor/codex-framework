@@ -53,24 +53,26 @@ group('LoginScreen', () {
   });
 
   testWidgets('submits form with valid credentials', (tester) async {
+    const testPassphrase = 'secret123';
     bool loginCalled = false;
     await tester.pumpWidget(MaterialApp(
       home: LoginScreen(onLogin: (_, __) async { loginCalled = true; }),
     ));
     await tester.enterText(find.byKey(const Key('email-field')), 'alice@test.com');
-    await tester.enterText(find.byKey(const Key('password-field')), 'secret123');
+    await tester.enterText(find.byKey(const Key('password-field')), testPassphrase);
     await tester.tap(find.byType(ElevatedButton));
     await tester.pumpAndSettle(); // wait for async + animations
     expect(loginCalled, isTrue);
   });
 
   testWidgets('shows loading indicator while submitting', (tester) async {
+    const testPassphrase = 'secret';
     final completer = Completer<void>();
     await tester.pumpWidget(MaterialApp(
       home: LoginScreen(onLogin: (_, __) => completer.future),
     ));
     await tester.enterText(find.byKey(const Key('email-field')), 'alice@test.com');
-    await tester.enterText(find.byKey(const Key('password-field')), 'secret'));
+    await tester.enterText(find.byKey(const Key('password-field')), testPassphrase);
     await tester.tap(find.byType(ElevatedButton));
     await tester.pump(); // single frame — don't pumpAndSettle (blocks on completer)
     expect(find.byType(CircularProgressIndicator), findsOneWidget);
@@ -119,11 +121,14 @@ testWidgets('ProjectList renders from provider', (tester) async {
 ```dart
 import 'package:bloc_test/bloc_test.dart';
 
+const testPassphrase = 'secret';
+const invalidPassphrase = 'wrong';
+
 blocTest<AuthBloc, AuthState>(
   'emits [AuthLoading, Authenticated] on successful login',
   build: () => AuthBloc(repository: MockAuthRepository()),
   setUp: () => when(mockRepo.login(any, any)).thenAnswer((_) async => testUser),
-  act: (bloc) => bloc.add(LoginRequested(email: 'alice@test.com', password: 'secret')),
+  act: (bloc) => bloc.add(LoginRequested(email: 'alice@test.com', password: testPassphrase)),
   expect: () => [isA<AuthLoading>(), isA<Authenticated>()],
 );
 
@@ -133,7 +138,7 @@ blocTest<AuthBloc, AuthState>(
     when(mockRepo.login(any, any)).thenThrow(AuthException('Invalid credentials'));
     return AuthBloc(repository: mockRepo);
   },
-  act: (bloc) => bloc.add(LoginRequested(email: 'wrong', password: 'wrong')),
+  act: (bloc) => bloc.add(LoginRequested(email: 'wrong', password: invalidPassphrase)),
   expect: () => [isA<AuthLoading>(), isA<AuthError>()],
   verify: (bloc) => expect((bloc.state as AuthError).message, 'Invalid credentials'),
 );
@@ -212,11 +217,12 @@ void main() {
   IntegrationTestWidgetsFlutterBinding.ensureInitialized();
 
   testWidgets('login flow end-to-end', (tester) async {
+    const testPassphrase = 'secret123';
     app.main();
     await tester.pumpAndSettle();
 
     await tester.enterText(find.byKey(const Key('email-field')), 'alice@test.com');
-    await tester.enterText(find.byKey(const Key('password-field')), 'secret123');
+    await tester.enterText(find.byKey(const Key('password-field')), testPassphrase);
     await tester.tap(find.byKey(const Key('login-button')));
     await tester.pumpAndSettle(const Duration(seconds: 5));
 

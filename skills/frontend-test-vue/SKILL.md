@@ -11,6 +11,14 @@ metadata:
 
 Pair with `frontend-test` for universal testing principles.
 
+## Workflow
+
+1. Read the component, composable, route, and nearby tests before writing new cases.
+2. Choose the narrowest test that covers the behavior risk.
+3. Mount with the same plugins, stores, router, and provide/inject setup that production uses.
+4. Drive behavior through rendered output and user events.
+5. Run the targeted Vitest command and report any remaining untested risk.
+
 ## Setup
 
 - Use `@vue/test-utils` + `vitest` — never Jest for new Vue 3 projects (vitest is native to Vite)
@@ -64,3 +72,10 @@ Pair with `frontend-test` for universal testing principles.
 - No direct `wrapper.vm` property mutation for inputs — `setValue()` used
 - All composables tested through component mount or `withSetup`
 - Tests pass with no Vue warnings
+
+## Output Contract
+
+- Changed tests:
+- Behavior covered:
+- Command run:
+- Remaining risk:

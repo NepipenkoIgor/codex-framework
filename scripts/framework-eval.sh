@@ -30,6 +30,7 @@ check_route "проанализируй оркестрацию фреймвор�
 check_route "аудит codex framework на human-like engineer поведение" 'role=framework-manager .*tier=xhigh .*model=gpt-5\.5'
 check_route "проведи валидацию фреймворка на orchestration maturity" 'role=framework-manager .*tier=xhigh .*model=gpt-5\.5'
 check_route "проверь статус нашего фреймворка что хорошо что плохо что легаси и грязь нужно удалить что мешает эффективно выжимать из codex больше чем просто промпт кодинг" 'role=framework-manager .*tier=xhigh .*model=gpt-5\.5'
+check_route "уберем легаси и используем codex hooks как основной runtime" 'role=framework-manager .*tier=xhigh .*model=gpt-5\.5'
 check_route "new skill for repo-native browser verification" 'role=framework-manager .*tier=high .*model=gpt-5\.5'
 check_route "update routing rules for mobile tasks" 'role=framework-manager .*tier=high .*model=gpt-5\.5'
 check_route "review GitHub PR #123 and check CI" 'role=reviewer .*tier=medium .*model=gpt-5\.5'
@@ -75,18 +76,64 @@ check_brief \
   "$brief_dir/framework-orchestration-brief.md" \
   'Chosen owner: framework-manager' \
   'Reasoning depth: xhigh' \
+  'Task flags: .*review.*strategic' \
+  'Task shape: strategic' \
   'Primary skill: framework-management' \
-  'framework-orchestration-audit'
+  'framework-orchestration-audit' \
+  'Primary named agent: framework-manager' \
+  'Runtime spawn type: worker' \
+  'Execution pattern: review-first'
 
 check_brief \
   "проверь статус нашего фреймворка что хорошо что плохо что легаси и грязь нужно удалить что мешает эффективно выжимать из codex больше чем просто промпт кодинг" \
   "$brief_dir/framework-status-brief.md" \
   'Chosen owner: framework-manager' \
   'Reasoning depth: xhigh' \
+  'Task flags: .*spec-driven.*review.*strategic' \
+  'Task shape: strategic' \
   'Primary skill: framework-management' \
-  'framework-orchestration-audit'
+  'framework-orchestration-audit' \
+  'Execution pattern: review-first'
 
-printf 'framework eval: %d checks, %d route/brief failures\n' "$total" "$failures"
+check_brief \
+  "Можем сделать комплексный аудит нашего фреймворка всех слоев. Какие дыры? Какие слабые места? Можно сказать что он лучше чем просто хороший промпт? все ли автоматизировано? Качество скилов, оркестрации?" \
+  "$brief_dir/framework-full-audit-brief.md" \
+  'Chosen owner: framework-manager' \
+  'Reasoning depth: xhigh' \
+  'Task flags: .*spec-driven.*review.*strategic' \
+  'Task shape: strategic' \
+  'Primary skill: framework-management' \
+  'framework-orchestration-audit' \
+  'Execution pattern: review-first'
+
+check_plan() {
+  local task="$1"
+  local output="$2"
+  shift 2
+  local pattern
+  total=$((total + 1))
+  CODEX_SKIP_BOOTSTRAP=1 CODEX_SKIP_REPO_REFRESH=1 bash "$ROOT/scripts/plan.sh" --task "$task" --output "$output" >/dev/null
+  for pattern in "$@"; do
+    if ! grep -Eq "$pattern" "$output"; then
+      printf 'not ok %02d plan: %s\n' "$total" "$task"
+      printf '  missing: %s\n' "$pattern"
+      failures=$((failures + 1))
+      return 0
+    fi
+  done
+  printf 'ok %02d plan: %s\n' "$total" "$task"
+}
+
+check_plan \
+  "implement backend endpoint and frontend form in parallel" \
+  "$brief_dir/fullstack-parallel-plan.md" \
+  'Named agent: architect' \
+  'Named agent: builder-backend' \
+  'Named agent: builder-frontend' \
+  'Named agent: tester' \
+  'Parallel After Contract'
+
+printf 'framework eval: %d checks, %d route/brief/plan failures\n' "$total" "$failures"
 
 if [ "$failures" -ne 0 ]; then
   exit 1

@@ -1,0 +1,19 @@
+# agent	runtime_type	work_mode	parallel_safe	ownership_required	summary
+architect	default	plan	true	true	Design contracts, schemas, boundaries, and tradeoffs before implementation.
+auditor	explorer	read-only	true	false	Audit security, dependencies, plugins, and operational risk without editing.
+builder	worker	edit	true	true	Implement focused full-stack changes that do not require architecture-first work.
+builder-frontend	worker	edit	true	true	Implement UI, accessibility, styling, frontend state, and visual behavior.
+builder-backend	worker	edit	true	true	Implement APIs, services, jobs, auth, persistence, and integrations.
+builder-fullstack	worker	edit	true	true	Implement page plus API work inside one framework boundary.
+builder-infra	worker	edit	true	true	Implement CI/CD, deployment, infrastructure, and observability changes.
+builder-mobile	worker	edit	true	true	Implement mobile features across React Native, Expo, Flutter, iOS, and Android.
+builder-automation	worker	edit	true	true	Implement mixed automation, workflow, and AI-product systems.
+builder-ai	worker	edit	true	true	Implement LLM, RAG, prompt, tool-use, agent, and multimodal product logic.
+builder-n8n	worker	edit	true	true	Implement and debug n8n workflows, webhook chains, retries, and payload shaping.
+fixer	worker	edit	true	true	Diagnose and fix bugs, regressions, broken behavior, and performance issues.
+refactorer	worker	edit	true	true	Perform behavior-preserving refactors, migrations, and simplification.
+reviewer	explorer	read-only	true	false	Review code, PRs, UI, architecture, and quality risks without editing.
+tester	worker	test	true	true	Write, run, and interpret tests and verification checks.
+project-manager	default	coordinate	true	false	Shape tickets, PR summaries, release notes, sequencing, and delivery coordination.
+estimator	explorer	plan	true	false	Estimate scope, cost, phases, risks, and delivery options.
+framework-manager	worker	edit	false	true	Maintain the framework repo, routing, skills, hooks, docs, and validation checks.

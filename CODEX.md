@@ -10,9 +10,10 @@ This framework ports the useful operating concepts from the Claude framework int
 - explicit skill injection
 - spec-aware execution
 - script-driven verification
+- hook-enhanced lifecycle automation
 - concise outcome reporting
 
-The framework does not rely on hidden hooks. It uses `CODEX.md`, `CODEX.concepts.md`, `CODEX.versions.md`, `CODEX.permissions.md`, `ORCHESTRATOR_REFERENCE.md`, `SKILLS_MAP.*.md`, role briefs, and helper scripts as the visible control plane.
+The framework uses hook-enhanced, script-backed orchestration. Codex runtime hooks may start context loading, route prompts, guard risky tools, track changes, and record stop-state, but the source of truth remains visible in `CODEX.md`, `CODEX.concepts.md`, `CODEX.versions.md`, `CODEX.permissions.md`, `ORCHESTRATOR_REFERENCE.md`, `SKILLS_MAP.*.md`, role briefs, and helper scripts.
 
 ## Core Principles
 
@@ -22,7 +23,7 @@ The framework does not rely on hidden hooks. It uses `CODEX.md`, `CODEX.concepts
 - Keep implementation narrow and explicit.
 - Separate implementation, review, and testing concerns.
 - Verify changed behavior before closing a task.
-- Replace hidden automation with explicit commands and generated task briefs.
+- Keep lifecycle automation visible: hooks call scripts, and hook wiring is required for Desktop lifecycle behavior.
 
 ## Default Flow
 
@@ -43,19 +44,35 @@ Use `scripts/task-brief.sh` or `codex-fw brief` to produce the explicit brief fo
 ## Memory Bootstrap
 
 CLI-started framework sessions load memory through `session-start.sh`, `task-brief.sh`, or `work.sh`.
-Desktop app sessions do not pass through the shell wrapper automatically, so the agent should bootstrap memory explicitly before broad repo exploration.
+Desktop app sessions receive memory through the `SessionStart` hook.
 
 For any Desktop app task in a repo using this framework:
 
-1. run `codex-fw memory context "<current task>"` when `codex-fw` is available
+1. require the auto-loaded `SessionStart` hook context
 2. treat the returned block as startup context
 3. use `project.md`, `preferences.md`, `decisions.local.md`, and relevant `episodes.jsonl` entries as hints, not as proof
 4. verify important facts against the repository before making changes
-5. after a non-trivial task, record a compact episode with `codex-fw memory add-episode` unless `CODEX_MEMORY_AUTO_RECORD=0`
+5. after a non-trivial task, let the `Stop` hook record a compact episode unless `CODEX_MEMORY_AUTO_RECORD=0`
+6. include memory status in the closeout as `loaded`, `recorded`, or `skipped with reason`
 
-If `codex-fw` is not on PATH, use `/Users/igornepipenko/work/ai-codex-framework/scripts/memory-state.sh context "<current task>"`.
-Do not inject the full `.codex/memory` directory into the prompt; use the compact context command.
+Do not inject the full `.codex-memory` directory into the prompt; use the compact context command.
 CLI task and issue sessions auto-record episodes by default. Set `CODEX_MEMORY_AUTO_RECORD=0` to disable this.
+Use `codex-fw hooks doctor`, `codex-fw memory doctor`, or `scripts/memory-contract-check.sh` when lifecycle or memory behavior looks suspicious.
+
+## Hook Runtime
+
+Project bootstrap writes Codex runtime hooks into `.codex/config.toml` as inline TOML blocks and keeps `.codex/hooks.json` as a generated adapter artifact for inspection and compatibility.
+
+Hook responsibilities:
+
+- `SessionStart`: emit the shared context pack with repo intelligence, capabilities, and memory
+- `UserPromptSubmit`: emit compact routing guidance for owner, tier, model, and skills
+- `PreToolUse`: warn or block policy-bypassing shell patterns such as `git commit --no-verify`, destructive git resets, and dangerous shell pipelines
+- `PostToolUse`: track changed files for later verification
+- `Stop`: run required guard/quality checks and record a memory episode when changes exist
+
+Use `codex-fw hooks doctor` to inspect local hook wiring and `codex-fw hooks smoke` to test the scripts directly.
+Hook guards block by default. Set `CODEX_HOOK_ENFORCE=warn` only for temporary diagnostics.
 
 ## Routing
 
@@ -123,10 +140,13 @@ Rules:
 When an issue or spec is the source of requirements:
 
 1. ensure `.codex/specs/<issue>/spec.md` exists
-2. route from the issue title and summary
-3. include the spec path and counts in the task brief
-4. keep spec status current as work progresses
-5. use browser verification for visual rows when the environment supports it
+2. treat the issue body plus discussion comments as the current requirement source
+3. route from the issue title and summary
+4. include the spec path and counts in the task brief
+5. keep spec status current as work progresses
+6. use browser verification for visual rows when the environment supports it
+
+Issue work is delta-first. Before editing, compare every active requirement and comment clarification against the current project state. Mark requirements that are already satisfied, identify only the missing or incorrect behavior, and implement that gap. Do not rebuild, duplicate, or refactor working project behavior just because it appears in the ticket. If ticket discussion conflicts, follow the newest explicit maintainer/user clarification, and ask only when the conflict cannot be resolved from the thread.
 
 Use:
 
@@ -141,8 +161,35 @@ Use:
 - Do not delegate the next blocking step just to wait on it.
 - When delegating, give ownership of files or responsibility.
 - Do not ask multiple agents to edit the same files at the same time.
-- Treat `agents/*.md` as role briefs, not magic runtime config.
+- Treat `agents/*.md` as role briefs and `agents/registry.tsv` as the named-agent runtime mapping.
 - Use generated task briefs for non-trivial work instead of ad hoc one-line prompts.
+
+## Orchestration Language
+
+Use precise terms when explaining framework orchestration to a user:
+
+- A `skill` is reusable instruction context from `skills/*/SKILL.md`. Say "connect/load/use skill `<name>`"; do not call a skill an agent.
+- A `named agent` is the current framework role or a registry-backed delegation profile from `agents/registry.tsv`. Say "working as named agent `<name>`" for the active role.
+- A `sub-agent` is only real after explicit delegation/spawn. Say "spawning/launching sub-agent `<name>`" only when a separate worker is actually delegated.
+- If no separate worker is spawned, say so plainly when there is possible ambiguity: "No sub-agent is being spawned; I am loading skill `<name>` in the current session."
+
+## Named Agents
+
+Named agents are framework-level profiles, not new Codex native `agent_type` values.
+The registry maps each framework role to a Codex runtime type:
+
+- `worker`: implementation, fixes, refactors, tests, and framework edits
+- `explorer`: read-only review, audit, discovery, and estimation
+- `default`: coordination, planning, or mixed work that should not imply a worker
+
+Use:
+
+- `codex-fw agent list`
+- `codex-fw agent get <agent>`
+- `codex-fw agent prompt <agent> --task "<task>" --skills "<csv>" --ownership "<files or responsibility>"`
+- `codex-fw agent validate`
+
+Task briefs and plans must name the active agent, runtime spawn type, work mode, ownership expectation, and skill set. When actually spawning, use the registry runtime type as `spawn_agent.agent_type` and the generated prompt as the sub-agent task.
 
 ## Session Display
 
@@ -180,7 +227,7 @@ By default, `high`, `xhigh`, strategic, production, spec-driven, requirement-che
 Set `CODEX_WAIT_FOR_GO=1` to force a pause after every task plan. Set `CODEX_WAIT_FOR_GO=0` to force auto-start after the plan.
 Set `CODEX_AUTO_SUBMIT=0` when you want to keep the branch local after a finished issue session.
 Task sessions create sibling worktrees from the repository default branch. Set `CODEX_TASK_WORKTREE=0` when you want a task session to stay in the current checkout instead.
-PR branches must use product-facing prefixes such as `feature/`, `fix/`, `chore/`, `docs/`, or `test/`. Do not use tool-revealing prefixes such as `codex/` when creating or renaming branches.
+PR branches must use product-facing prefixes such as `feature/`, `fix/`, `chore/`, `docs/`, or `test/`. Do not use tool-revealing prefixes such as `codex/` when creating or renaming branches. If a Codex runtime creates `codex/<slug>` before framework startup, rename it to the inferred product-facing branch from the `SessionStart` hook or before publishing.
 PR creation must run the framework PR flow: resolve the real GitHub default/base branch, rebase before push, reject shared or tool-revealing head branches, push only the current branch, and create PRs with explicit `--base` and `--head`.
 Issue sessions are fresh-by-SHA by default: `codex -w <issue>` fetches the default branch and creates a new sibling worktree named with the default-branch SHA. Use `codex -w <issue> --resume` to reopen the latest existing worktree without fetching, `codex -w <issue> --cleanup` to remove issue worktrees, and `codex --worktrees` to list them.
 
@@ -200,7 +247,8 @@ Commit flow rules:
 
 - never use `git commit --no-verify`
 - if a commit would fail hooks, fix the underlying issue first
-- prefer `scripts/safe-commit.sh` or the `/commit` skill path so pre-commit checks remain active
+- use normal `git commit` semantics; project/user hooks run if they are configured
+- do not install, overwrite, or manage project Git hooks from the framework
 
 Use these scripts when helpful:
 
@@ -213,6 +261,8 @@ Use these scripts when helpful:
 - `scripts/framework-benchmark.sh`
 - `scripts/framework-skill-quality.sh`
 - `scripts/framework-skill-corpus-audit.sh`
+- `scripts/hooks.sh`
+- `scripts/context-pack.sh`
 - `scripts/post-change-check.sh`
 - `scripts/guard-scan.sh`
 - `scripts/doctor.sh`
@@ -239,6 +289,7 @@ For issue-comment-driven, spec-driven, correction, or acceptance-criteria tasks:
 - compare current behavior to that requirement
 - explain the mismatch in plain terms
 - only then implement the smallest correction
+- leave already-satisfied requirements untouched except for necessary integration
 
 If the user is effectively asking "is this right?" or "what is wrong here?", the first answer must be the judgment, not the patch.
 
@@ -304,7 +355,7 @@ Commands and checks expected before close-out
 - Use `not required`, `none`, or `not run` instead of omitting sections.
 - Use bullets under `Changed`, `Verification`, and `Notes` when there is more than one item.
 - Keep prose concise; this is a handoff, not a changelog.
-- Do not use the legacy label format `Status: ...`, `Requirement: ...`, `Fix intent applied: ...`.
+- Do not use the old label format `Status: ...`, `Requirement: ...`, `Fix intent applied: ...`.
 
 ```md
 ✅ route-badge — done | partial | blocked
@@ -326,6 +377,9 @@ Commands and checks expected before close-out
 
 **Verification**
 - [command/check run, or `not run` with reason]
+
+**Memory**
+- loaded from [canonical | override | skipped]; recorded | skipped with reason
 
 **Notes**
 - [blockers, residual risk, pre-existing unrelated changes, or `none`]

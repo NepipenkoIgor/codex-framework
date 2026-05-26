@@ -21,6 +21,7 @@ Implement $ARGUMENTS.
 - Keep components focused; separate UI, state, schemas, types, and data-access concerns.
 - Reuse the existing design system, UI kit, primitives, tokens, and component variants before adding new UI surface.
 - Prefer project utility classes, variant helpers, and shared class composition helpers over inline styles or arbitrary values.
+- Do not add inline styles for standard styling. Use inline styles only for values that must be computed at runtime, and prefer CSS variables or data attributes when they keep CSP compatibility intact.
 - Avoid hardcoded visual values when tokens, theme variables, or shared variants exist.
 - TypeScript-first; derive types from schemas to avoid duplication.
 - Build async flows with loading, error, empty, and success states.
@@ -46,6 +47,7 @@ Implement $ARGUMENTS.
 - Inspect nearby components and shared UI primitives before creating new elements.
 - Match existing spacing, typography, radius, shadow, icon, and focus patterns.
 - Use design tokens or semantic utility classes for colors and spacing.
+- Keep UI compatible with strict CSP: avoid `style` attributes, inline `<style>`, and inline event handlers unless the deployment explicitly supports nonces/hashes.
 - Do not introduce a parallel UI kit or one-off styling system.
 - Keep interactive states complete: default, hover, focus-visible, active, disabled, loading, and error.
 - Design for responsive behavior with existing breakpoints and layout primitives.

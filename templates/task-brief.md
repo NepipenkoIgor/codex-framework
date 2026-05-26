@@ -28,10 +28,16 @@ Files, modules, or system slice owned by this task.
 - Keep the implementation narrow.
 - For JS/TS repos, prefer the detected package runner and local binary executor above for direct commands.
 - For requirement-sensitive tasks, restate the requirement and mismatch before editing.
+- Use precise orchestration language: skills are loaded, the current named agent works, and sub-agents are only spawned by explicit delegation.
 
 ## Skills
 - Primary:
 - Supporting:
+
+## Named Agent
+- Active:
+- Runtime spawn type:
+- Sub-agents spawned:
 
 ## Spec
 - Path:
@@ -53,7 +59,7 @@ Files, modules, or system slice owned by this task.
 - Keep section names and ordering exactly as shown.
 - Use `not required`, `none`, or `not run` instead of omitting sections.
 - Keep prose compact and concrete.
-- Do not use the legacy label format `Status: ...`, `Requirement: ...`, or `Fix intent applied: ...`.
+- Do not use the old label format `Status: ...`, `Requirement: ...`, or `Fix intent applied: ...`.
 
 ## Output Contract
 ✅ [route-badge] — done | partial | blocked

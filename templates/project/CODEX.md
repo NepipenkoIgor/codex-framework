@@ -25,10 +25,9 @@ Primary framework docs:
 - Keep changes narrow and verifiable.
 - Use findings-first review style when reviewing.
 - State anything not tested or not verified.
-- In Desktop app sessions, load compact local memory before broad repo exploration:
-  `/Users/igornepipenko/work/ai-codex-framework/scripts/memory-state.sh context "<current task>"`
-- After non-trivial Desktop app tasks, record a compact local episode with:
-  `/Users/igornepipenko/work/ai-codex-framework/scripts/memory-state.sh add-episode --task "<task>" --summary "<outcome>" --files "<csv>" --verification "<csv>" --tags "<csv>"`
+- In Desktop app sessions, require the auto-loaded `SessionStart` context.
+- After non-trivial Desktop app tasks, rely on the `Stop` hook for memory and verification state.
+- In final task responses, include a short memory line: `Memory: loaded from canonical; recorded` or `Memory: skipped with reason`.
 
 ## Suggested Workflow
 
@@ -36,19 +35,20 @@ Primary framework docs:
    `/Users/igornepipenko/work/ai-codex-framework/scripts/detect-project-stack.sh`
 2. Check runtime capabilities with:
    `/Users/igornepipenko/work/ai-codex-framework/scripts/capabilities.sh`
-3. Load compact local memory with:
-   `/Users/igornepipenko/work/ai-codex-framework/scripts/memory-state.sh context "<task>"`
+3. Confirm hook wiring with:
+   `/Users/igornepipenko/.local/bin/codex-fw hooks doctor`
 4. Generate a task brief with:
    `/Users/igornepipenko/work/ai-codex-framework/scripts/task-brief.sh --task "<task>"`
-5. Choose a role brief from the framework `agents/` directory.
+5. Choose the named agent from the task brief and `agents/registry.tsv`.
 6. Apply the skills indicated by the task brief and `CODEX.skills.md`.
-7. Use the capability fallback path shown in the brief for GitHub, diagnostics, browser, and platform tooling.
+   Say "loading skill `<name>`"; do not describe skills as agents.
+7. Use the capability path shown in the brief for GitHub, diagnostics, browser, and platform tooling.
 8. Verify changes with targeted tests and local checks.
 9. Keep project commands in `.codex/project.env` so the framework scripts can run the right checks.
 10. For JS/TS projects, prefer `PACKAGE_RUNNER` and `PACKAGE_EXEC` from `.codex/project.env` for direct commands.
 11. For .NET projects, use the detected `dotnet` commands from `.codex/project.env`.
 12. For Flutter projects, use the detected `flutter` commands from `.codex/project.env`.
-13. Use product-facing PR branch prefixes: `feature/`, `fix/`, `chore/`, `docs/`, or `test/`; never use tool-revealing prefixes such as `codex/`.
+13. Use product-facing PR branch prefixes: `feature/`, `fix/`, `chore/`, `docs/`, or `test/`; never use tool-revealing prefixes such as `codex/`. If the runtime starts on `codex/<slug>`, rename it through the framework before publishing.
 14. Create PRs through `codex-fw pr-create` so the branch is rebased, pushed, and opened with explicit base/head metadata.
 
 ## Optional Project Additions

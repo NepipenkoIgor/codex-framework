@@ -2,7 +2,10 @@
 /.codex/runs/
 /.codex/specs/
 /.codex/handoffs/
+/.codex/hooks/
+/.codex/hooks.json
+/.codex/config.toml
 /.codex/memory/
+/.codex-memory/
 /.codex/project.env
-/.githooks/
 /.idea/

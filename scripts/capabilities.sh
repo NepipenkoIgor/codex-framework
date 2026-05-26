@@ -21,6 +21,19 @@ pkg_has_dep() {
   search_file_regex "$pattern" "$ROOT/package.json"
 }
 
+has_inline_codex_hooks_config() {
+  local config="$ROOT/.codex/config.toml"
+  local hook
+  [ -f "$config" ] || return 1
+  if grep -Eq '^[[:space:]]*hooks[[:space:]]*=[[:space:]]*".*hooks\.json"' "$config"; then
+    return 1
+  fi
+  for hook in SessionStart UserPromptSubmit PreToolUse PostToolUse Stop; do
+    grep -Eq "^\[\[hooks\.${hook}\]\]" "$config" || return 1
+    grep -Eq "^\[\[hooks\.${hook}\.hooks\]\]" "$config" || return 1
+  done
+}
+
 bool() {
   if [ "$1" = true ]; then
     printf 'yes\n'
@@ -43,6 +56,8 @@ csharp_diag=false
 csharp_diag_local=false
 browser_automation=false
 browser_checks_local=false
+codex_hooks_configured=false
+codex_hooks_json_valid=false
 supabase_tools=false
 supabase_cli=false
 firebase_tools=false
@@ -91,6 +106,16 @@ if [ -n "${CODEX_HAS_BROWSER_AUTOMATION:-}" ]; then
 fi
 if [[ ",$STACK," == *,playwright,* ]] || pkg_has_dep '"(@playwright/test|playwright)"'; then
   browser_checks_local=true
+fi
+if has_inline_codex_hooks_config; then
+  codex_hooks_configured=true
+fi
+if [ -f "$ROOT/.codex/hooks.json" ]; then
+  if has_cmd jq && jq empty "$ROOT/.codex/hooks.json" >/dev/null 2>&1; then
+    codex_hooks_json_valid=true
+  elif ! has_cmd jq; then
+    codex_hooks_json_valid=true
+  fi
 fi
 if [ -n "${CODEX_HAS_SUPABASE_TOOLS:-}" ]; then
   supabase_tools=true
@@ -146,6 +171,7 @@ esac
 if [ "$git_repo" = true ]; then
   add_desired "git"
   add_desired "github-cli"
+  add_desired "codex-hooks"
 fi
 
 print_section "Capabilities"
@@ -164,6 +190,8 @@ info "csharp_diagnostics=$(bool "$csharp_diag")"
 info "csharp_diagnostics_local=$(bool "$csharp_diag_local")"
 info "browser_automation=$(bool "$browser_automation")"
 info "browser_checks_local=$(bool "$browser_checks_local")"
+info "codex_hooks_configured=$(bool "$codex_hooks_configured")"
+info "codex_hooks_json_valid=$(bool "$codex_hooks_json_valid")"
 info "supabase_tools=$(bool "$supabase_tools")"
 info "supabase_cli=$(bool "$supabase_cli")"
 info "firebase_tools=$(bool "$firebase_tools")"
@@ -175,7 +203,7 @@ print_section "Auto Path"
 if [ "$ts_diag" = true ]; then
   info "ts_diagnostics_path=runtime diagnostics tools"
 elif [ "$ts_diag_local" = true ]; then
-  info "ts_diagnostics_path=local tsc/lint/test fallback"
+  info "ts_diagnostics_path=local tsc/lint/test"
 else
   info "ts_diagnostics_path=none"
 fi
@@ -183,7 +211,7 @@ fi
 if [ "$csharp_diag" = true ]; then
   info "csharp_diagnostics_path=runtime diagnostics tools"
 elif [ "$csharp_diag_local" = true ]; then
-  info "csharp_diagnostics_path=local dotnet build/test fallback"
+  info "csharp_diagnostics_path=local dotnet build/test"
 else
   info "csharp_diagnostics_path=none"
 fi
@@ -191,9 +219,17 @@ fi
 if [ "$browser_automation" = true ]; then
   info "browser_path=runtime browser automation"
 elif [ "$browser_checks_local" = true ]; then
-  info "browser_path=local Playwright/browser test fallback"
+  info "browser_path=local Playwright/browser test"
 else
   info "browser_path=manual verification only"
+fi
+
+if [ "$codex_hooks_configured" = true ] && [ "$codex_hooks_json_valid" = true ]; then
+  info "codex_hooks_path=runtime hooks configured"
+elif [ -f "$ROOT/.codex/hooks.json" ]; then
+  info "codex_hooks_path=incomplete hook config"
+else
+  info "codex_hooks_path=missing required hook config"
 fi
 
 print_section "Desired"
@@ -207,11 +243,11 @@ print_section "GitHub Path"
 if [ "$github_structured" = true ]; then
   info "preferred=structured GitHub tools"
   if [ "$github_cli" = true ] && [ "$github_auth_ready" = true ]; then
-    info "fallback=gh CLI"
+    info "secondary=gh CLI"
   elif [ "$git_repo" = true ]; then
-    info "fallback=local git only"
+    info "secondary=local git only"
   else
-    info "fallback=none"
+    info "secondary=none"
   fi
 elif [ "$github_cli" = true ] && [ "$github_auth_ready" = true ]; then
   info "preferred=gh CLI"
@@ -219,14 +255,14 @@ elif [ "$github_cli" = true ] && [ "$github_auth_ready" = true ]; then
     info "note=auth configured but not validated in current sandbox/session"
   fi
   if [ "$git_repo" = true ]; then
-    info "fallback=local git only"
+    info "secondary=local git only"
   else
-    info "fallback=none"
+    info "secondary=none"
   fi
 elif [ "$git_repo" = true ]; then
   info "preferred=local git only"
-  info "fallback=none"
+  info "secondary=none"
 else
   info "preferred=none"
-  info "fallback=none"
+  info "secondary=none"
 fi

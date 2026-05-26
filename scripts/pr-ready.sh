@@ -45,6 +45,8 @@ else
   print_section "Git"
   git status --short || true
   git diff --stat HEAD || true
+  require_clean_worktree_for_pr
+  require_branch_has_pr_commits "$BASE_BRANCH"
 fi
 
 if [ ! -f "$ROOT/CODEX.md" ]; then

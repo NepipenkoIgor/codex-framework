@@ -58,14 +58,10 @@ if [ -f "$intelligence_file" ]; then
     info "repo intelligence status: fresh"
   fi
 fi
-if git -C "$ROOT" rev-parse --show-toplevel >/dev/null 2>&1; then
-  hooks_path="$(git -C "$ROOT" rev-parse --git-path hooks 2>/dev/null || true)"
-  if [ -x "$hooks_path/pre-commit" ] && [ -x "$hooks_path/commit-msg" ]; then
-    info "git hooks: installed"
-  else
-    warn "git hooks: missing or inactive"
-  fi
-fi
+
+print_section "Hook Runtime"
+bash "$FRAMEWORK_ROOT/scripts/hooks.sh" doctor "$ROOT" || true
+info "git hooks: project-owned; Codex runtime hooks are framework-generated local adapters"
 
 print_section "Framework Files"
 for required in CODEX.md CODEX.concepts.md CODEX.skills.md CODEX.capabilities.md CODEX.permissions.md ORCHESTRATOR_REFERENCE.md README.md scripts/codex-fw.sh scripts/framework-health.sh scripts/detect-project-features.sh; do

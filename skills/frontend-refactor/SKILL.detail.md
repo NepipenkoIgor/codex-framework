@@ -42,12 +42,14 @@ Styling and CSS:
 - Extract semantic CSS classes only when utilities repeat, markup gets noisy, or for reusable UI concepts
 - CSS for complex selectors, layered states, pseudo-elements, animations, and stateful styling
 - No inline styles unless dynamic runtime need; use CSS variables and project theme tokens
+- Preserve strict CSP compatibility when refactoring UI: remove avoidable `style` attributes, inline `<style>`, and inline event handlers; route dynamic visual values through CSS variables, classes, or data attributes.
 - Refactor repeated utility chains and noisy class strings into clearer reusable patterns
 
 Styling non-negotiable rules:
 
 - Tailwind as primary styling system when available
 - No custom CSS for what Tailwind handles well; no inline styles for standard cases
+- No `'unsafe-inline'` dependency for normal UI styling; if a framework requires inline styles, isolate and document the exception.
 - Move repeated utilities into reusable classes; move complex visual states into CSS
 - Keep templates readable; balance Tailwind utilities with CSS where each excels
 

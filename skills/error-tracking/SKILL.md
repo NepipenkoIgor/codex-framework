@@ -70,7 +70,7 @@ Sentry.init({
   integrations: [Sentry.httpIntegration(), Sentry.expressIntegration(), Sentry.prismaIntegration()],
   beforeSend(event) {
     if (event.request?.headers) { delete event.request.headers['authorization']; delete event.request.headers['cookie']; }
-    if (event.request?.data?.password) event.request.data.password = '[REDACTED]';
+    if (event.request?.data?.['password']) event.request.data['password'] = '[REDACTED]';
     return event;
   },
 });

@@ -10,7 +10,7 @@ metadata:
 
 # Process Hygiene
 
-> **Enforcement:** These rules are reinforced by the framework's role briefs and explicit verification steps. Cleanup is not hook-driven here; it must be stated and completed deliberately.
+> **Enforcement:** These rules are reinforced by role briefs, explicit verification steps, and hook-native required checks. Cleanup must still be stated and completed deliberately.
 
 Universal rules that apply to every agent, every task, without exception.
 
@@ -63,17 +63,17 @@ Every code change must go through a PR. **Never commit directly to any shared br
 
 ## Modern Patterns — Always Prefer Current
 
-Never suggest or implement legacy/deprecated patterns when a current idiomatic alternative exists.
+Never suggest or implement deprecated patterns when a current idiomatic alternative exists.
 
 **Before implementing any pattern:**
 1. Use available docs lookup tools or official docs to verify the current recommended approach for the framework or library version in use
 2. Check the project's existing code — if it already uses a modern pattern, match it
-3. If you see a legacy pattern in the codebase, do NOT replicate it — use the current approach and note the discrepancy
+3. If you see a deprecated pattern in the codebase, do NOT replicate it — use the current approach and note the discrepancy
 
 **Examples of what this means in practice:**
 - Next.js: App Router patterns over Pages Router; in Next.js 16, prefer `proxy.ts` over new `middleware.ts` unless Edge runtime is required
 - React: hooks and server components over class components and HOC patterns
-- .NET: minimal API / top-level statements over legacy controller boilerplate where appropriate
+- .NET: minimal API / top-level statements over outdated controller boilerplate where appropriate
 - Auth: platform-native auth (NextAuth v5, ASP.NET Identity) over hand-rolled JWT middleware
 
-**When suggesting a fix or implementation:** if the existing code uses a legacy pattern, flag it as technical debt — don't silently perpetuate it. State the modern alternative.
+**When suggesting a fix or implementation:** if the existing code uses a deprecated pattern, flag it as technical debt — don't silently perpetuate it. State the modern alternative.

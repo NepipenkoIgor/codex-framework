@@ -32,20 +32,22 @@ describe('LoginScreen', () => {
   });
 
   it('calls onLogin with credentials when form is valid', async () => {
+    const testPassphrase = 'secret123';
     const onLogin = jest.fn().mockResolvedValue(undefined);
     render(<LoginScreen onLogin={onLogin} />);
     fireEvent.changeText(screen.getByLabelText(/email/i), 'alice@test.com');
-    fireEvent.changeText(screen.getByLabelText(/password/i), 'secret123');
+    fireEvent.changeText(screen.getByLabelText(/password/i), testPassphrase);
     fireEvent.press(screen.getByRole('button', { name: /sign in/i }));
     await waitFor(() => {
-      expect(onLogin).toHaveBeenCalledWith({ email: 'alice@test.com', password: 'secret123' });
+      expect(onLogin).toHaveBeenCalledWith({ email: 'alice@test.com', password: testPassphrase });
     });
   });
 
   it('disables submit button while loading', async () => {
+    const testPassphrase = 'secret123';
     render(<LoginScreen onLogin={() => new Promise(() => {})} />);
     fireEvent.changeText(screen.getByLabelText(/email/i), 'alice@test.com');
-    fireEvent.changeText(screen.getByLabelText(/password/i), 'secret123');
+    fireEvent.changeText(screen.getByLabelText(/password/i), testPassphrase);
     fireEvent.press(screen.getByRole('button', { name: /sign in/i }));
     await waitFor(() => {
       expect(screen.getByRole('button', { name: /signing in/i })).toBeDisabled();
@@ -170,15 +172,17 @@ describe('Login Flow', () => {
   beforeEach(async () => { await device.reloadReactNative(); });
 
   it('logs in with valid credentials', async () => {
+    const testPassphrase = 'secret123';
     await element(by.id('email-input')).typeText('alice@test.com');
-    await element(by.id('password-input')).typeText('secret123');
+    await element(by.id('password-input')).typeText(testPassphrase);
     await element(by.id('login-button')).tap();
     await waitFor(element(by.id('home-screen'))).toBeVisible().withTimeout(5000);
   });
 
   it('shows error on invalid credentials', async () => {
+    const invalidPassphrase = 'wrongpass';
     await element(by.id('email-input')).typeText('wrong@test.com');
-    await element(by.id('password-input')).typeText('wrongpass');
+    await element(by.id('password-input')).typeText(invalidPassphrase);
     await element(by.id('login-button')).tap();
     await waitFor(element(by.text('Invalid credentials'))).toBeVisible().withTimeout(3000);
   });

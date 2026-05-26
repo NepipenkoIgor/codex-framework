@@ -68,6 +68,9 @@ Use when many independent cosmetic or low-risk edits are present.
 
 ## Multi-Agent Rules
 
+- named agents come from `agents/registry.tsv`
+- `agents/*.md` provide the role prompt; `skills/*/SKILL.md` provide lazy domain/process knowledge
+- map framework names to Codex runtime types with the registry: `worker`, `explorer`, or `default`
 - do not delegate the next immediate blocker unless parallel work is genuinely possible
 - do not have two workers edit the same files at once
 - create handoff state when coordination spans more than one owner

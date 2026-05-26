@@ -52,6 +52,18 @@ while IFS= read -r role; do
   [ -f "$ROOT/agents/$role.md" ] || fail_check "routing role has no role brief: $role"
 done < <(roles_from_routing)
 
+if [ ! -f "$ROOT/agents/registry.tsv" ] \
+  || [ ! -x "$ROOT/scripts/agent-registry.sh" ] \
+  || ! bash "$ROOT/scripts/agent-registry.sh" validate >/dev/null 2>&1; then
+  fail_check "named agent registry is incomplete"
+fi
+
+if ! grep -q 'Primary named agent' "$ROOT/scripts/task-brief.sh" \
+  || ! grep -q 'Named agent:' "$ROOT/scripts/plan.sh" \
+  || ! grep -q 'agent-registry.sh' "$ROOT/scripts/codex-fw.sh"; then
+  fail_check "named agent wiring is missing from brief, plan, or codex-fw"
+fi
+
 while IFS= read -r skill; do
   [ -n "$skill" ] || continue
   [ -f "$ROOT/skills/$skill/SKILL.md" ] || fail_check "routing skill has no SKILL.md: $skill"
@@ -81,20 +93,29 @@ check_route_probe estimator "estimate scope and cost"
 check_route_probe auditor "dependency audit CVE"
 check_route_probe framework-manager "framework orchestration audit"
 check_route_probe framework-manager "статус фреймворка что легаси удалить"
+check_route_probe framework-manager "codex hooks runtime migration"
 
 if ! grep -q 'framework-orchestration-audit' "$ROOT/CODEX.skills.md"; then
   fail_check "CODEX.skills.md does not register framework-orchestration-audit"
 fi
 
-if [ -n "$(git -C "$ROOT" ls-files .codex .githooks)" ]; then
-  fail_check "runtime state is tracked; remove .codex/.githooks from the index"
+if [ -n "$(git -C "$ROOT" ls-files .codex)" ]; then
+  fail_check "runtime state is tracked; remove .codex from the index"
 fi
 
-for pattern in '/.codex/cache/' '/.codex/runs/' '/.codex/specs/' '/.codex/project.env' '/.githooks/'; do
+for pattern in '/.codex/cache/' '/.codex/runs/' '/.codex/specs/' '/.codex/project.env' '/.codex/hooks/' '/.codex/hooks.json' '/.codex/config.toml' '/.codex-memory/'; do
   if ! grep -qx "$pattern" "$ROOT/.gitignore" 2>/dev/null; then
     fail_check ".gitignore missing runtime-state rule: $pattern"
   fi
 done
+
+if [ ! -f "$ROOT/scripts/hooks.sh" ] \
+  || [ ! -f "$ROOT/scripts/context-pack.sh" ] \
+  || [ ! -f "$ROOT/scripts/hooks/session-start.sh" ] \
+  || ! grep -q 'hooks.sh" install' "$ROOT/scripts/bootstrap-project.sh" \
+  || ! grep -q 'codex_hooks_configured' "$ROOT/scripts/capabilities.sh"; then
+  fail_check "hook-native control plane is incomplete"
+fi
 
 if ! grep -q -- '--head "$HEAD_BRANCH"' "$ROOT/scripts/pr-create.sh" || ! grep -q -- '--base "$BASE_BRANCH"' "$ROOT/scripts/pr-create.sh"; then
   fail_check "pr-create does not create PRs with explicit base/head"
@@ -105,14 +126,30 @@ if ! grep -q 'codex/\*)' "$ROOT/scripts/pr-ready.sh"; then
 fi
 
 if grep -q 'sync_branch_for_pr' "$ROOT/scripts/pr-ready.sh" || grep -q 'push_branch_for_pr' "$ROOT/scripts/pr-ready.sh"; then
-  fail_check "pr-ready must be check-only; sync and push belong in pr-publish"
+  fail_check "pr-ready must be check-only; publishing belongs in pr-publish"
 fi
 
 if [ ! -f "$ROOT/scripts/pr-publish.sh" ] \
-  || ! grep -q 'sync_branch_for_pr "$base"' "$ROOT/scripts/pr-publish.sh" \
-  || ! grep -q 'pr-ready.sh' "$ROOT/scripts/pr-publish.sh" \
-  || ! grep -q 'git push --force-with-lease' "$ROOT/scripts/pr-publish.sh"; then
-  fail_check "pr-publish does not own explicit sync/check/push"
+  || grep -q 'sync_branch_for_pr' "$ROOT/scripts/pr-publish.sh" \
+  || grep -q 'pr-ready.sh' "$ROOT/scripts/pr-publish.sh" \
+  || grep -q 'quality-check.sh' "$ROOT/scripts/pr-publish.sh" \
+  || grep -q 'require_clean_worktree_for_pr' "$ROOT/scripts/pr-publish.sh" \
+  || grep -q 'require_branch_has_pr_commits' "$ROOT/scripts/pr-publish.sh" \
+  || ! grep -q 'git push -u origin "$branch"' "$ROOT/scripts/pr-publish.sh"; then
+  fail_check "pr-publish must only publish the branch; project hooks and CI own checks"
+fi
+
+if grep -q 'require_clean_worktree_for_pr' "$ROOT/scripts/pr-create.sh" \
+  || grep -q 'require_branch_has_pr_commits' "$ROOT/scripts/pr-create.sh" \
+  || grep -q 'pr-ready.sh' "$ROOT/scripts/pr-create.sh" \
+  || grep -q 'quality-check.sh' "$ROOT/scripts/pr-create.sh"; then
+  fail_check "pr-create must not run framework readiness checks before creating a PR"
+fi
+
+if grep -q 'conventional_commit_valid' "$ROOT/scripts/safe-commit.sh" \
+  || grep -q 'commit message contains forbidden attribution' "$ROOT/scripts/safe-commit.sh" \
+  || grep -q 'pre-commit-check.sh' "$ROOT/scripts/safe-commit.sh"; then
+  fail_check "safe-commit must be a thin git commit wrapper; project hooks own commit policy"
 fi
 
 if grep -q 'auto_resolve_rebase_conflicts' "$ROOT/scripts/lib/git-flow.sh" || grep -q -- '-X theirs' "$ROOT/scripts/lib/git-flow.sh"; then

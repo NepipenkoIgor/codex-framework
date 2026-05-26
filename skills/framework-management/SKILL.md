@@ -68,8 +68,25 @@ Validate:
 5. scripts needed by the framework are present
 6. docs match the actual repository structure
 
+## Verification
+
+- Run `scripts/framework-eval.sh` for routing, role, or skill-resolution changes.
+- Run `scripts/framework-maturity.sh` when orchestration quality gates change.
+- Run `scripts/framework-drift-check.sh` after policy, role, or source-of-truth changes.
+- Run `scripts/framework-health.sh` before close-out.
+- For corpus changes, run `scripts/framework-skill-corpus-audit.sh` and inspect the lowest-scoring skills.
+
 ## Constraints
 
 - Only modify framework files in this repo.
 - Do not introduce duplicates without a clear reason.
 - Prefer direct, verifiable improvements over speculative redesign.
+- Do not make docs-only claims that are not backed by scripts, role briefs, skills, or generated briefs.
+- Do not weaken permission, git, or PR safeguards to make checks pass.
+
+## Output Contract
+
+- Changed:
+- Checks:
+- Remaining gaps:
+- Follow-up:

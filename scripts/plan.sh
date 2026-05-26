@@ -87,8 +87,11 @@ make_step() {
       "$(role_emoji "$role_name")" \
       "$(route_badge "$role_name" "$role_model" "$role_reasoning")" \
       "$description"
+    agent_runtime="$(bash "$FRAMEWORK_ROOT/scripts/agent-registry.sh" get "$role_name" runtime_type 2>/dev/null || printf 'default\n')"
+    agent_mode="$(bash "$FRAMEWORK_ROOT/scripts/agent-registry.sh" get "$role_name" work_mode 2>/dev/null || printf 'unknown\n')"
+    printf '   🤖 Named agent: %s (%s, %s)\n' "$role_name" "$agent_runtime" "$agent_mode"
     if [ -n "$skills" ] && [ "$skills" != "none" ]; then
-      printf '   📚 Skills: %s\n' "$(decorate_skill_list "$skills")"
+      printf '   📚 Skills to load: %s\n' "$(decorate_skill_list "$skills")"
     fi
   }
 }
@@ -147,9 +150,18 @@ $(make_step 3 tester "$tester_model" "$tester_reasoning" "run targeted checks an
   flow="⛓️  Requirement Gate"
 elif printf '%s' "$role" | grep -Eq '^builder|^fixer$|^refactorer$'; then
   if printf '%s' "$task_flags" | grep -Eq 'contract'; then
-    steps="$(make_step 1 architect "$arch_model" "$arch_reasoning" "set the contract and ownership boundaries before the build starts" "api-design, backend-architecture, frontend-architecture")
+    if task_contains "$task_lc" 'frontend|ui|form|component|page|style|css|layout' \
+      && task_contains "$task_lc" 'backend|api|endpoint|service|database|db|auth|webhook'; then
+      steps="$(make_step 1 architect "$arch_model" "$arch_reasoning" "set the shared contract and split backend/frontend ownership" "api-design, backend-architecture, frontend-architecture")
+$(make_step 2 builder-backend "$step_model" "$step_reasoning" "own the API/service/data boundary for this task" "backend-implement, api-design, data-validation-design")
+$(make_step 3 builder-frontend "$step_model" "$step_reasoning" "own the UI/form/client integration boundary for this task" "frontend-implement, accessibility-implement, responsive-design")
+$(make_step 4 tester "$tester_model" "$tester_reasoning" "verify the shared contract and the end-to-end behavior" "frontend-test, backend-test, contract-testing")"
+      flow="⚡ Parallel After Contract"
+    else
+      steps="$(make_step 1 architect "$arch_model" "$arch_reasoning" "set the contract and ownership boundaries before the build starts" "api-design, backend-architecture, frontend-architecture")
 $(make_step 2 "$step_role" "$step_model" "$step_reasoning" "$TASK" "$step_skills")
 $(make_step 3 tester "$tester_model" "$tester_reasoning" "run the checks that matter most for this change" "frontend-test, backend-test")"
+    fi
   else
     steps="$(make_step 1 "$step_role" "$step_model" "$step_reasoning" "$TASK" "$step_skills")
 $(make_step 2 tester "$tester_model" "$tester_reasoning" "run the checks that matter most for this change" "frontend-test, backend-test")"
@@ -166,7 +178,7 @@ if [ "$task_shape" = "mechanical" ] && [ "$role" != "architect" ] && [ "$role" !
   flow="⚡ Fast Path"
 fi
 
-progress_note="Progress updates during execution will show the active route badge and the most relevant active skills."
+progress_note="Progress updates during execution will distinguish the active named agent, loaded skills, and any explicitly spawned sub-agents."
 
 if [ -z "$OUTPUT_FILE" ]; then
   OUTPUT_FILE="$(run_root)/$(date -u +"%Y%m%dT%H%M%SZ")-plan.md"

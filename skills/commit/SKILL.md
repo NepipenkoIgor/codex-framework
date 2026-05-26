@@ -22,7 +22,7 @@ When user invokes `/commit [optional-message]`:
 3. If there are changes:
    - If user provided message in the arg → use it verbatim (still validate format below)
    - If no message → infer from the diff: type(scope): description (lowercase, imperative, <72 chars)
-4. **Stage and commit** via pm~h — pass this exact instruction:
+4. Stage and commit through the framework commit flow:
    ```
    Stage all modified tracked files (git add -u).
    Commit with message: "<type>(<scope>): <description>"
@@ -41,7 +41,6 @@ When user invokes `/commit [optional-message]`:
 - `style` — formatting, whitespace
 - `perf` — performance improvement
 
-## Output contract
-Status: done
-Changed: none (commit is a git operation)
-Notes: [commit hash and message]
+## Output Contract
+
+Report the commit hash, message, and files changed. If commit is blocked by hooks, report the hook failure and the smallest next fix instead of bypassing it.

@@ -93,32 +93,83 @@ for item in attachment_urls:
         seen.add(item)
         deduped_urls.append(item)
 
-lines = []
-for line in body.splitlines():
-    stripped = line.strip()
-    if not stripped:
-        continue
-    if stripped.startswith(("- ", "* ", "1. ", "2. ", "3. ", "4. ", "5. ")):
-        lines.append(re.sub(r"^([-*]|\d+\.)\s+", "", stripped))
+requirement_entries = []
+seen_requirements = set()
+requirement_keywords = re.compile(
+    r"\b(acceptance|expected|required|requirement|should|must|need(?:s|ed)? to|please|make sure)\b"
+    r"|должн|нужно|надо|треб|ожида|сдела|добав|исправ|убер",
+    re.IGNORECASE,
+)
+requirement_headings = {
+    "requirements",
+    "acceptance",
+    "acceptance criteria",
+    "criteria",
+    "scope",
+    "todo",
+    "tasks",
+    "done when",
+    "требования",
+    "критерии приемки",
+    "что сделать",
+}
 
-requirements = []
-for item in lines:
-    if item not in requirements:
-        requirements.append(item)
+def normalize_requirement(text: str) -> str:
+    text = re.sub(r"^\[[ xX]\]\s+", "", text.strip())
+    text = re.sub(r"\s+", " ", text)
+    return text.strip(" -")
 
-if not requirements:
+def add_requirement(text: str, location: str) -> None:
+    req = normalize_requirement(text)
+    if len(req) < 3:
+        return
+    key = req.casefold()
+    if key in seen_requirements:
+        return
+    seen_requirements.add(key)
+    requirement_entries.append({"text": req, "location": location})
+
+def extract_requirements(label: str, text: str) -> None:
+    in_requirement_block = False
+    for line in text.splitlines():
+        stripped = line.strip()
+        if not stripped:
+            continue
+
+        heading = re.sub(r"^#+\s*", "", stripped).strip().lower()
+        if heading in requirement_headings:
+            in_requirement_block = True
+            continue
+        if stripped.startswith("#"):
+            in_requirement_block = False
+            continue
+
+        checklist = re.match(r"^[-*]\s+\[[ xX]\]\s+(.+)$", stripped)
+        bullet = re.match(r"^([-*]|\d+\.)\s+(.+)$", stripped)
+        if checklist:
+            add_requirement(checklist.group(1), label)
+        elif bullet:
+            add_requirement(bullet.group(2), label)
+        elif in_requirement_block and len(stripped) <= 220:
+            add_requirement(stripped, label)
+        elif label.startswith("Comment") and len(stripped) <= 220 and requirement_keywords.search(stripped):
+            add_requirement(stripped, label)
+
+extract_requirements("Issue body", body)
+for idx, text in enumerate(comment_texts, start=1):
+    extract_requirements(f"Comment {idx}", text)
+
+if not requirement_entries:
     summary = body.split("\n\n")[0].replace("\n", " ").strip()
     if summary:
-      requirements.append(summary[:160])
+        add_requirement(summary[:160], "Issue body")
     else:
-      requirements.append(f"Implement issue #{data.get('number')} based on title and discussion")
+        add_requirement(f"Implement issue #{data.get('number')} based on title and discussion", "Issue")
 
 spec_lines = []
 spec_lines.append(f"# Spec #{data.get('number')} - {title}")
 if url:
     spec_lines.append(f"Source: {url}")
-spec_lines.append(f"Last synced: {pathlib.datetime.datetime.utcnow().strftime('%Y-%m-%dT%H:%M:%SZ') if False else ''}")
-spec_lines.pop()  # placeholder removed; set below for compatibility
 from datetime import datetime, timezone
 spec_lines.append(f"Last synced: {datetime.now(timezone.utc).strftime('%Y-%m-%dT%H:%M:%SZ')}")
 spec_lines.append(f"Visual: {'yes' if deduped_urls else 'no'}")
@@ -134,9 +185,10 @@ spec_lines.append("## Requirements")
 spec_lines.append("")
 spec_lines.append("| # | Requirement | Location | Status |")
 spec_lines.append("|---|---|---|---|")
-for idx, req in enumerate(requirements, start=1):
-    escaped = req.replace("|", "\\|")
-    spec_lines.append(f"| {idx} | {escaped} | — | ☐ |")
+for idx, entry in enumerate(requirement_entries, start=1):
+    escaped = entry["text"].replace("|", "\\|")
+    escaped_location = entry["location"].replace("|", "\\|")
+    spec_lines.append(f"| {idx} | {escaped} | {escaped_location} | ☐ |")
 spec_lines.append("")
 spec_lines.append("## Comments")
 spec_lines.append("")

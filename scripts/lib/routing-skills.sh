@@ -15,14 +15,15 @@ detect_task_flags() {
   local stack_csv="$2"
   local flags=()
 
-  task_contains "$task_lc" 'issue|spec|acceptance criteria|gap analysis|missing' && flags+=("spec-driven")
-  task_contains "$task_lc" 'comment|requirement|should|must|expected|meant for|supposed to|wrong|not right|instead of|copy' && flags+=("requirement-check")
+  task_contains "$task_lc" 'issue|spec|acceptance criteria|gap analysis|missing|find gaps|дыры|слабые места|что плохо|легаси|что мешает' && flags+=("spec-driven")
+  task_contains "$task_lc" 'comment|requirement|should|must|expected|meant for|supposed to|wrong|not right|instead of|copy|требован|должн|ожида|неправ|не так' && flags+=("requirement-check")
   task_contains "$task_lc" 'visual|layout|spacing|color|typography|hover|animation|responsive|ui polish|css' && flags+=("visual")
-  task_contains "$task_lc" 'pr|pull request|review comment|code review|ci' && flags+=("review")
+  task_contains "$task_lc" 'pr|pull request|review comment|code review|ci|review|audit|check quality|аудит|ревью|провер|проанализ|анализ|качество' && flags+=("review")
   task_contains "$task_lc" 'new api|schema|contract|migration|dependency|cross-system|cross system|parallel' && flags+=("contract")
   task_contains "$task_lc" 'n8n|workflow' && flags+=("n8n")
   task_contains "$task_lc" 'ai|llm|rag|prompt|vector|agent|multimodal' && flags+=("ai")
   task_contains "$task_lc" 'production|incident|outage|safety|guard|security' && flags+=("production")
+  task_contains "$task_lc" 'framework gap|framework status|status.*framework|framework orchestration|orchestration audit|agent quality|human-like|human like|senior engineer agent|production readiness|operating model|orchestration redesign|skill architecture|runtime guard|выжимать.*codex|prompt coding|промпт[ -]?кодинг|фреймворк|фреймворка|оркестрац|агент|агентов|скил|скилл|автоматиз|лучше чем.*промпт|все ли автоматиз' && flags+=("strategic")
   stack_has "$stack_csv" "playwright" && flags+=("playwright")
 
   if [ "${#flags[@]}" -eq 0 ]; then
@@ -75,9 +76,9 @@ classify_task_shape() {
   local task_lc="$1"
   if task_contains "$task_lc" 'typo|copy change|text swap|rename|small config|single-file|single file|one file|mechanical|token swap'; then
     printf 'mechanical\n'
-  elif task_contains "$task_lc" 'framework gap|framework status|status.*framework|статус.*фреймвор|production readiness|roadmap|design philosophy|long-term|migration|cross-system|cross system|orchestration|выжимать.*codex|prompt coding|промпт[ -]?кодинг'; then
+  elif task_contains "$task_lc" 'framework gap|framework status|status.*framework|статус.*фреймвор|production readiness|roadmap|design philosophy|long-term|migration|cross-system|cross system|orchestration|выжимать.*codex|prompt coding|промпт[ -]?кодинг|фреймворк|фреймворка|оркестрац|агент|агентов|скил|скилл|комплексн.*аудит|слабые места|дыры|что плохо|что мешает|лучше чем.*промпт|все ли автоматиз|качество.*скил'; then
     printf 'strategic\n'
-  elif task_contains "$task_lc" 'review|audit|check|verify'; then
+  elif task_contains "$task_lc" 'review|audit|check|verify|аудит|ревью|провер|проанализ|анализ|качество'; then
     printf 'review\n'
   else
     printf 'implementation\n'
@@ -118,11 +119,17 @@ ensure_project_git_hooks() {
   local root="${1:-$(project_root)}"
   local hooks_dir
   if git -C "$root" rev-parse --show-toplevel >/dev/null 2>&1; then
-    hooks_dir="$(git -C "$root" rev-parse --git-path hooks)"
+    hooks_dir="$(
+      cd "$root"
+      common_dir="$(git rev-parse --git-common-dir)"
+      mkdir -p "$common_dir/hooks"
+      cd "$common_dir/hooks"
+      pwd
+    )"
   else
     hooks_dir="$root/.git/hooks"
+    mkdir -p "$hooks_dir"
   fi
-  mkdir -p "$hooks_dir"
   printf '%s\n' "$hooks_dir"
 }
 
@@ -261,7 +268,7 @@ choose_role_from_repo_intelligence() {
   load_repo_intelligence
   intent="$(detect_task_intent "$task_lc")"
 
-  if task_contains "$task_lc" 'framework health|new skill|role update|routing|codex framework|framework gap|framework orchestration|orchestration audit|agent quality|human-like|human like|senior engineer agent|production readiness|operating model|orchestration redesign|skill architecture|runtime guard|фреймворк|фреймворка|оркестрац|агент|агентов|доменные знания|валидац.*фреймворк'; then
+  if task_contains "$task_lc" 'framework health|new skill|role update|routing|codex framework|framework gap|framework orchestration|orchestration audit|agent quality|human-like|human like|senior engineer agent|production readiness|operating model|orchestration redesign|skill architecture|runtime guard|codex hook|codex hooks|hook-native|runtime hook|lifecycle automation|хуки|хук|фреймворк|фреймворка|оркестрац|агент|агентов|доменные знания|валидац.*фреймворк'; then
     printf 'framework-manager\n'
     return 0
   fi
@@ -365,7 +372,7 @@ choose_tier_from_role_and_task() {
       tier="medium"
       ;;
     framework-manager)
-      if task_contains "$task_lc" 'framework gap|framework status|status.*framework|framework orchestration|orchestration audit|agent quality|human-like|human like|senior engineer agent|production readiness|operating model|orchestration redesign|skill architecture|runtime guard|выжимать.*codex|prompt coding|промпт[ -]?кодинг|статус.*фреймвор|оркестрац|агент|агентов|доменные знания|валидац.*фреймворк'; then
+      if task_contains "$task_lc" 'framework gap|framework status|status.*framework|framework orchestration|orchestration audit|agent quality|human-like|human like|senior engineer agent|production readiness|operating model|orchestration redesign|skill architecture|runtime guard|codex hook|codex hooks|hook-native|runtime hook|lifecycle automation|хуки|хук|выжимать.*codex|prompt coding|промпт[ -]?кодинг|статус.*фреймвор|оркестрац|агент|агентов|доменные знания|валидац.*фреймворк'; then
         tier="xhigh"
       else
         tier="high"
@@ -853,7 +860,7 @@ csv_to_multiline() {
   done
 }
 
-model_fallback_chain() {
+model_retry_chain() {
   case "$1" in
     gpt-5.4-mini|gpt-5.1-codex-mini|codex-mini-latest) printf '%s,gpt-5.5\n' "$1" ;;
     gpt-5.5) printf 'gpt-5.5\n' ;;

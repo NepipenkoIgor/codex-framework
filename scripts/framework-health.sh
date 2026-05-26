@@ -94,14 +94,23 @@ check_file "scripts/detect-repo-intelligence.sh"
 check_file "scripts/detect-project-commands.sh"
 check_file "scripts/capabilities.sh"
 check_file "scripts/doctor.sh"
+check_file "scripts/context-pack.sh"
+check_file "scripts/hooks.sh"
+check_file "scripts/hooks/lib.sh"
+check_file "scripts/hooks/session-start.sh"
+check_file "scripts/hooks/user-prompt-submit.sh"
+check_file "scripts/hooks/pre-tool-use.sh"
+check_file "scripts/hooks/post-tool-use.sh"
+check_file "scripts/hooks/stop.sh"
+check_file "scripts/agent-registry.sh"
 check_file "scripts/guard-scan.sh"
 check_file "scripts/quality-check.sh"
 check_file "scripts/pre-commit-check.sh"
 check_file "scripts/commit-msg-check.sh"
-check_file "scripts/install-git-hooks.sh"
-check_file "scripts/handoff-state.sh"
-check_file "scripts/memory-state.sh"
-check_file "scripts/retry-state.sh"
+	check_file "scripts/handoff-state.sh"
+	check_file "scripts/memory-state.sh"
+	check_file "scripts/memory-contract-check.sh"
+	check_file "scripts/retry-state.sh"
 check_file "scripts/banner.sh"
 check_file "scripts/plan.sh"
 check_file "scripts/session-start.sh"
@@ -129,8 +138,7 @@ check_file "scripts/browser-verify.sh"
 check_file "scripts/codex-fw.sh"
 check_file "templates/project/CODEX.md"
 check_file "templates/project/.codex/project.env"
-check_file "templates/project/.githooks/pre-commit"
-check_file "templates/project/.githooks/commit-msg"
+check_file "agents/registry.tsv"
 check_file "agents/builder-mobile.md"
 check_file "agents/builder-fullstack.md"
 check_file "agents/builder-automation.md"
@@ -172,6 +180,13 @@ while IFS= read -r file; do
   fi
 done < <(find "$ROOT/scripts" -maxdepth 1 -name '*.sh')
 
+while IFS= read -r file; do
+  if [ ! -x "$file" ]; then
+    echo "hook script not executable: ${file#$ROOT/}"
+    failures=$((failures + 1))
+  fi
+done < <(find "$ROOT/scripts/hooks" -maxdepth 1 -name '*.sh')
+
 if tree_contains_pattern "CLAUDE\.md|\.claude/|enabledPlugins|teammateMode" "$ROOT/skills"; then
   echo "framework drift: Claude-specific references found in skills/"
   failures=$((failures + 1))
@@ -179,6 +194,11 @@ fi
 
 if tree_contains_pattern "CLAUDE\.md|\.claude/|enabledPlugins|teammateMode" "$ROOT/agents"; then
   echo "framework drift: Claude-specific references found in agents/"
+  failures=$((failures + 1))
+fi
+
+if tree_contains_pattern "Claude Code|pm~[a-z]|fix~[a-z]|surfaces failures back to Claude|leaving Claude Code" "$ROOT/skills"; then
+  echo "framework drift: Claude-era user-facing workflow references found in skills/"
   failures=$((failures + 1))
 fi
 
@@ -207,6 +227,7 @@ check_route_expectation "update API schema for billing webhooks" 'role=(architec
 check_route_expectation "analyze framework orchestration and human-like engineer agents with domain knowledge" 'role=framework-manager .*tier=xhigh .*model=gpt-5\.5'
 check_route_expectation "проанализируй оркестрацию фреймворка и агентов с доменными знаниями" 'role=framework-manager .*tier=xhigh .*model=gpt-5\.5'
 check_route_expectation "проверь статус нашего фреймворка что хорошо что плохо что легаси и грязь нужно удалить что мешает эффективно выжимать из codex больше чем просто промпт кодинг" 'role=framework-manager .*tier=xhigh .*model=gpt-5\.5'
+check_route_expectation "уберем легаси и используем codex hooks как основной runtime" 'role=framework-manager .*tier=xhigh .*model=gpt-5\.5'
 
 if ! bash "$ROOT/scripts/framework-eval.sh" >/dev/null 2>&1; then
   echo "framework eval failed"
@@ -220,6 +241,11 @@ fi
 
 if ! bash "$ROOT/scripts/framework-drift-check.sh" >/dev/null 2>&1; then
   echo "framework drift check failed"
+  failures=$((failures + 1))
+fi
+
+if ! bash "$ROOT/scripts/memory-contract-check.sh" >/dev/null 2>&1; then
+  echo "memory contract check failed"
   failures=$((failures + 1))
 fi
 
@@ -238,6 +264,11 @@ if ! bash "$ROOT/scripts/framework-skill-corpus-audit.sh" >/dev/null 2>&1; then
   failures=$((failures + 1))
 fi
 
+if ! bash "$ROOT/scripts/guard-scan.sh" --all >/dev/null 2>&1; then
+  echo "framework corpus guard scan failed"
+  failures=$((failures + 1))
+fi
+
 if ! bash "$ROOT/scripts/detect-project-commands.sh" "$ROOT" >/dev/null 2>&1; then
   echo "command detection failed"
   failures=$((failures + 1))
@@ -245,6 +276,16 @@ fi
 
 if ! bash "$ROOT/scripts/doctor.sh" "$ROOT" >/dev/null 2>&1; then
   echo "doctor failed"
+  failures=$((failures + 1))
+fi
+
+if ! bash "$ROOT/scripts/hooks.sh" smoke "$ROOT" >/dev/null 2>&1; then
+  echo "hook smoke failed"
+  failures=$((failures + 1))
+fi
+
+if ! bash "$ROOT/scripts/agent-registry.sh" validate >/dev/null 2>&1; then
+  echo "agent registry validation failed"
   failures=$((failures + 1))
 fi
 
