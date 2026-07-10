@@ -3,7 +3,7 @@ set -euo pipefail
 
 REPO_DIR="$(cd "$(dirname "$0")/.." && pwd)"
 CODEX_HOME="${CODEX_HOME:-$HOME/.codex}"
-INSTALL_ROOT="$CODEX_HOME/skills/ai-codex-framework-core"
+INSTALL_ROOT="$CODEX_HOME/skills/codex-framework-core"
 
 while [ $# -gt 0 ]; do
   case "$1" in
@@ -61,18 +61,18 @@ while IFS= read -r skill; do
   [ -d "$REPO_DIR/skills/$skill" ] || { printf 'missing core skill: %s\n' "$skill" >&2; exit 1; }
   ln -sfn "$REPO_DIR/skills/$skill" "$INSTALL_ROOT/$skill"
 done < "$REPO_DIR/skills/core.txt"
-ln -sfn "$REPO_DIR" "$CODEX_HOME/frameworks/ai-codex-framework"
+ln -sfn "$REPO_DIR" "$CODEX_HOME/frameworks/codex-framework"
 
 for agent_file in "$REPO_DIR"/.codex/agents/*.toml; do
   [ -f "$agent_file" ] || continue
-  ln -sfn "$agent_file" "$CODEX_HOME/agents/ai-codex-$(basename "$agent_file")"
+  ln -sfn "$agent_file" "$CODEX_HOME/agents/codex-framework-$(basename "$agent_file")"
 done
 
 cat <<EOF
 Installed skills:
   $INSTALL_ROOT (curated native core from $REPO_DIR/skills/core.txt)
 Installed native agents:
-  $CODEX_HOME/agents/ai-codex-*.toml -> $REPO_DIR/.codex/agents/*.toml
+  $CODEX_HOME/agents/codex-framework-*.toml -> $REPO_DIR/.codex/agents/*.toml
 
 Dependency check:
 $(report_dep required codex "Codex CLI")
