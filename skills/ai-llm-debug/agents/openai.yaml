@@ -1,0 +1,4 @@
+interface:
+  display_name: "AI/LLM Debug"
+  short_description: "Trace and fix unreliable AI behavior"
+  default_prompt: "Use $ai-llm-debug to diagnose this AI failure from logs and reproduction steps."

@@ -38,8 +38,21 @@ Debug $ARGUMENTS.
 - paging and filtering mistakes
 - error mapping and status code regressions
 
+## Constraints
+
+- Do not patch symptoms before proving the failing path.
+- Do not broaden auth, validation, retry, or transaction behavior without a test or explicit rationale.
+- Do not hide unavailable database, queue, network, or production-log access; report it as residual risk.
+
 ## Output Requirements
 
 - Describe the root cause succinctly.
 - Apply the smallest safe fix.
 - State what evidence was used and what was verified afterward.
+
+## Output Contract
+
+- Root cause:
+- Fix:
+- Verification:
+- Residual risk:

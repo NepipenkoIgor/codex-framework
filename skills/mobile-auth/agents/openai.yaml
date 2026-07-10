@@ -1,0 +1,4 @@
+interface:
+  display_name: "Mobile Auth"
+  short_description: "Build secure mobile sessions and OAuth"
+  default_prompt: "Use $mobile-auth to implement and verify this mobile sign-in flow."

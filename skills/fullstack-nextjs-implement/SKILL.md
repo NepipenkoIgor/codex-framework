@@ -11,7 +11,7 @@ metadata:
 
 Pair with `frontend-implement` for universal rules. Next.js is a full-stack framework — this skill covers both UI and server-side concerns.
 
-Target Next.js guidance is governed by `CODEX.versions.md`. Default to Next.js 16 patterns for new work. If the repo is on an older major, follow the existing project for the immediate task and explicitly report upgrade pressure instead of deepening deprecated patterns.
+Default to current stable Next.js patterns for new work. If the repository is on an older major, follow the installed project version for the immediate task and explicitly report upgrade pressure instead of deepening deprecated patterns.
 
 ## App Router File Conventions
 

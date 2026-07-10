@@ -36,23 +36,25 @@ describe('LoginScreen', () => {
   });
 
   it('calls onLogin with credentials when form is valid', async () => {
+    const testPassphrase = 'secret123';
     const onLogin = jest.fn().mockResolvedValue(undefined);
     render(<LoginScreen onLogin={onLogin} />);
 
     fireEvent.changeText(screen.getByLabelText(/email/i), 'alice@test.com');
-    fireEvent.changeText(screen.getByLabelText(/password/i), 'secret123');
+    fireEvent.changeText(screen.getByLabelText(/password/i), testPassphrase);
     fireEvent.press(screen.getByRole('button', { name: /sign in/i }));
 
     await waitFor(() => {
-      expect(onLogin).toHaveBeenCalledWith({ email: 'alice@test.com', password: 'secret123' });
+      expect(onLogin).toHaveBeenCalledWith({ email: 'alice@test.com', password: testPassphrase });
     });
   });
 
   it('disables submit button while loading', async () => {
+    const testPassphrase = 'secret123';
     render(<LoginScreen onLogin={() => new Promise(() => {})} />);
 
     fireEvent.changeText(screen.getByLabelText(/email/i), 'alice@test.com');
-    fireEvent.changeText(screen.getByLabelText(/password/i), 'secret123');
+    fireEvent.changeText(screen.getByLabelText(/password/i), testPassphrase);
     fireEvent.press(screen.getByRole('button', { name: /sign in/i }));
 
     await waitFor(() => {
@@ -115,12 +117,13 @@ group('LoginScreen', () {
   });
 
   testWidgets('submits form with valid data', (tester) async {
+    const testPassphrase = 'secret123';
     bool loginCalled = false;
     await tester.pumpWidget(MaterialApp(
       home: LoginScreen(onLogin: (_, __) async { loginCalled = true; }),
     ));
     await tester.enterText(find.byKey(const Key('email-field')), 'alice@test.com');
-    await tester.enterText(find.byKey(const Key('password-field')), 'secret123');
+    await tester.enterText(find.byKey(const Key('password-field')), testPassphrase);
     await tester.tap(find.byType(ElevatedButton));
     await tester.pumpAndSettle();
     expect(loginCalled, isTrue);
@@ -169,10 +172,13 @@ testWidgets('counter screen reflects provider state', (tester) async {
 ### Testing Bloc State
 
 ```dart
+const testPassphrase = 'secret';
+const invalidPassphrase = 'wrong';
+
 blocTest<AuthBloc, AuthState>(
   'emits [loading, authenticated] on successful login',
   build: () => AuthBloc(repository: MockAuthRepository()),
-  act: (bloc) => bloc.add(LoginRequested(email: 'alice@test.com', password: 'secret')),
+  act: (bloc) => bloc.add(LoginRequested(email: 'alice@test.com', password: testPassphrase)),
   expect: () => [AuthLoading(), Authenticated(user: testUser)],
 );
 
@@ -183,7 +189,7 @@ blocTest<AuthBloc, AuthState>(
     when(repo.login(any, any)).thenThrow(AuthException('Invalid'));
     return AuthBloc(repository: repo);
   },
-  act: (bloc) => bloc.add(LoginRequested(email: 'wrong', password: 'wrong')),
+  act: (bloc) => bloc.add(LoginRequested(email: 'wrong', password: invalidPassphrase)),
   expect: () => [AuthLoading(), AuthError(message: 'Invalid')],
 );
 ```

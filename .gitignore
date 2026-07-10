@@ -1,8 +1,10 @@
 /.codex/cache/
 /.codex/runs/
 /.codex/specs/
-/.codex/handoffs/
-/.codex/memory/
+/.codex/hooks/
+/.codex/config.toml
+/.codex/native-next-prompt.txt
+/.codex/agents/*.local.toml
+/.codex-memory/
 /.codex/project.env
-/.githooks/
 /.idea/

@@ -1,6 +1,6 @@
 ---
 name: ci-status
-description: Check GitHub Actions CI status for current branch — surfaces failures back to Claude
+description: Check GitHub Actions CI status for the current branch and surface actionable failures in Codex.
 metadata:
   version: 1.0
   domain: devops
@@ -9,7 +9,7 @@ metadata:
 
 # CI Status Skill
 
-Spawns pm~h to check GitHub Actions status for the current branch and surface failures.
+Check GitHub Actions status for the current branch and surface failures without leaving the Codex workflow.
 
 ## Steps
 
@@ -26,10 +26,10 @@ Spawns pm~h to check GitHub Actions status for the current branch and surface fa
      Error: <first 20 lines of log>
      URL: <run url>
      ```
-   - Suggest: "Spawn fix~s with this error as context"
+   - Suggest the smallest fix or follow-up investigation with this error as context
 4. If `conclusion` is `success`: report `CI: ✓ <workflow> passed (<time ago>)`
 5. If no runs found: report `CI: no runs found for branch <branch-name>`
 
 ## Usage
 
-Type `/ci-status` after pushing a branch or creating a PR to check build health without leaving Claude Code.
+Type `/ci-status` after pushing a branch or creating a PR to check build health without leaving the Codex session.
