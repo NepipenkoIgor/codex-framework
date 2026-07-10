@@ -10,7 +10,7 @@ metadata:
 
 Use this skill for review work in Next.js applications that span UI and server behavior.
 
-Target Next.js guidance is governed by `CODEX.versions.md`. Compare the project version to the target before reviewing framework-specific behavior. If the project is below target, report version drift separately from correctness findings.
+Compare the project version to current stable Next.js guidance before reviewing framework-specific behavior. If the project is below target, report version drift separately from correctness findings.
 
 ## When To Use
 
@@ -35,7 +35,7 @@ Target Next.js guidance is governed by `CODEX.versions.md`. Compare the project 
 
 - App Router segment behavior and nested layout effects
 - Server vs client component boundaries
-- Next.js version drift against `CODEX.versions.md`
+- Next.js version drift against current stable guidance
 - `proxy.ts` vs deprecated `middleware.ts` usage and runtime assumptions
 - Route handlers and server actions
 - Auth, authorization, and session trust boundaries

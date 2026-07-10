@@ -138,7 +138,7 @@ Obfuscated payloads:
 
 Hidden instructions in plugin files:
 
-- README, CODEX.md, SKILL.md, or similar files containing behavioral overrides
+- README, AGENTS.md, SKILL.md, or similar files containing behavioral overrides
 - Comments in JSON/YAML that contain executable instructions
 - Metadata fields (description, keywords) containing instructions or URLs
 - Template literals in config files that fetch or execute remote content

@@ -1,13 +1,14 @@
 #!/bin/bash
 set -euo pipefail
 
-. "$(dirname "$0")/lib.sh"
+payload="$(cat)"
+task="session start"
+if command -v jq >/dev/null 2>&1; then
+  parsed="$(printf '%s' "$payload" | jq -r '.prompt // .user_prompt // .message // .input // .payload.prompt // .event.prompt // empty' | head -n 1)"
+  [ -n "$parsed" ] && task="$parsed"
+fi
 
-payload_file="$(hook_read_payload)"
-task="$(hook_task_from_payload "$payload_file")"
-root="$(hook_project_root)"
-
-cd "$root"
-hook_record_event "SessionStart" "$task"
-
-bash "$FRAMEWORK_ROOT/scripts/context-pack.sh" --task "${task:-session start}" --mode hook
+ROOT="$(git rev-parse --show-toplevel 2>/dev/null || pwd)"
+FRAMEWORK_ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
+cd "$ROOT"
+bash "$FRAMEWORK_ROOT/scripts/context-pack.sh" "$task"

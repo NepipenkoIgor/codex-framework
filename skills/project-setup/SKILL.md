@@ -19,7 +19,7 @@ Set up the project for $ARGUMENTS.
 1. Gather project requirements.
 2. Present the full setup plan before executing.
 3. On approval, create or configure the repository and workflow assets.
-4. Bootstrap project-local `CODEX.md` instructions when requested.
+4. Bootstrap project-local `AGENTS.md` instructions when requested.
 5. Report results with links and changed files.
 6. Verify required local files, remote settings, and documented next steps.
 
@@ -38,13 +38,13 @@ Set up the project for $ARGUMENTS.
 If the user wants the repository prepared for this framework:
 
 1. Run `scripts/bootstrap-project.sh <target-dir>` from the framework repo.
-2. Review the generated project `CODEX.md`.
+2. Review the generated project `AGENTS.md` and `.codex/agents/` profiles.
 3. Add project-specific rules, test commands, and architecture notes.
 
 ## Constraints
 
 - Never create external resources without explicit approval.
-- Never overwrite an existing project `CODEX.md` without confirmation.
+- Never overwrite an existing project `AGENTS.md` without confirmation.
 - Keep traceability back to the source requirements or estimate.
 - Prefer repo-native templates and scripts over one-off setup.
 - Do not hardcode organization secrets, tokens, or environment-specific values in committed files.
@@ -61,9 +61,8 @@ If the user wants the repository prepared for this framework:
 ## Verification
 
 - Check generated files exist and do not overwrite unrelated content.
-- Confirm local project commands are detected or documented.
-- Confirm hooks/templates/labels/branch guidance match the requested workflow.
-- Run `scripts/doctor.sh` or the project-equivalent readiness check when applicable.
+- Confirm the native agent profiles and hooks match the requested workflow.
+- Run `scripts/framework-health.sh` after framework-local changes.
 
 ## Output Contract
 

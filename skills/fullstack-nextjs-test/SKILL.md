@@ -11,7 +11,7 @@ metadata:
 
 Pair with `frontend-test` for universal principles and `frontend-test-react` for Client Component testing.
 
-Target Next.js guidance is governed by `CODEX.versions.md`. Prefer Next.js 16 test shapes, but follow the project version under test and report version drift when tests must preserve older behavior.
+Prefer current stable Next.js test shapes, but follow the project version under test and report version drift when tests must preserve older behavior.
 
 ## Setup
 

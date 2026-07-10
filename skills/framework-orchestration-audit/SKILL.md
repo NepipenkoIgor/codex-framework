@@ -14,14 +14,14 @@ Use this skill when evaluating whether the framework behaves like a reliable eng
 
 Score each dimension from 1 to 10 and include concrete evidence from framework files, scripts, or generated briefs.
 
-1. Routing correctness
-   - Task intent maps to the right role, tier, and execution pattern.
-   - Multilingual and mixed-language requests do not fall through to generic builder routes.
-   - Strategic framework work routes to `framework-manager` and high or xhigh reasoning.
+1. Native agent fit
+   - Delegated work maps to a narrow native profile and an appropriate reasoning effort.
+   - Parent instructions retain model choice unless a profile has a justified override.
+   - No shell router or fake runtime role controls the active session.
 
 2. Skill fit
    - Skill sets are small, relevant, and loaded lazily.
-   - Domain roles receive the same domain brain whether they build, review, fix, or test.
+   - Native profiles reference only stable skill baselines; domain skills remain task-selected.
    - Cross-cutting skills such as security, observability, docs, and process hygiene appear when risk warrants them.
 
 3. Human-like senior engineer behavior
@@ -52,16 +52,11 @@ Score each dimension from 1 to 10 and include concrete evidence from framework f
 
 Read only the files needed for the audit:
 
-- `CODEX.md`
-- `CODEX.concepts.md`
-- `CODEX.skills.md`
-- `ORCHESTRATOR_REFERENCE.md`
-- `routing.yaml`
-- `scripts/codex-fw.sh`
-- `scripts/task-brief.sh`
+- `AGENTS.md`
+- `.codex/config.toml`
+- `.codex/agents/*.toml`
 - `scripts/framework-health.sh`
 - `scripts/framework-eval.sh` when present
-- relevant `agents/*.md`
 - relevant `skills/*/SKILL.md`
 
 ## Output Format
