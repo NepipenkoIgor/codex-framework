@@ -7,8 +7,9 @@ TEMPLATE_DIR="$FRAMEWORK_ROOT/templates/project"
 TARGET_CODEX_DIR="$TARGET_DIR/.codex"
 TARGET_AGENTS="$TARGET_DIR/AGENTS.md"
 TARGET_NATIVE_AGENTS="$TARGET_CODEX_DIR/agents"
+TARGET_RULES="$TARGET_CODEX_DIR/rules"
 
-mkdir -p "$TARGET_NATIVE_AGENTS"
+mkdir -p "$TARGET_NATIVE_AGENTS" "$TARGET_RULES"
 
 if [ ! -e "$TARGET_AGENTS" ]; then
   cp "$TEMPLATE_DIR/AGENTS.md" "$TARGET_AGENTS"
@@ -20,8 +21,11 @@ for agent_file in "$FRAMEWORK_ROOT"/.codex/agents/*.toml; do
   [ -e "$target_agent" ] || cp "$agent_file" "$target_agent"
 done
 
+[ -e "$TARGET_RULES/safety.rules" ] || cp "$FRAMEWORK_ROOT/.codex/rules/safety.rules" "$TARGET_RULES/safety.rules"
+
 bash "$FRAMEWORK_ROOT/scripts/hooks.sh" install "$TARGET_DIR" >/dev/null
 
 printf 'project instructions: %s\n' "$TARGET_AGENTS"
 printf 'native agents: %s\n' "$TARGET_NATIVE_AGENTS"
+printf 'native rules: %s\n' "$TARGET_RULES/safety.rules"
 printf 'hook config: %s\n' "$TARGET_CODEX_DIR/config.toml"

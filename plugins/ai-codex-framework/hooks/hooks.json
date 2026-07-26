@@ -1,0 +1,30 @@
+{
+  "description": "Deterministic safety and closeout checks for AI Codex Framework.",
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Bash|Exec|Shell|Terminal",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash \"$PLUGIN_ROOT/scripts/pre-tool-use.sh\"",
+            "timeout": 5,
+            "statusMessage": "Checking safety policy"
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash \"$PLUGIN_ROOT/scripts/stop.sh\"",
+            "timeout": 30,
+            "statusMessage": "Checking changed files"
+          }
+        ]
+      }
+    ]
+  }
+}
