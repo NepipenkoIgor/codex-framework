@@ -1,0 +1,18 @@
+# Native command policy for destructive git operations. The shell hook covers
+# compound commands and non-prefix patterns that cannot be represented here.
+
+prefix_rule(
+    pattern = ["git", "reset", "--hard"],
+    decision = "forbidden",
+    justification = "Use a non-destructive reset or ask the user for explicit recovery instructions.",
+    match = ["git reset --hard", "git reset --hard HEAD"],
+    not_match = ["git reset --soft HEAD", "git reset HEAD"],
+)
+
+prefix_rule(
+    pattern = ["git", "clean", ["-fdx", "-xdf", "-dfx"]],
+    decision = "forbidden",
+    justification = "Inspect untracked files first and remove only explicit targets.",
+    match = ["git clean -fdx", "git clean -xdf"],
+    not_match = ["git clean -n", "git clean -fd"],
+)

@@ -1,0 +1,14 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["profile", "delegate", "reason"],
+  "properties": {
+    "profile": {
+      "type": "string",
+      "enum": ["parent", "explorer", "worker", "architect", "reviewer", "tester"]
+    },
+    "delegate": {"type": "boolean"},
+    "reason": {"type": "string"}
+  }
+}

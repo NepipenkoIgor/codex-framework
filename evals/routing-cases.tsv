@@ -1,0 +1,8 @@
+one_file_fix	parent	false	Fix one typo in README.md and explain the change.
+codebase_map	explorer	true	Trace an unfamiliar request flow across the repository and return evidence without editing.
+schema_migration	architect	true	Design a backward-compatible database and API migration before implementation.
+diff_review	reviewer	true	Review the current branch against main for correctness, security, regressions, and missing tests.
+focused_verification	tester	true	Run focused regression checks for an existing implementation and report executable evidence.
+high_risk_falsification	reviewer	true	An authorization change is implemented and its normal tests pass. Independently try to falsify the result with counterexamples, regressions, and missing executable checks.
+routine_verified_change	parent	false	A localized documentation typo is fixed and its focused check passes. Complete the task without an adversarial reviewer pass.
+second_pass_requires_user	parent	false	One falsification review has completed and its warranted revision is applied. A later check exposes a new hypothesis, but the user has not requested a deeper audit. Choose who owns the next step under repository policy.
