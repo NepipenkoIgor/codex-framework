@@ -1,81 +1,47 @@
 ---
 name: frontend-test-vue
-description: Vue 3 + Nuxt 3 testing with Vue Test Utils, vitest, Pinia stubs
+description: Test Vue or Nuxt components, composables, stores, routes, SSR, and hydration with the repository's installed runner and harness. Use when Vue-specific rendering or reactivity dominates; do not use for React, Angular, generic browser E2E, or implementation without a testing deliverable.
 metadata:
-  version: 1.0
+  owner: codex-framework
+  reviewed: "2026-07-27"
+  version: 1.1
   domain: frontend
-  keywords: [vue, vuejs, nuxt, testing, vue test utils, vitest, pinia, mount, shallowMount, composable]
+  keywords: [vue, nuxt, testing, vue test utils, vitest, jest, pinia, mount, composable, hydration]
 ---
 
-# Frontend Test — Vue
+# Frontend Test - Vue
 
-Pair with `frontend-test` for universal testing principles.
+Write behavior-focused Vue tests without replacing the repository's runner, DOM environment, Vue Test Utils/Nuxt harness, store setup, or component style.
 
 ## Workflow
 
-1. Read the component, composable, route, and nearby tests before writing new cases.
-2. Choose the narrowest test that covers the behavior risk.
-3. Mount with the same plugins, stores, router, and provide/inject setup that production uses.
-4. Drive behavior through rendered output and user events.
-5. Run the targeted Vitest command and report any remaining untested risk.
+1. Inspect instructions, manifests and lockfiles, test config/setup, nearby tests, target component/composable/route, and installed Vue/Nuxt capabilities. Verify every selected version-sensitive API or command against installed/generated types, CLI/configuration schema, or matching official documentation. Before mutation, resolve exact task-owned test/fixture targets when repository evidence identifies them, package ownership and write authority, plus a reversible diff and isolated cleanup path; otherwise block execution pending discovery.
+2. Choose the execution boundary:
+   - pure transform: unit test;
+   - component/reactivity contract: Vue Test Utils component test with required plugins and provides;
+   - Nuxt route, plugin, server endpoint, SSR, or hydration: the installed Nuxt integration harness;
+   - browser-only focus, layout, navigation, streaming, or hydration: browser/E2E test.
+3. Cover the relevant rendered states and failure transitions, not internal refs or implementation-specific watcher calls.
+4. Run the repository's focused command and affected checks.
 
-## Setup
+## Components and interaction
 
-- Use `@vue/test-utils` + `vitest` — never Jest for new Vue 3 projects (vitest is native to Vite)
-- Use `jsdom` or `happy-dom` environment in `vitest.config.ts`
-- Use `@pinia/testing` for Pinia store testing — never mock Pinia manually
+- Preserve Options API, Composition API, `<script setup>`, and repository mounting conventions; testing is not an incidental migration.
+- Use `mount` or the repository render helper when child integration matters. Shallow mounting is acceptable only when the child contract is explicitly outside scope and the stub does not erase the behavior under test.
+- Change props with `setProps`, inputs with `setValue`, and events with awaited `trigger` or the installed user-event helper. Direct instance mutation is not a user interaction.
+- Prefer semantic/accessibility queries where the installed harness supports them. Component lookup or stable test IDs are acceptable for contracts without a user-facing selector.
+- Await Vue updates and unresolved promises deliberately; do not add arbitrary sleeps.
 
-## Mounting
+## Stores, composables, and I/O
 
-- Use `mount()` for integration tests (full child rendering) — prefer over `shallowMount`
-- Use `shallowMount()` only when child components are irrelevant to the test and would cause test noise
-- Pass props via `mount(Component, { props: { ... } })` — never mutate `wrapper.vm` props directly
-- Use `global.plugins` to install Pinia, Router, and other plugins: `mount(C, { global: { plugins: [createPinia()] } })`
+- Use a real Pinia instance when store integration or action behavior is part of the contract. Use `createTestingPinia` when isolating the component from actions is the intended boundary. Neither is universal.
+- Make action stubbing explicit; `stubActions: false` is not proof of persistence or network behavior.
+- Test lifecycle-dependent composables inside a component/app setup. Pure context-free logic may be invoked directly when that is its real contract.
+- Tests must not call real external networks. Reuse the installed interceptor, injected client stub, Nuxt mock, or local test server at the truthful boundary; reset mutable state between cases.
+- Do not claim SSR or hydration coverage from a DOM-only mount. Verify server rendering, payload/state transfer, and fresh hydration with the matching harness or browser.
 
-## Querying and Assertions
+## Verification and output
 
-- Query by role or text via `wrapper.find('[role="button"]')` or `wrapper.findComponent(MyComponent)`
-- Use `wrapper.get()` when element must exist (throws if missing) — `wrapper.find()` when checking absence
-- Assert rendered text with `wrapper.text()`, attributes with `wrapper.attributes()`, classes with `wrapper.classes()`
-- Never assert on internal component data directly — test through rendered output
-
-## User Interactions
-
-- Use `await wrapper.trigger('click')` / `await wrapper.trigger('input')` for DOM events
-- Use `await wrapper.setValue(value)` for input/select changes — never set `.value` directly
-- Always `await` triggers — Vue Test Utils updates DOM asynchronously after events
-
-## Pinia Testing
-
-- Use `createTestingPinia({ initialState: { store: { ... } } })` from `@pinia/testing`
-- Access store after mounting: `const store = useMyStore()` — `createTestingPinia` auto-stubs actions
-- To test real action logic: `createTestingPinia({ stubActions: false })`
-- Never instantiate stores outside of a Pinia context — always inside test with testing pinia active
-
-## Composable Testing
-
-- Test composables by mounting a minimal wrapper component, not by calling the composable directly
-- Exception: pure logic composables with no DOM/lifecycle dependencies can be called with `withSetup()` helper
-- For Nuxt composables (`useFetch`, `useAsyncData`): mock via `vi.mock('#app', ...)` or use `@nuxt/test-utils`
-
-## Hard Rules
-
-- Never mutate `wrapper.vm` properties directly to simulate prop changes — use `wrapper.setProps()`
-- Never call composables outside of component setup context without `withSetup` wrapper
-- Never use real Pinia in tests — always `createTestingPinia`
-- Always `await` event triggers before asserting
-
-## Done Criteria
-
-- All tests use `createTestingPinia` — no real Pinia instances
-- All event triggers are awaited
-- No direct `wrapper.vm` property mutation for inputs — `setValue()` used
-- All composables tested through component mount or `withSetup`
-- Tests pass with no Vue warnings
-
-## Output Contract
-
-- Changed tests:
-- Behavior covered:
-- Command run:
-- Remaining risk:
+- Verify rendered or persisted outcomes for mutations, including error, retry, stale response, and duplicate activation when material.
+- Treat Vue warnings, hydration mismatches, unhandled requests, leaked timers, and unhandled promises as failures unless documented.
+- Report tests changed, installed harness and boundary, behavior covered, commands/results, and untested SSR/browser/provider risk.

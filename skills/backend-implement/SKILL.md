@@ -1,77 +1,36 @@
 ---
 name: backend-implement
-description: Implement new backend features in .NET, ASP.NET Core, Node.js, Bun, NestJS, Elysia, TypeScript, or JavaScript applications
+description: Implement backend behavior when no sharper language or framework specialization owns the task, preserving repository contracts, validation, persistence, auth, reliability, observability, documentation, and tests. Use for genuinely generic server work; route Node, NestJS, Python, or .NET-dominant tasks to their specialization.
 metadata:
-  version: 3.0
-  argument-hint: "feature/endpoint, tech stack (NestJS/Express/ASP.NET), dependencies (DB/cache/auth), testing strategy, deployment target"
+  owner: codex-framework
+  reviewed: "2026-07-27"
+  version: 3.1
+  argument-hint: "feature/acceptance, runtime/framework, API/event and persistence contracts, auth/tenant and failure model"
 ---
 
-Implement $ARGUMENTS.
+# Backend Implement
 
-## Architecture Alignment
+## Route first
 
-If an approved architecture or schema already exists:
+Use `backend-implement-node`, `backend-implement-nestjs`, `backend-implement-python`, or `backend-implement-dotnet` when that runtime/framework dominates. Use this generic skill only when no sharper specialization applies or the change is framework-neutral. Testing-only work routes to `backend-test` or its specialization.
 
-- treat it as the source of truth
-- do not redesign boundaries unless explicitly asked
-- ask for clarification instead of inventing alternatives
+## Workflow
 
-If architecture is missing:
+1. Read instructions, manifests/lockfiles/runtime files, target and callers, API/event schemas, validation/errors, persistence/migrations, auth/tenant model, jobs/providers, telemetry, tests and deployment commands.
+2. Generate stack context and preserve repository runtime/framework/language/package manager and installed capability. Do not choose a framework, validator, ORM, logger, architecture or latest version by default.
+3. Define caller-visible success/error behavior and durable invariants across invalid input, authentication, target-resource authorization, duplicate/concurrent mutation, conflict, retry, cancellation and timeout-after-effect.
+4. Implement the smallest vertical change with existing boundaries and update authoritative schemas/docs when contracts change.
 
-- propose the minimum viable implementation plan before coding
-- avoid adding architectural layers without clear value
+## Invariants
 
-## Tool Integration
-
-- Use the available language diagnostics after meaningful code changes.
-- Use the available docs lookup tool when framework or library syntax is uncertain.
-
-## Core Principles
-
-- Follow the existing project conventions and boundaries.
-- Keep transport, validation, business logic, and persistence concerns separated.
-- Prefer explicit contracts for requests, responses, commands, events, and jobs.
-- Handle timeout, retry, cancellation, and idempotency deliberately.
-- Avoid duplicated logic and unnecessary I/O.
-- Keep the implementation simple; do not add layers, repositories, services, or abstractions unless they remove real complexity.
-- Do not hardcode environment-specific values, secrets, tenant IDs, feature flags, or operational constants in application logic.
-
-## Validation and Contracts
-
-- Validate inputs at the boundary.
-- Keep runtime validation and compile-time typing aligned.
-- Avoid leaking persistence entities into API contracts.
-- Keep list endpoints bounded with paging or cursors.
-
-## Persistence
-
-- Use the project's established persistence technology.
-- Prefer efficient query shaping and projection.
-- Keep transaction boundaries explicit.
-- Avoid unnecessary abstraction layers.
-
-## API Documentation
-
-- Document new or changed HTTP endpoints as part of the same task.
-- Respect the repo's existing OpenAPI or Swagger approach.
-- Never leave new endpoints undocumented.
-
-## Reliability
-
-- Handle expected failures explicitly.
-- Avoid sync-over-async and hidden side effects.
-- Preserve useful error context without leaking sensitive information.
-- Use existing configuration, logging, metrics, and tracing patterns instead of parallel operational plumbing.
-- Keep security and authorization checks close to the boundary they protect.
+- Validate untrusted transport/event/provider/config data at the boundary; enforce domain/database constraints where authority lives.
+- Authenticate and authorize actor, tenant and target resource server-side. Client fields, claims without current ownership and UI gating are insufficient.
+- Define transaction/concurrency boundaries and stable server-side idempotency for consequential retryable work. Reconcile ambiguous timeout after commit/effect.
+- Bound payloads, queries, files, downstream timeout/retry, queues and concurrency. Derive automated retry attempts and total elapsed time from operation/provider semantics, request/job deadlines and observed recovery evidence; persist an unresolved state after exhaustion rather than inventing constants. Propagate cancellation only through supported APIs.
+- Preserve public error compatibility and structured redacted telemetry; never expose secrets, stack traces, provider or database internals.
 
 ## Verification
 
-1. Run the relevant diagnostics or type checks.
-2. Run targeted tests when possible.
-3. Verify critical error paths and changed contracts.
+Run focused and affected repository checks. Exercise invalid/401/resource-tenant 403, duplicate/concurrent calls, conflict, rollback, cancellation and timeout-after-effect as relevant. Verify response plus persisted/effect outcome; command success alone is not proof.
 
-## Output Requirements
-
-- Produce production-ready code in the repository's style.
-- Keep contracts explicit.
-- State assumptions where context is missing.
+Report specialization decision, installed capability, contracts/files/migrations changed, checks/results and unverified provider/deployment risk.

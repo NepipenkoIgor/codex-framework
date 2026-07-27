@@ -1,142 +1,30 @@
 ---
 name: backend-test-nestjs
-description: NestJS testing with Test.createTestingModule, provider mocking, guard/pipe/interceptor isolation, supertest e2e
+description: Add NestJS unit, module, HTTP, persistence, guard, pipe, filter, interceptor, or job tests with the repository's installed runner and harness. Use when Nest-specific executable coverage is requested; do not use for implementation without a testing deliverable.
 metadata:
-  version: 1.0
+  owner: codex-framework
+  reviewed: "2026-07-27"
+  version: 1.1
   domain: backend
-  keywords: [nestjs, nest, testing, testingmodule, createtestingmodule, e2e test, supertest, guard test, pipe test, interceptor test, jest nest]
+  keywords: [nestjs, testingmodule, jest, vitest, supertest, guard, pipe, e2e]
 ---
 
-# Backend Test — NestJS
+# Backend Test - NestJS
 
-Pair with `backend-test` for universal principles.
+Add tests to the repository without migrating its runner, adapter, bootstrap, validator, ORM, or application structure.
 
-## Unit Testing — Services
+1. Read instructions, manifests/lockfiles, runner config/setup, Nest bootstrap/global providers, target module, persistence/auth/provider boundaries, nearby tests and authoritative commands.
+2. Generate stack context and use installed Nest/runner/adapter APIs. Route non-Nest Node coverage to `backend-test-node`; route feature implementation to `backend-implement-nestjs`.
+3. Before material setup or cleanup, resolve exact task-owned test/fixture/configuration and data targets, package/team ownership, write authority/permissions and a reversible diff plus resource recovery/cleanup path; otherwise stop.
+4. Choose the smallest faithful boundary: direct provider/pipe/guard unit, TestingModule integration, real application bootstrap/HTTP adapter, persistence integration, or job/event handler.
 
-Bootstrap only the slice under test — never the full AppModule:
+## Boundary rules
 
-```ts
-let service: UsersService
-let prisma: DeepMockProxy<PrismaClient>
+- Minimal modules are useful for unit isolation; importing the application root is valid when proving real module graph and global bootstrap. Reproduce global pipes, filters, interceptors and guards through the same bootstrap path where their behavior matters.
+- Mock injected collaborators for pure units. Use an isolated schema-compatible database when constraints, transactions, query semantics, migrations or concurrency are under test. Neither “always mock DB” nor “always real DB” is correct.
+- No test may call real external networks, production databases, queues, email, payments or identity providers. Use installed interceptors/adapters, fakes, containers or isolated local services and fail on unhandled calls.
+- Preserve installed Jest/Vitest and mocking libraries; do not add supertest, deep-mock packages or JWT forgery conventions universally.
 
-beforeEach(async () => {
-  const module = await Test.createTestingModule({
-    providers: [
-      UsersService,
-      { provide: PrismaService, useValue: mockDeep<PrismaClient>() },
-      { provide: ConfigService, useValue: { get: jest.fn().mockReturnValue('value') } },
-    ],
-  }).compile()
+Cover invalid input, unauthenticated 401, authenticated-but-forbidden resource/tenant 403 or repository-equivalent, duplicate/concurrent mutation, conflict, transaction rollback, timeout-after-effect, retry/idempotency and global pipeline parity where relevant. A race-sensitive test must use a barrier, latch or controlled interleaving at the actual idempotency/transaction boundary rather than merely firing two requests concurrently. Verify response plus persisted/effect outcome, not just controller/provider calls.
 
-  service = module.get(UsersService)
-  prisma = module.get(PrismaService)
-})
-```
-
-- Never import `AppModule` in unit tests — always create minimal module with only the dependencies under test
-- Use `jest-mock-extended` `mockDeep<PrismaClient>()` for type-safe Prisma mocks
-- Override every provider the service depends on — never let real implementations leak in
-
-## Unit Testing — Controllers
-
-```ts
-const module = await Test.createTestingModule({
-  controllers: [UsersController],
-  providers: [{ provide: UsersService, useValue: { findAll: jest.fn(), create: jest.fn() } }],
-}).compile()
-```
-
-- Test controllers independently from services — mock all service methods
-- Verify controller calls the correct service method with correct args
-- Never test business logic through controller unit tests — that lives in service tests
-
-## Unit Testing — Guards
-
-```ts
-const guard = new JwtAuthGuard(jwtService, reflector)
-const context = createMock<ExecutionContext>()
-context.switchToHttp().getRequest.mockReturnValue({ headers: { authorization: 'Bearer valid' } })
-
-const result = await guard.canActivate(context)
-expect(result).toBe(true)
-```
-
-- Use `@golevelup/ts-jest` `createMock<ExecutionContext>()` for typed mocks of NestJS internals
-- Test both allowed and denied paths
-- Test `@Public()` decorator bypass — verify guard allows unauthenticated access on public routes
-
-## Unit Testing — Pipes
-
-```ts
-const pipe = new ValidationPipe({ whitelist: true })
-
-it('throws on invalid input', async () => {
-  await expect(pipe.transform({ email: 'bad' }, { type: 'body', metatype: CreateUserDto }))
-    .rejects.toThrow(BadRequestException)
-})
-```
-
-- Test pipes directly by calling `transform()` — no HTTP layer needed
-
-## E2E Testing
-
-```ts
-let app: INestApplication
-
-beforeAll(async () => {
-  const module = await Test.createTestingModule({ imports: [AppModule] })
-    .overrideProvider(PrismaService)
-    .useValue(mockPrisma)
-    .compile()
-
-  app = module.createNestApplication()
-  app.useGlobalPipes(new ValidationPipe({ whitelist: true, transform: true }))
-  await app.init()
-})
-
-afterAll(() => app.close())
-
-it('POST /users returns 201', () =>
-  request(app.getHttpServer())
-    .post('/users')
-    .send({ name: 'Igor', email: 'igor@test.com' })
-    .expect(201)
-    .expect(({ body }) => expect(body.id).toBeDefined()))
-```
-
-- Always apply the same global pipes/interceptors/filters in test as `main.ts` — never skip them
-- Use `overrideProvider()` to substitute real DB with mock — never hit real DB in e2e tests
-- Always test: 401 without token, 403 with wrong role, 400 with invalid body, 201/200 happy path
-- Call `app.close()` in `afterAll` — prevents open handle warnings
-
-## Testing Auth Flows
-
-```ts
-// Bypass guard for non-auth tests
-.overrideGuard(JwtAuthGuard)
-.useValue({ canActivate: () => true })
-
-// Test guard rejection
-.overrideGuard(JwtAuthGuard)
-.useValue({ canActivate: () => false })
-```
-
-- Use `overrideGuard()` to control auth in e2e tests — never forge real JWTs in unit tests
-- Always have a dedicated auth e2e test file that uses real `JwtAuthGuard` with valid/invalid tokens
-
-## Hard Rules
-
-- Never import `AppModule` in unit tests — minimal module always
-- Never use `app.useGlobalPipes()` differently in tests vs `main.ts` — parity required
-- Always `app.close()` in `afterAll`
-- Never real DB in any NestJS test — always `overrideProvider(PrismaService)`
-- Always test 401/403 paths in e2e
-
-## Done Criteria
-
-- All services unit tested with mocked dependencies
-- All controllers unit tested with mocked services
-- Guards tested for both allow and deny paths including `@Public()` bypass
-- E2E tests cover: 401 no token, 403 wrong role, 400 invalid body, success path
-- `app.close()` called in all e2e `afterAll` hooks
-- Tests pass with no open handle warnings
+Run focused and affected suites and report tests, harness/boundary, commands/results, isolation cleanup and residual provider/deployment risk.

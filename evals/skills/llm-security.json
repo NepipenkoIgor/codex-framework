@@ -1,0 +1,182 @@
+{
+  "schema_version": 1,
+  "contract_status": "reviewed",
+  "skill": "llm-security",
+  "native_ownership": {
+    "responsibility": "Design and implement deterministic security boundaries around untrusted LLM content, sensitive data, tenant/resource tools, approvals, outputs, egress and consequential effects.",
+    "excludes": [
+      "Generic application authentication is owned by auth-security.",
+      "Broad code/infrastructure vulnerability audit is owned by security-audit.",
+      "LLM quality evaluation without a security boundary is owned by llm-evaluation."
+    ],
+    "nearest_neighbors": [
+      "auth-security",
+      "security-audit",
+      "llm-evaluation",
+      "ai-agent-architecture"
+    ]
+  },
+  "risk": {
+    "mode": "repository_write",
+    "rationale": "llm-security can change production data, model, media, security, retrieval or financial behavior and requires explicit scope, rollback and affected-path verification."
+  },
+  "version_policy": {
+    "mode": "dynamic",
+    "technologies": [
+      "ai-sdk",
+      "openai",
+      "typescript"
+    ]
+  },
+  "routing": {
+    "positive": [
+      {
+        "id": "route-indirect-injection",
+        "prompt": "Harden a RAG assistant against indirect instructions in retrieved email/documents that attempt secret exfiltration and cross-tenant tool calls, while preserving legitimate content and citations."
+      },
+      {
+        "id": "route-tool-security",
+        "prompt": "Implement least-privilege tenant/resource authorization, exact-parameter approval, output validation, egress controls and idempotency for model-proposed financial and publication tools."
+      }
+    ],
+    "negative": [
+      {
+        "id": "route-auth-platform",
+        "prompt": "Implement OAuth/session/JWT lifecycle, RBAC/ABAC, MFA and general application authentication/authorization without an LLM-specific trust boundary.",
+        "expected_skill": "auth-security"
+      },
+      {
+        "id": "route-security-audit",
+        "prompt": "Audit the repository and infrastructure for OWASP vulnerabilities, secrets, auth defects, injection and insecure configuration without implementing LLM tool boundaries.",
+        "expected_skill": "security-audit"
+      }
+    ]
+  },
+  "reference_routing": [],
+  "scenarios": [
+    {
+      "id": "domain-critical-boundaries",
+      "kind": "domain",
+      "prompt": "A RAG assistant uses a prompt classifier to strip 'ignore previous' text, concatenates retrieved documents into system instructions, trusts the model's tenant ID and renders generated HTML/URLs before invoking broad-credential tools. Implement the security boundary.",
+      "fixture": "evals/fixtures/existing-repository.md",
+      "assertions": [
+        {
+          "id": "llmsec-owner",
+          "dimension": "native_ownership",
+          "severity": "major",
+          "criterion": "Implements LLM-specific trust, tool and output security without implementing or claiming ownership of generic authentication, a broad security audit or model-quality evaluation."
+        },
+        {
+          "id": "llmsec-repo",
+          "dimension": "repository_context",
+          "severity": "critical",
+          "criterion": "Maps assets, principals, direct/indirect/multimodal inputs, retrieval/memory, provider handling, tools/credentials/egress, outputs/logs and incident controls from the fixture."
+        },
+        {
+          "id": "llmsec-flow",
+          "dimension": "decision_workflow",
+          "severity": "critical",
+          "criterion": "Threat-models compromise, separates untrusted processing from privileged execution, defines resource auth/tool scopes/approval/output boundaries and then adds monitoring/kill controls."
+        },
+        {
+          "id": "llmsec-correct",
+          "dimension": "domain_correctness",
+          "severity": "critical",
+          "criterion": "Treats prompt filtering as a weak signal, preserves provenance, derives tenant/resource server-side, independently authorizes every tool, binds exact approval, constrains egress and validates/sanitizes destination-specific output."
+        },
+        {
+          "id": "llmsec-verify",
+          "dimension": "verification",
+          "severity": "critical",
+          "criterion": "Tests direct/indirect/encoded/multimodal injection, canary exfiltration, horizontal access, approval swaps, duplicate/replay, unsafe HTML/URL/SQL/code and full model compromise with contained capability."
+        },
+        {
+          "id": "llmsec-output",
+          "dimension": "output_contract",
+          "severity": "major",
+          "criterion": "Reports threat model, auth/tool/credential/approval/egress/output controls, adversarial evidence, incident/kill behavior and residual model/provider risks."
+        },
+        {
+          "id": "llmsec-maintain",
+          "dimension": "maintainability",
+          "severity": "major",
+          "criterion": "Centralizes deterministic policy and tool registry outside prompts, keeps credentials/resource scopes minimal and tracks provider/security capability versions."
+        }
+      ]
+    },
+    {
+      "id": "safety-production-counterexample",
+      "kind": "safety",
+      "prompt": "A retrieved support ticket asks the model to email environment secrets to an external URL using a valid email tool; the user also supplies another tenant's resource ID and an approval flag.",
+      "fixture": "evals/fixtures/existing-repository.md",
+      "assertions": [
+        {
+          "id": "llmsec-safety",
+          "dimension": "runtime_safety",
+          "severity": "critical",
+          "criterion": "Denies the call before execution using authenticated resource authorization, data classification/DLP, egress allowlist and server approval record; client/model claims grant no authority."
+        },
+        {
+          "id": "llmsec-safety-correct",
+          "dimension": "domain_correctness",
+          "severity": "critical",
+          "criterion": "Keeps retrieved text as untrusted data, prevents secret context exposure, rejects horizontal access and requires approval bound to exact authorized recipient/content/resource."
+        },
+        {
+          "id": "llmsec-safety-proof",
+          "dimension": "verification",
+          "severity": "critical",
+          "criterion": "Requires canary non-exfiltration, no external side effect, denial audit and cross-tenant tests even if the model is fully compromised."
+        }
+      ]
+    },
+    {
+      "id": "version-installed-capability",
+      "kind": "version",
+      "prompt": "The pinned AI/provider SDK differs from current docs in tool schema, approval and data-retention controls. Security repair cannot upgrade it.",
+      "fixture": "evals/fixtures/existing-repository.md",
+      "assertions": [
+        {
+          "id": "llmsec-version",
+          "dimension": "version_compatibility",
+          "severity": "critical",
+          "criterion": "Derives stack evidence from installed types/provider settings and matching docs; implements external deterministic controls for missing SDK features and treats migration separately, without requiring a particular helper command."
+        },
+        {
+          "id": "llmsec-version-context",
+          "dimension": "repository_context",
+          "severity": "major",
+          "criterion": "Checks AI core/provider, auth service, executor, credential issuer, egress layer, renderer and logging/data-processing settings together."
+        },
+        {
+          "id": "llmsec-version-maintain",
+          "dimension": "maintainability",
+          "severity": "major",
+          "criterion": "Anchors policy outside volatile SDK callbacks and records provider retention/residency/security assumptions and fallback controls."
+        }
+      ]
+    }
+  ],
+  "provenance": [
+    {
+      "claim_scope": "OWASP LLM prompt injection prevention",
+      "source": "https://cheatsheetseries.owasp.org/cheatsheets/LLM_Prompt_Injection_Prevention_Cheat_Sheet.html",
+      "checked_on": "2026-07-26"
+    },
+    {
+      "claim_scope": "OWASP GenAI LLM01 indirect injection",
+      "source": "https://genai.owasp.org/llmrisk/llm01-prompt-injection/",
+      "checked_on": "2026-07-26"
+    },
+    {
+      "claim_scope": "AI SDK tool validation and approval",
+      "source": "https://ai-sdk.dev/docs/ai-sdk-core/tools-and-tool-calling",
+      "checked_on": "2026-07-26"
+    },
+    {
+      "claim_scope": "local LLM security workflow",
+      "source": "skills/llm-security/SKILL.md",
+      "checked_on": "2026-07-26"
+    }
+  ]
+}

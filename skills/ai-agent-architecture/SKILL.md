@@ -1,207 +1,62 @@
 ---
 name: ai-agent-architecture
-description: Design AI agent systems — ReAct reasoning, tool use, planning strategies, memory, multi-agent orchestration, and evaluation
+description: Design a product AI-agent system with least-privilege tools, explicit state, approvals, idempotent side effects, memory governance, evaluation, and operational boundaries. Use for architecture decisions; do not use to recreate or configure native Codex orchestration.
 metadata:
-  version: 2.1
-  argument-hint: "agent pattern (ReAct/Plan-Execute/Multi-Agent), task type (reasoning/tool-use/long-horizon), memory requirement (short-term/long-term/episodic), tools/integrations needed"
+  owner: codex-framework
+  reviewed: "2026-07-26"
+  version: 3.0
+  argument-hint: "business outcome, users/tenants, tools and side effects, approval authority, memory policy, evaluation and runtime constraints"
 ---
 
-Design AI agent system for $ARGUMENTS.
+# AI Agent Architecture
 
+This is a read-only design workflow for product agents. Native Codex planning, skills, models, approvals, sandboxing, plugins, memory, multi-agent communication and subagent lifecycle remain Codex-owned and are explicitly out of scope. Do not design wrappers that reproduce them.
 
-## Agent Patterns
+Inspect repository/provider/runtime configuration and generate stack context with `python3 scripts/framework-stack-context.py project <path>`. Verify the exact core and provider SDK pins, runtime, checkpoint/state store, authorization integration and evaluation harness as one capability unit using installed types and matching official documentation. For a greenfield AI SDK selection use `python3 scripts/framework-stack-context.py latest ai-sdk <other-technologies...>`. Existing pins, provider capabilities and organizational policies are authority; migration is separate scope, and volatile provider/version mechanics stay behind explicit adapters.
 
-**ReAct (Reason + Act):** Observe → Think (chain-of-thought) → Act (tool call or final answer) → repeat until answer or max iterations. Most common for tool-using agents. Weak at long-horizon planning (degrades after 5-10 tool calls).
+## Start with the Smallest Agent
 
-**Plan-and-Execute:** LLM generates multi-step plan → execute each step → optionally replan after each step based on results. Better for 5+ step tasks with dependencies. Use cheaper models for execution steps. Replanning adds robustness but increases token cost.
+1. Define the caller-visible outcome, authoritative data, allowed uncertainty, latency/cost/reliability constraints and executable success/failure examples.
+2. Prefer deterministic code or a single model call when sufficient. Add retrieval, tools, planning, checkpoints or delegation only for a measured capability gap. Multi-agent topology is not a quality feature by itself.
+3. Model explicit states for accepted work, model decisions, pending approval, tool execution, unknown outcome, reconciliation, completion, cancellation and terminal failure. Set limits from product SLOs, provider constraints, cost policy and evaluation evidence—not arbitrary counts or token budgets.
 
-**Multi-Agent Orchestration:** Orchestrator routes tasks to focused agents (Researcher, Analyst, Writer, Critic) each with specific tools and system prompts; aggregates results via shared state or message passing. Use when single-agent complexity exceeds reliable performance.
+## Tool and Authorization Boundary
 
-**Reflexion / Self-Critique:** agent produces output → critic evaluates (separate prompt or model) → agent revises with feedback → repeat until quality threshold or max revisions (2-3). Use for high-stakes outputs. Limit revisions to bound cost and latency.
+- Tool names/descriptions and schemas aid model selection; they are not a security boundary. Treat model output, retrieved content, memory and summaries as untrusted input.
+- At execution, authenticate the actor/service and authorize the exact tenant, resource, action and current version. Derive protected parameters server-side and validate tool input/output schemas. Prompt sanitization or instructions such as “ignore injection” do not replace isolation, least privilege and authorization.
+- Give each tool the minimum credentials, network/data scope and duration. Separate read from write capabilities and untrusted content from instructions. Redact secrets and bound returned context without hiding authoritative failure evidence.
+- Consequential operations use a durable operation identity and provider/resource idempotency where supported. Serialize or version concurrent changes and reconcile a timeout/disconnect after possible success before retrying. Duplicate tool calls return/reconcile the same operation rather than repeat the side effect.
 
-## Tool Design
+## Human Approval
 
-Tool definition: `{ name, description, parameters (JSONSchema/Zod), execute: (params) => Promise<ToolResult> }`. `ToolResult`: `{ success, data?, error?, metadata?: { latency_ms, tokens_used?, source? } }`.
+Approval is a durable, auditable authorization record binding approver identity/authority, actor, tenant, tool, exact normalized parameters and resource version, consequence preview, expiry and one-time operation identity. Parameter or target changes require new approval. Denial, expiry or unavailable approver fails closed unless a specific deterministic, non-harmful alternative is part of product policy. Never use an `ask_llm` fallback as approval.
 
-Tool description rules: describe WHEN to use it, not just what it does; include parameter constraints; mention what it does NOT do (prevents misuse); keep under 200 tokens.
+## Memory Governance
 
-Good description example: "Search the internal knowledge base for company products, policies, and procedures. Use when the user asks about company-specific topics. Returns top 5 most relevant passages. Does NOT search the internet or external sources."
+- Partition memory by tenant, user/subject, purpose and environment. Define consent/legal basis, allowed data classes, provenance/source, confidence/verification state, version, retention, access correction and deletion—including indexes, summaries and derived embeddings.
+- Retrieval is evidence, not authority. Reauthorize source data where needed, resist poisoned instructions, preserve citations/provenance and prevent one tenant/user's memory from influencing another.
+- Do not persist secrets or chain-of-thought. Store the minimum useful user-visible facts/outcomes; distinguish user statements, verified business facts, model inferences and revoked/stale facts.
 
-Tool execution safety pattern:
-```typescript
-// 1. Validate parameters with Zod safeParse
-// 2. Execute with AbortController timeout (30s)
-// 3. Truncate large results >50K chars to prevent context overflow
-// 4. Return structured errors (not stack traces — LLMs reason better on structured errors)
-// 5. Log every tool call with params, result, and latency
-```
+## Failure, Observability, and Evaluation
 
-## Memory Systems
+- Propagate cancellation through model and tool work, while recording that accepted external work may still complete. Reconcile unknown outcomes and expose honest partial/pending state.
+- Trace decisions, policy version, active tools, approvals, operation IDs, tool outcomes, latency/usage and memory provenance with access controls and redaction. Logs do not become an ungoverned memory store.
+- Evaluate representative and adversarial tasks: forged instructions/roles, prompt injection in retrieved/tool content, resource/tenant substitution, stale permission, approval parameter swap, duplicate tool delivery, timeout after provider success, exhausted model/tool/time/cost limits with a bounded terminal or recoverable outcome, poisoned memory, deletion and cross-tenant retrieval. Prefer executable state/outcome checks; model judges may supplement but not certify security.
 
-**Short-term (conversation context):** message array `[{ role: 'user'|'assistant'|'tool', content }]`; manage via sliding window, summarization, or token-based truncation. Always keep system prompt; drop oldest messages first; summarize dropped history into "conversation summary" message when context is critical.
+## Architecture Workflow
 
-**Long-term (persistent):** vector store or key-value store for summaries/facts/preferences across sessions; memory types: `fact`, `preference`, `summary`, `episode` with `importance` (0-1) and `embedding`; retrieve relevant memories at turn start; update after significant interactions.
+1. Map trust, data, identity, side-effect and provider boundaries.
+2. Compare the smallest viable deterministic/single-agent/tool-using options and justify every added loop, planner, memory or delegation boundary, including how it can be disabled or removed and whether rollback remains compatible with stored state and in-flight work.
+3. Specify state machine, tool contracts, auth, approval, idempotency/reconciliation, memory governance, limits, observability and kill/disable behavior.
+4. Define staged evaluation and rollout gates with rollback and human operations for stuck/unknown work. Add executable kill/disable tests proving new work is rejected or diverted while already accepted work completes safely or reaches a visible reconciled state.
+5. Mark assumptions, external dependencies and unverified provider behavior explicitly.
 
-**Episodic (task history):** store summaries of previous tasks, outcomes, and lessons learned; retrieve when facing similar task (enables learning without fine-tuning).
+## Output Contract
 
-**Memory retrieval scoring:** `alpha * relevance + beta * recency + gamma * importance` (recency via time decay, relevance via embedding similarity, importance via explicit scoring).
+- Outcome, trust/data diagram and smallest recommended architecture
+- State, tool/auth, approval and side-effect contracts
+- Memory consent/partition/provenance/retention/deletion policy
+- Limits derived from evidence, observability and evaluation plan
+- Options, tradeoffs, rollout/rollback and unresolved provider risks
 
-## State Machine Design
-
-```typescript
-type AgentState =
-  | { status: 'idle' }
-  | { status: 'thinking'; turn: number }
-  | { status: 'calling_tool'; tool: string; params: unknown }
-  | { status: 'waiting_for_tool'; tool: string; started_at: number }
-  | { status: 'waiting_for_human'; question: string }
-  | { status: 'completed'; result: string }
-  | { status: 'error'; error: string; recoverable: boolean }
-  | { status: 'budget_exceeded'; tokens_used: number; limit: number };
-```
-
-Transitions: idle → thinking (user input) → calling_tool (LLM selects tool) or completed (final answer) or waiting_for_human | calling_tool → waiting_for_tool → thinking (result received) or error (timeout) | error → thinking (retry with error context) or completed (unrecoverable) | any → budget_exceeded.
-
-## Token Budget Management
-
-```typescript
-interface TokenBudget {
-  total: number;              // max tokens for entire run
-  per_turn_input: number;
-  per_turn_output: number;
-  per_tool_result: number;    // max tokens from single tool result
-  reserved_for_answer: number; // tokens reserved for final answer
-  used: number;
-}
-```
-
-Rules: hard total budget per run (e.g., 100K tokens); reserve 2-4K for final answer; truncate tool results exceeding per-tool budget; track cumulative usage across turns; terminate gracefully at 80% consumed — produce best available answer; log token usage per turn for cost monitoring.
-
-## Error Recovery
-
-Retry strategy: `while (retries < maxRetries)` — execute turn → if completed, return → if unrecoverable error, throw → if recoverable, set `lastError`, increment retries → after max retries, return graceful termination message with last error.
-
-| Error | Recovery |
-|-------|----------|
-| Invalid tool parameters | Re-prompt with parameter schema and error |
-| Tool execution timeout | Retry once, then skip tool and inform LLM |
-| Tool returns error | Pass error to LLM for alternative approach |
-| LLM produces unparseable output | Re-prompt with stricter format instructions |
-| Token budget exceeded | Produce best available answer |
-| LLM hallucinated non-existent tool | List available tools and re-prompt |
-| Infinite loop (same tool call repeated) | Detect repetition, force alternative action |
-
-## Human-in-the-Loop
-
-Approval gates: `{ tool: string, condition?: (params) => boolean, timeout_ms: number, fallback: 'skip' | 'deny' | 'ask_llm' }`. Examples: `delete_record` (always approve, timeout 5min, deny on timeout) | `send_email` (approve if recipients >10) | `execute_query` (approve if query contains DELETE).
-
-Escalation patterns: confidence threshold (escalate when LLM confidence is low) | sensitive topics (predefined topics always route to human) | repeated failures (3 failed tool calls → escalate) | cost threshold (pause before expensive operations).
-
-## Safety Guardrails
-
-Input: sanitize user input (prevent prompt injection); validate tool parameters against strict schemas; reject inputs attempting to override system prompts.
-
-Output: check agent responses against content policies; validate tool calls are within allowed scope; monitor for information leakage (PII, credentials, internal data).
-
-Execution boundaries:
-```typescript
-interface AgentGuardrails {
-  max_iterations: number;        // 10-50 depending on complexity
-  max_tokens: number;
-  max_wall_time_ms: number;      // 5-10 minutes for complex tasks
-  allowed_tools: string[];       // whitelist — agent cannot call unlisted tools
-  blocked_patterns: RegExp[];
-  require_approval: string[];    // tools requiring human approval
-}
-```
-
-## Framework Integration
-
-**LangGraph:** state graph with typed `TypedDict` state; nodes: LLM calls, tool executions, conditional routing, human review; checkpointing with SqliteSaver/PostgresSaver; `interrupt()` for human-in-the-loop (pause + resume); subgraphs for modular composition; `Command(goto="node_name")` for dynamic routing; streaming via `astream_events`/`astream`.
-
-```python
-graph = StateGraph(AgentState)
-graph.add_node("planner", plan_node); graph.add_node("executor", execute_node); graph.add_node("tools", ToolNode(tools))
-graph.add_edge(START, "planner")
-graph.add_conditional_edges("executor", should_use_tool, {"tool": "tools", "done": END})
-graph.add_edge("tools", "executor")
-agent = graph.compile(checkpointer=memory)
-```
-
-**Vercel AI SDK:** `generateText` with `tools` for single-turn; `streamText` with `maxSteps` for multi-turn loops; `onStepFinish` for observability; tool results automatically fed back.
-
-**Anthropic SDK:** `stop_reason: 'tool_use'` → execute tools → resume with tool results; parallel tool calls in single turn; extended thinking (`thinking` blocks); computer use tools for browser automation.
-
-```typescript
-// Core loop pattern:
-// while(true) → client.messages.create({ tools, messages }) → if end_turn: break
-// → filter tool_use blocks → execute in parallel → push tool_results back to messages
-```
-
-**Zod + zodToJsonSchema:** validate LLM-generated params before execution with `Schema.safeParse(llmParams)`.
-
-**Custom agent loop:** `while (iterations < max)` → check wall time and budget → call LLM with tools → if `end_turn`, return answer → if `tool_use`, validate against allowlist, execute safely, append result → increment iteration → on budget exhaustion, prompt for best answer → on max iterations, return graceful termination.
-
-## Observability
-
-Tracing: trace every run — input, each turn (LLM call + tool calls), output; include token counts, latency, tool results, error states per turn. Tools: LangSmith, Braintrust, OpenTelemetry with custom spans, Helicone.
-
-| Metric | Target |
-|--------|--------|
-| Task completion rate | >90% |
-| Average turns per task | <8 for most tasks |
-| Tool call accuracy (valid params) | >95% |
-| Error rate (unrecoverable) | <5% |
-| Average latency | <30s simple, <120s complex |
-| Human escalation rate | <10% |
-
-## Reflection and Self-Critique
-
-Reflection loop: agent produces output → separate reflection prompt evaluates (accuracy/completeness/tool usage quality) → if issues found, agent revises with explicit feedback → max 2-3 cycles (diminishing returns after).
-
-Evaluation-driven agents: define success criteria as executable checks (not just LLM judgment); run checks after each major step (fail fast); structured rubrics: `{ accuracy: 0-1, completeness: 0-1, relevance: 0-1 }`.
-
-## Multi-Agent Communication Patterns
-
-**Shared state (blackboard):** all agents read/write shared state; tightly coupled, pipeline patterns; risk: state conflicts (use versioned state or merge strategies).
-
-**Message passing:** agents communicate via typed messages through orchestrator; loosely coupled, fan-out/fan-in patterns; orchestrator controls routing, prevents infinite loops.
-
-**Hierarchical delegation:** manager agent delegates, reviews results, decides next steps; workers have narrow scope and limited tools; manager has broader context but doesn't execute directly.
-
-## Anti-Patterns
-
-No iteration limit or token budget (loops forever, costs spiral) | trusting LLM tool parameters without validation | giant tool results without truncation (overflows context) | too many tools >20 (LLM struggles to select) | no error context in retry (LLM repeats same failing action) | no human escalation path | agents that can call themselves recursively without depth limits | sharing full conversation history between agents (token explosion — share summaries instead).
-
-## Implementation Workflow
-
-1. Define agent purpose, available tools, and success criteria
-2. Design tool manifest with clear descriptions and schemas
-3. Choose agent pattern (ReAct, Plan-and-Execute, Multi-Agent)
-4. Implement agent loop with state management
-5. Add guardrails: iteration limits, token budget, timeouts, tool allowlist
-6. Implement error recovery for common failure modes
-7. Add human-in-the-loop gates for sensitive operations
-8. Set up tracing and metrics collection
-9. Build evaluation dataset of representative tasks
-10. Test edge cases: tool failures, budget exhaustion, ambiguous inputs
-
-## Output Format
-
-```
-Agent Pattern:     [ReAct / Plan-and-Execute / Multi-Agent / Reflexion]
-Tools:             [list with brief descriptions]
-State Management:  [state machine / LangGraph / custom loop]
-Memory:            [short-term / long-term / episodic]
-Budget:            [max tokens, max iterations, max wall time]
-Guardrails:        [tool allowlist, approval gates, content filters]
-Error Recovery:    [retry strategy, human escalation]
-Observability:     [tracing tool, metrics tracked]
-Framework:         [LangGraph / Vercel AI SDK / custom]
-```
-
-## Done Criteria
-
-- Agent completes representative tasks within budget and time limits
-- Tool calls have valid parameters (validated before execution)
-- Tool results truncated to fit context window
+Official guidance: [OWASP LLM Prompt Injection Prevention](https://cheatsheetseries.owasp.org/cheatsheets/LLM_Prompt_Injection_Prevention_Cheat_Sheet.html), [NIST AI RMF](https://www.nist.gov/itl/ai-risk-management-framework), and [AI SDK tool calling](https://ai-sdk.dev/docs/ai-sdk-core/tools-and-tool-calling).

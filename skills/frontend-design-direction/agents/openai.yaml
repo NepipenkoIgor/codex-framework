@@ -1,0 +1,4 @@
+interface:
+  display_name: "Frontend Design Direction"
+  short_description: "Create brief-grounded visual direction for web interfaces"
+  default_prompt: "Develop a distinctive, evidence-grounded visual direction for this frontend brief, then define how it should be verified before implementation handoff."

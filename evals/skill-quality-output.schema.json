@@ -1,0 +1,85 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "run", "skill", "dimensions", "cases", "critical_findings", "verdict"],
+  "properties": {
+    "schema_version": { "const": 1 },
+    "run": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["semantic_digest", "routing_digest", "skill_sha256", "contract_sha256", "evaluator", "started_at"],
+      "properties": {
+        "semantic_digest": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+        "routing_digest": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+        "skill_sha256": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+        "contract_sha256": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+        "evaluator": { "type": "string", "minLength": 1 },
+        "started_at": { "type": "string", "minLength": 1 }
+      }
+    },
+    "skill": { "type": "string", "minLength": 1 },
+    "dimensions": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "native_ownership", "routing", "repository_context", "decision_workflow",
+        "domain_correctness", "runtime_safety", "version_compatibility",
+        "verification", "output_contract", "maintainability"
+      ],
+      "properties": {
+        "native_ownership": { "$ref": "#/$defs/dimension" },
+        "routing": { "$ref": "#/$defs/dimension" },
+        "repository_context": { "$ref": "#/$defs/dimension" },
+        "decision_workflow": { "$ref": "#/$defs/dimension" },
+        "domain_correctness": { "$ref": "#/$defs/dimension" },
+        "runtime_safety": { "$ref": "#/$defs/dimension" },
+        "version_compatibility": { "$ref": "#/$defs/dimension" },
+        "verification": { "$ref": "#/$defs/dimension" },
+        "output_contract": { "$ref": "#/$defs/dimension" },
+        "maintainability": { "$ref": "#/$defs/dimension" }
+      }
+    },
+    "critical_findings": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["severity", "evidence", "finding"],
+        "properties": {
+          "severity": { "enum": ["P0", "P1", "P2"] },
+          "evidence": { "type": "string", "minLength": 1 },
+          "finding": { "type": "string", "minLength": 1 }
+        }
+      }
+    },
+    "cases": {
+      "type": "array",
+      "minItems": 6,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["case_id", "kind", "status", "evidence"],
+        "properties": {
+          "case_id": { "type": "string", "minLength": 1 },
+          "kind": { "enum": ["positive_routing", "negative_routing", "reference", "domain", "safety", "version"] },
+          "status": { "enum": ["pass", "fail"] },
+          "evidence": { "type": "array", "minItems": 1, "items": { "type": "string", "minLength": 1 } }
+        }
+      }
+    },
+    "verdict": { "enum": ["pass", "fail"] }
+  },
+  "$defs": {
+    "dimension": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["status", "evidence", "reason"],
+      "properties": {
+        "status": { "enum": ["pass", "fail"] },
+        "evidence": { "type": "array", "minItems": 1, "items": { "type": "string", "minLength": 1 } },
+        "reason": { "type": "string", "minLength": 1 }
+      }
+    }
+  }
+}

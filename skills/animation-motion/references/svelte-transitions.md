@@ -1,33 +1,11 @@
-# Svelte Transition Patterns
+# Svelte Transitions
 
-```svelte
-<script>
-  import { fade, fly, slide, scale, crossfade } from 'svelte/transition';
-  import { quintOut } from 'svelte/easing';
+Verify the installed Svelte/SvelteKit line and compiler types before using transition, animate, motion or navigation APIs.
 
-  const [send, receive] = crossfade({ duration: 300, fallback: fade });
-</script>
+- Use keyed identity when Svelte `animate:` reordering or the selected crossfade/shared-transition mechanism requires stable item identity; browser navigation View Transitions use their own capability and naming contract. Decide whether enter/leave are local or coordinated across blocks.
+- Reduced motion must render the same final state and allow outro-dependent removal/cleanup to finish; do not simply omit a directive if surrounding logic waits on lifecycle completion.
+- Navigation/View Transition integration is capability-gated and must preserve history, focus, scroll and hydration when unsupported or interrupted.
+- Custom transition functions return safe CSS or typed tick behavior; do not interpolate untrusted data into executable CSS and do not use evaluated code.
+- Test rapid toggles, keyed reorder, route abort, component destruction, SSR initial markup and runtime preference changes.
 
-{#if visible}
-  <div in:fly={{ y: 8, duration: 200, easing: quintOut }} out:fade={{ duration: 150 }}>
-    Content
-  </div>
-{/if}
-
-{#each items as item (item.id)}
-  <div
-    animate:flip={{ duration: 300 }}
-    in:receive={{ key: item.id }}
-    out:send={{ key: item.id }}
-  >
-    {item.name}
-  </div>
-{/each}
-```
-
-## Guidelines
-
-- Use built-in transitions (`fade`, `fly`, `slide`, `scale`) for standard effects
-- Use `crossfade` for shared element transitions between lists
-- Use `animate:flip` for reorder animations in keyed each blocks
-- Create custom transitions for project-specific effects
+Official sources: [Svelte transition](https://svelte.dev/docs/svelte/transition) and [Svelte animate](https://svelte.dev/docs/svelte/animate).

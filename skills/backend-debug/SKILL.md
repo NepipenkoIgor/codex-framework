@@ -1,58 +1,21 @@
 ---
 name: backend-debug
-description: Diagnose and fix backend bugs — API failures, runtime exceptions, broken jobs, bad queries, async issues, and integration failures
+description: Reproduce, localize, and fix a concrete backend defect across API, job, persistence, concurrency, queue, provider, and deployed-runtime boundaries. Use when diagnosis plus a repository fix is requested; do not use for greenfield implementation or review without a defect.
 metadata:
-  version: 3.0
-  argument-hint: "bug description, stack, failing endpoint/job, logs or reproduction details"
+  owner: codex-framework
+  reviewed: "2026-07-27"
+  version: 3.1
+  argument-hint: "symptom/expected behavior, exact build/environment/actor/time, endpoint or job, logs and reproduction"
 ---
 
-Debug $ARGUMENTS.
+# Backend Debug
 
-## Tool Integration
+1. Capture expected versus observed behavior, exact build/runtime/environment, actor/tenant/resource, request/event identity, timestamps and data state. Reproduce through the caller-visible boundary when safe.
+2. Correlate sanitized logs/traces/metrics with validation, auth, transaction/query, async/queue/retry and provider evidence. State hypotheses and falsifying observations; establish root cause before editing.
+3. Generate stack context and use the deployed/pinned runtime, source maps/symbols/schema and provider contract that match the failing artifact.
+4. Add a focused regression or explicit baseline and apply the smallest repository fix. Avoid cleanup or broad auth/retry/transaction changes.
+5. Verify the exact reproduction plus invalid/auth/tenant, duplicate/concurrent, rollback, retry and timeout-after-effect paths relevant to the defect. Caller-visible and persisted/effect outcomes are proof; configuration or local command success is not.
 
-- Use logs, failing requests, tests, and reproduction steps as primary evidence.
-- Use diagnostics and code navigation tools after you have identified the failing path.
-- Use browser reproduction when the backend bug manifests through a UI flow.
+Production mitigation requires explicit authority, exact target/build/traffic scope, reversible flag/rollback/config action, evidence preservation, owner, stop condition and recovery. Never clear shared data/caches, disable auth, redrive queues or mutate provider state broadly as incidental debugging.
 
-## Debugging Principles
-
-- Gather evidence before changing code.
-- Trace the failing path end to end.
-- Prefer the smallest correct fix over cleanup work.
-- Verify the changed contract or failure mode after fixing.
-
-## Diagnosis Workflow
-
-1. Identify the exact failing behavior or error.
-2. Reproduce it using logs, tests, HTTP requests, or the UI flow.
-3. Trace request validation, orchestration, persistence, and integrations.
-4. Look for boundary mismatches, hidden side effects, race conditions, retries, timeout issues, or query defects.
-5. Fix the actual cause, not just the symptom.
-
-## Risk Areas
-
-- validation drift
-- async orchestration bugs
-- transaction boundaries
-- retry or idempotency defects
-- paging and filtering mistakes
-- error mapping and status code regressions
-
-## Constraints
-
-- Do not patch symptoms before proving the failing path.
-- Do not broaden auth, validation, retry, or transaction behavior without a test or explicit rationale.
-- Do not hide unavailable database, queue, network, or production-log access; report it as residual risk.
-
-## Output Requirements
-
-- Describe the root cause succinctly.
-- Apply the smallest safe fix.
-- State what evidence was used and what was verified afterward.
-
-## Output Contract
-
-- Root cause:
-- Fix:
-- Verification:
-- Residual risk:
+Report reproduction and evidence, root cause, bounded fix, checks/results, deployed paths actually verified and residual provider/production risk.

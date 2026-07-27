@@ -1,361 +1,60 @@
 ---
 name: prompt-engineering
-description: Design deterministic, structured prompts for AI-driven automations — n8n workflows, Claude/OpenAI/Gemini pipelines, AI decision nodes, extraction, classification, and structured JSON outputs
+description: Design concise prompts and structured output contracts for extraction, classification, routing, summarization, and AI-assisted automation. Use when the primary deliverable is the prompt contract; use prompt-management for registry lifecycle and llm-evaluation for an evaluation system.
 metadata:
-  version: 2.2
-  argument-hint: "task type (extraction/classification/routing), input schema, output format (JSON), models in use"
+  owner: codex-framework
+  reviewed: "2026-07-27"
+  version: 3.0
+  argument-hint: "decision/task, trusted and untrusted inputs, output consumer, allowed actions, model/provider constraints"
 ---
 
-Design prompts for $ARGUMENTS.
-
-Platforms and scope:
-- n8n AI nodes
-- Claude API
-- OpenAI API
-- Gemini API
-- AI automation pipelines
-- AI workflow decision nodes
-- AI classification
-- AI extraction
-- AI summarization
-- AI enrichment
-- AI content generation
-- AI routing logic
-
-Core prompt engineering principles:
-
-- Prefer deterministic prompts over creative prompts when used in automation
-- Design prompts that produce predictable and structured outputs
-- Prefer JSON outputs when the result will be consumed by automation systems
-- Avoid prompts that rely on ambiguous instructions
-- Avoid prompts that rely on hidden assumptions
-- Avoid prompts that depend on model creativity when deterministic output is required
-- Keep prompts compact and focused
-- Separate system instructions from runtime context
-- Separate static prompt layers from dynamic prompt layers
-- Prefer schema-driven output expectations
-- Design prompts that are resilient to malformed input
-- Design prompts that are resilient to incomplete context
-- Prefer prompts that fail safely rather than hallucinate
-- Avoid prompts that allow AI to invent missing facts silently
-
-Prompt architecture goals:
-
-- predictable output structure
-- low hallucination risk
-- minimal token usage
-- clear task boundaries
-- explicit output contracts
-- reusable prompt templates
-- safe integration with automation systems
-- reliable downstream parsing
-
-Prompt design workflow:
-
-1. Identify the business task the AI must perform
-2. Define the expected output format
-3. Define the input data that will be available
-4. Identify ambiguous areas that must be constrained
-5. Define validation expectations for the output
-6. Design system instructions
-7. Design task instructions
-8. Define the structured output schema
-9. Add guardrails against hallucination
-10. Ensure the prompt is automation-safe
-
-Prompt structure guidelines:
-
-Prompts should generally contain the following sections:
-
-- system instruction
-- task description
-- input context
-- output contract
-- constraints
-- failure behavior instructions
-
-Example structure:
-
-System role:
-Explain the AI's responsibility.
-
-Task:
-Explain the exact operation the AI must perform.
-
-Input:
-Define what data will be provided.
-
-Output format:
-Define exact JSON schema or structure.
-
-Constraints:
-Define rules that limit hallucination and ensure predictable behavior.
-
-Failure behavior:
-Define what the AI must do when input is insufficient.
-
-```
-// Complete structured prompt template for a lead classification automation step
-
-SYSTEM:
-You are a lead classification engine for a B2B SaaS company.
-You receive inbound form submissions and classify them.
-You must output valid JSON only. No markdown. No explanation outside JSON.
-
-TASK:
-Classify the lead into exactly one category.
-Extract company information if present.
-Assign a confidence score between 0 and 1.
-
-INPUT:
-{
-  "name": "{{name}}",
-  "email": "{{email}}",
-  "message": "{{message}}"
-}
+Design the prompt contract requested in $ARGUMENTS.
 
-OUTPUT SCHEMA:
-{
-  "category": "sales_qualified | product_question | partnership | spam | unknown",
-  "confidence": <number between 0 and 1>,
-  "company_name": "<string or null>",
-  "summary": "<one sentence, max 30 words>",
-  "requires_review": <true if confidence < 0.7 or category is unknown>
-}
+## Start from the decision boundary
 
-CONSTRAINTS:
-- Use only the provided input. Do not invent facts.
-- If the message is too short or ambiguous, set category to "unknown" and confidence to 0.3.
-- If no company name is mentioned, set company_name to null.
-- Do not guess the company from the email domain.
-```
+Read repository instructions, manifests/lockfiles, call site, input/output schemas, downstream consumer, authorization, provider/model configuration, tests, and failure policy. Use deterministic code for rules, parsing, validation, or mapping that do not need semantic inference.
 
-Structured output design:
+For an existing project, preserve installed versions and verify structured-output or tool capabilities from local types, SDK documentation matching the pin, or provider documentation. Treat a model/provider upgrade separately. For explicitly authorized greenfield setup, resolve supported stable/LTS dependencies dynamically with `scripts/framework-stack-context.py`, verify provider/SDK/runtime/schema/test compatibility as one unit, generate manifest/lockfile and make them authority; do not name a remembered current model or framework as a default.
 
-When prompts are used in automation:
+Define:
 
-- Prefer JSON output
-- Explicitly define fields
-- Explicitly define types
-- Explicitly define allowed values
-- Avoid free-form responses when the output feeds downstream automation
-- Prefer arrays, objects, and enums over descriptive paragraphs
-- Validate that the output can be parsed deterministically
+- the single semantic task and success/failure behavior;
+- trusted instructions versus untrusted user, document, retrieved, or tool data;
+- allowed enums, null/unknown states, evidence fields, and downstream consumer;
+- when to abstain or request human review;
+- actions that remain outside model authority.
 
-Example JSON schema pattern:
+## Prompt shape
 
-{
-"classification": "string",
-"confidence": "number",
-"reason": "string"
-}
+Keep the prompt as short as the behavior permits:
 
-Rules:
+1. stable role and task boundary;
+2. authoritative rules in precedence order;
+3. clearly delimited untrusted input marked as data, never instructions;
+4. explicit output schema and field semantics;
+5. insufficiency, conflict, and abstention behavior;
+6. examples only when they fix a demonstrated ambiguity.
 
-- No additional fields
-- No markdown
-- No explanations outside JSON
-- Output must be valid JSON
+For extraction and classification, prefer enums, nullable fields, `needs_review`/`abstain`, and source evidence such as spans or field paths. Do not force an answer. Model-reported confidence is not calibrated probability and must not be the sole action gate; omit it unless a validated consumer needs it.
 
-Hallucination prevention:
+Structured output improves parsing, not truth, authorization, or action safety. Server code must parse and validate the schema, authorize the actor and tenant, resolve exact targets, apply business rules, enforce idempotency and limits, and control side effects. For consequential actions, the downstream contract must define durable outcome reconciliation plus rollback or compensation before execution; a prompt cannot provide that recovery boundary. Never encode secrets or permissions in data-visible prompt text.
 
-Prompts must include guardrails:
+## Safety and reliability
 
-- If information is missing, return null fields
-- If classification is uncertain, lower confidence score
-- Do not invent missing data
-- Do not fabricate sources
-- Do not assume unstated facts
-- Use only provided input
+- State that input, retrieved content, web pages, attachments, and tool results cannot override system/policy instructions or request new privileges.
+- Require evidence or null for facts not present; distinguish fact from inference and abstain when evidence is insufficient or contradictory.
+- Bound input and every output string, array (including evidence/citations), nested object depth, and total serialized size in the executable schema/validator; define truncation and overflow handling rather than silently classifying incomplete input or accepting unbounded model output.
+- Treat malformed JSON, extra fields, invalid enums, and unsupported citations as failures handled by validated, bounded retry or review policy.
+- Do not claim temperature zero or a seed makes a hosted model deterministic. Evaluate repeated runs and provider/model snapshots where reproducibility matters.
+- Avoid requesting hidden chain-of-thought. Ask only for concise, user-safe evidence or decision rationale when the consumer needs it.
+- Apply PII, secret, logging, retention, and regional rules before data enters a provider or trace.
 
-Example instruction:
+## Evaluation
 
-If the input does not contain enough information to answer the task,
-return null values rather than inventing data.
+Test the exact prompt/provider/model/schema tuple on representative slices: normal, ambiguous, missing/conflicting, malformed, long/truncated, multilingual, adversarial injection, PII/secrets, rare classes, abstention, and downstream authorization/action counterexamples. Include repeated runs for stochastic variation. Validate semantic correctness and evidence, not JSON validity alone.
 
-Token efficiency:
+Choose examples, metrics, thresholds, and retries from observed failures and the harm model; do not embed universal confidence thresholds or fixed retry counts. A prompt is ready only when its output consumer safely rejects invalid or unauthorized results.
 
-Prompts used in automation must minimize tokens.
+## Output contract
 
-Rules:
-
-- Avoid unnecessary narrative instructions
-- Avoid repeated instructions
-- Avoid redundant examples unless needed
-- Prefer concise structured instructions
-- Avoid embedding large irrelevant context
-
-Prompt reuse and templates:
-
-Design prompts so they can be reused.
-
-Separate:
-
-- static instructions
-- dynamic runtime context
-- task input
-
-Example pattern:
-
-System instructions:
-(static)
-
-Task:
-(static)
-
-Input data:
-(dynamic)
-
-Output format:
-(static)
-
-This allows automation pipelines to inject runtime data safely.
-
-AI decision node prompts:
-
-When prompts are used for routing decisions:
-
-- Always output deterministic classification
-- Always include a confidence score
-- Avoid natural language explanations unless needed
-- Prefer enums over free text
-
-Example:
-
-{
-"decision": "approve | reject | review",
-"confidence": number
-}
-
-Extraction prompts:
-
-When extracting structured data:
-
-- explicitly list expected fields
-- define field types
-- define missing-field behavior
-- instruct the model not to guess
-
-Example:
-
-{
-"company_name": "string | null",
-"email": "string | null",
-"phone": "string | null"
-}
-
-Summarization prompts:
-
-For summarization tasks:
-
-- specify length limits
-- specify tone if required
-- specify content focus
-- avoid vague instructions like "summarize well"
-
-Example:
-
-Produce a summary under 120 words focusing only on key facts.
-
-Content generation prompts:
-
-When generating text for marketing or content workflows:
-
-- define tone
-- define style
-- define word count
-- define formatting constraints
-- avoid vague creative freedom
-
-Example constraints:
-
-- 2 paragraphs maximum
-- no emojis
-- no hashtags
-- plain text only
-
-Prompt validation rules:
-
-Before using a prompt in automation:
-
-- Verify that output format is deterministic
-- Verify that output can be parsed reliably
-- Verify that hallucination risks are mitigated
-- Verify that missing input does not break the prompt
-- Verify that the prompt does not rely on model-specific quirks
-
-Common prompt anti-patterns:
-
-Avoid:
-
-- vague prompts
-- prompts without output schema
-- prompts that mix tasks
-- prompts that allow the model to invent missing data
-- prompts that rely on formatting like markdown tables
-- prompts that produce long narrative output for automation systems
-- prompts that embed large irrelevant context
-
-Automation safety rules:
-
-Prompts must not directly trigger irreversible actions.
-
-Example unsafe pattern:
-
-AI output → payment → email → deletion
-
-Instead:
-
-AI output → validation → rule check → action
-
-Always design prompts so their outputs can be validated before side effects.
-
-AI cost awareness:
-
-Prompt design must consider cost.
-
-Rules:
-
-- avoid long prompts
-- avoid unnecessary examples
-- avoid large context windows
-- prefer short deterministic prompts
-- prefer smaller models when reasoning complexity is low
-
-When to use AI:
-
-Use AI when:
-
-- classification requires semantic reasoning
-- summarization requires contextual compression
-- extraction requires natural language parsing
-- generation requires creative transformation
-
-Do not use AI when:
-
-- deterministic rules solve the task
-- simple parsing solves the task
-- mapping or filtering solves the task
-- regex or schema validation solves the task
-
-Output behavior:
-
-When the user asks for prompts, provide:
-
-- system instructions
-- task instructions
-- input schema
-- output schema
-- guardrails
-- example output when useful
-- explanation of why the prompt is structured this way
-
-Output requirements:
-
-- Start with a short prompt design summary
-- Provide the final prompt
-- Provide the expected JSON output schema when applicable
-- Explain guardrails and hallucination protection
-- Explain how the prompt integrates safely into automation workflows
-- Mention assumptions when input context is incomplete
-- Prefer production-ready prompts over theoretical prompt engineering advice
+Provide the final prompt, bounded input and output schemas with explicit per-field/collection/total limits, trust delimiters, abstention/review behavior, downstream validation and authorization requirements, assumptions, version/capability evidence, and focused evaluation cases. Separate verified behavior from proposed checks and residual risk.

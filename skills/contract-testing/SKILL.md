@@ -1,222 +1,43 @@
 ---
 name: contract-testing
-description: Implement consumer-driven contract testing with Pact, schema registries for event-driven systems, and API breaking-change detection
+description: Implement executable compatibility tests at REST, RPC, event, schema, SDK, provider-state, or other service boundaries. Use when cross-component contract coverage is requested; do not default every boundary to Pact.
 metadata:
-  version: 1.2
-  argument-hint: "consumer/provider service names, API type (REST/async event), contract format (Pact/OpenAPI), breaking-change detection scope"
+  owner: codex-framework
+  reviewed: "2026-07-27"
+  version: 2.0
+  argument-hint: "consumer/provider boundaries, protocol, ownership/deployment cadence, schema/versioning, broker/CI environment"
 ---
 
-Implement contract testing for $ARGUMENTS.
+Implement contract tests for $ARGUMENTS.
 
+## Select the real boundary
 
-## Pact Consumer Tests (TypeScript)
+Read instructions, manifests/lockfiles, API/event schemas, clients and servers, generated SDKs, broker/registry config, authentication, existing tests, deployment topology and ownership. Identify consumer expectations, provider guarantees, compatibility window, source of truth and who may publish/promote a contract.
 
-```typescript
-import { PactV4, MatchersV3 } from '@pact-foundation/pact';
-const { like, eachLike, string, integer, datetime } = MatchersV3;
+Before selecting or mutating tooling, classify boundary risk, validate installed capability, choose the smallest faithful check, and stop on material missing authority/evidence or failed compatibility validation. Resolve exact task-owned targets, permissions and rollback/recovery before creating provider state or publishing artifacts.
 
-const provider = new PactV4({ consumer: 'OrderUI', provider: 'OrderService', dir: './pacts' });
+Choose the smallest mechanism that proves the boundary:
 
-describe('Order API contract', () => {
-  it('returns order by id', async () => {
-    await provider
-      .addInteraction()
-      .given('order 123 exists')
-      .uponReceiving('a request for order 123')
-      .withRequest('GET', '/api/orders/123', b => b.headers({ Accept: 'application/json' }))
-      .willRespondWith(200, b =>
-        b.headers({ 'Content-Type': 'application/json' }).jsonBody({
-          id: string('123'),
-          status: string('shipped'),
-          items: eachLike({ productId: string(), quantity: integer(1), price: like(29.99) }),
-          createdAt: datetime("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'"),
-        }),
-      )
-      .executeTest(async mockServer => {
-        const client = new OrderClient(mockServer.url);
-        const order = await client.getOrder('123');
-        expect(order.id).toBe('123');
-        expect(order.items.length).toBeGreaterThan(0);
-      });
-  });
+- schema/OpenAPI/protobuf/GraphQL compatibility for syntax and evolution;
+- generated-client compile/runtime checks for SDK boundaries;
+- consumer-driven contracts when independent consumers own observable examples and provider verification adds value;
+- event schema plus semantic/integration tests for asynchronous delivery, ordering, keys and side effects;
+- ordinary integration tests for co-deployed components where a broker adds no useful separation.
 
-  it('returns 404 for missing order', async () => {
-    await provider
-      .addInteraction()
-      .given('order 999 does not exist')
-      .uponReceiving('a request for non-existent order')
-      .withRequest('GET', '/api/orders/999')
-      .willRespondWith(404, b => b.jsonBody({ error: string('Order not found') }))
-      .executeTest(async mockServer => {
-        const client = new OrderClient(mockServer.url);
-        await expect(client.getOrder('999')).rejects.toThrow('Order not found');
-      });
-  });
-});
-```
+Pact is not mandatory. Preserve the installed runner/tooling and verify the selected command/API against local schemas, generated types, CLI help or matching official docs. Check the pinned contract tool together with its engine/runtime, peer dependencies, compiler/framework and installed test runner as one compatibility unit. For greenfield tools, resolve stable/LTS releases from configured official sources at execution time, verify cross-stack compatibility, generate the project manifest and lockfile, and make those generated files authoritative.
 
-## Pact Provider Verification (TypeScript)
+## Contract invariants
 
-```typescript
-import { Verifier } from '@pact-foundation/pact';
+- Match only behavior the consumer relies on; avoid overfitting timestamps, random IDs, ordering or irrelevant provider fields.
+- Provider states must be deterministic, authorized, idempotent and isolated per verification worker/run. Create exact owned records transactionally and clean only those records; do not share mutable global fixtures.
+- Include authentication/authorization, tenant scope, errors, pagination, retries/idempotency, null/optional/default semantics, enum expansion/unknown-enum handling, encoding/content type, limits and backward-compatible unknown fields where applicable.
+- For events, cover envelope and payload schema, topic/key/partition semantics, compatibility mode, required/default fields, duplicate/redelivery, ordering assumptions, poison/dead-letter behavior, producer and consumer versions, and side-effect idempotency. Schema-valid does not prove semantic compatibility.
+- Publish immutable contracts with consumer/provider/version/provenance and prevent untrusted PRs from publishing trusted or deployable results.
 
-describe('Order Service provider verification', () => {
-  it('validates contracts from all consumers', async () => {
-    await new Verifier({
-      providerBaseUrl: 'http://localhost:3001',
-      pactUrls: ['./pacts/OrderUI-OrderService.json'],
-      // or: pactBrokerUrl: 'https://pact-broker.example.com',
-      stateHandlers: {
-        'order 123 exists': async () => {
-          await seedTestOrder({ id: '123', status: 'shipped', items: [{ productId: 'P1', quantity: 1, price: 29.99 }] });
-        },
-        'order 999 does not exist': async () => {
-          await clearOrders();
-        },
-      },
-      publishVerificationResult: process.env.CI === 'true',
-      providerVersion: process.env.GIT_SHA,
-      providerVersionBranch: process.env.GIT_BRANCH,
-    }).verifyProvider();
-  });
-});
-```
+Breaking-change policy must reflect deployed consumers and compatibility window. A removed optional field, enum expansion, changed default or stricter validation can be semantic breakage even when a schema diff passes.
 
-## Pact (.NET)
+## Verification and output
 
-```csharp
-// Consumer
-[Fact]
-public async Task GetOrder_WhenExists_ReturnsOrder()
-{
-    var pact = Pact.V4("OrderUI", "OrderService", new PactConfig { PactDir = "./pacts" });
-    await pact
-        .UponReceiving("a request for order 123")
-        .Given("order 123 exists")
-        .WithRequest(HttpMethod.Get, "/api/orders/123")
-        .WillRespond()
-        .WithStatus(HttpStatusCode.OK)
-        .WithJsonBody(new { id = Match.Type("123"), status = Match.Type("shipped") })
-        .VerifyAsync(async ctx =>
-        {
-            var client = new OrderClient(ctx.MockServerUri);
-            var order = await client.GetOrderAsync("123");
-            Assert.Equal("123", order.Id);
-        });
-}
+Run consumer tests, provider verification against isolated states, schema/evolution checks and affected integration tests. Exercise concurrent workers, stale consumers, missing/extra fields, errors, auth denial, event duplicates/order, registry/broker outage and rollback where relevant. Do not call production services or mutate shared environments.
 
-// Provider
-[Fact]
-public async Task VerifyPacts()
-{
-    var config = new PactVerifierConfig { ProviderVersion = Environment.GetEnvironmentVariable("GIT_SHA") };
-    new PactVerifier("OrderService", config)
-        .WithHttpEndpoint(new Uri("http://localhost:5001"))
-        .WithPactBrokerSource(new Uri("https://pact-broker.example.com"))
-        .WithProviderStateUrl(new Uri("http://localhost:5001/_pact-states"))
-        .Verify();
-}
-```
-
-## Event Schema Registry
-
-```typescript
-// Avro schema for order events
-const orderCreatedSchema = {
-  type: 'record',
-  name: 'OrderCreated',
-  namespace: 'com.example.orders',
-  fields: [
-    { name: 'orderId', type: 'string' },
-    { name: 'userId', type: 'string' },
-    { name: 'totalAmount', type: 'double' },
-    { name: 'currency', type: { type: 'enum', name: 'Currency', symbols: ['USD', 'EUR', 'GBP'] } },
-    { name: 'createdAt', type: { type: 'long', logicalType: 'timestamp-millis' } },
-  ],
-};
-
-// JSON Schema alternative
-const orderCreatedJsonSchema = {
-  $id: 'https://example.com/schemas/order-created/v2',
-  type: 'object',
-  required: ['orderId', 'userId', 'totalAmount', 'currency', 'createdAt'],
-  properties: {
-    orderId: { type: 'string', format: 'uuid' },
-    userId: { type: 'string', format: 'uuid' },
-    totalAmount: { type: 'number', minimum: 0 },
-    currency: { type: 'string', enum: ['USD', 'EUR', 'GBP'] },
-    createdAt: { type: 'string', format: 'date-time' },
-  },
-  additionalProperties: false,
-};
-```
-
-## Pact Message Contracts (Events)
-
-```typescript
-import { PactV4 } from '@pact-foundation/pact';
-
-// Consumer side — expects OrderCreated event
-const messagePact = new PactV4({ consumer: 'NotificationService', provider: 'OrderService' });
-
-describe('OrderCreated event contract', () => {
-  it('processes order created event', async () => {
-    await messagePact
-      .addInteraction()
-      .given('a new order is placed')
-      .expectsToReceive('an OrderCreated event')
-      .withContent(MatchersV3.like({ orderId: '123', userId: 'u1', totalAmount: 99.99, currency: 'USD' }), 'application/json')
-      .executeTest(async message => {
-        const handler = new OrderCreatedHandler();
-        await handler.handle(JSON.parse(message.contents.toString()));
-      });
-  });
-});
-```
-
-## Breaking Change Detection
-
-```bash
-# OpenAPI diff — detect breaking changes
-npx openapi-diff previous-spec.yaml current-spec.yaml --breaking-only
-
-# Or: oasdiff
-oasdiff breaking --base prev.yaml --revision curr.yaml --fail-on ERR
-```
-
-Breaking changes: removed endpoint, removed required field from response, added required field to request, changed field type, narrowed enum values, changed status codes.
-
-Non-breaking: added optional field to response, added optional query parameter, added new endpoint, widened enum values.
-
-## CI Integration
-
-```yaml
-# Consumer CI
-- run: npm test -- --testPathPattern=contract
-- run: npx pact-broker publish ./pacts --consumer-app-version=$GITHUB_SHA --branch=$GITHUB_REF_NAME
-
-# Provider CI
-- run: npm run test:contract:provider
-- run: npx pact-broker can-i-deploy --pacticipant=OrderService --version=$GITHUB_SHA --to-environment=production
-```
-
-`can-i-deploy` gates deployment: only deploy if all consumer contracts pass.
-
-## Anti-Patterns
-
-- No provider states -- tests depend on environment data that may not exist
-- Overly strict matchers -- use `like()` for type matching to avoid false positives on unrelated changes
-- Publishing contracts from feature branches without labels -- contaminates the main verification matrix
-- No `can-i-deploy` gate -- contracts verified in isolation but not enforced at deployment
-
-## Workflow
-
-1. Identify service boundaries and integration points
-2. Write consumer contract tests (what shape do I expect?)
-3. Publish contracts to broker (or commit pact files)
-4. Implement provider verification with state handlers
-5. Add `can-i-deploy` to provider deployment pipeline
-6. For events: add message pact or schema registry validation
-7. Add OpenAPI breaking-change detection to API provider CI
-
-Done: ✓ consumer contracts for all API dependencies ✓ provider verification with state handlers ✓ event contracts for async boundaries ✓ pact broker or file-based sharing ✓ can-i-deploy gate on provider deployment ✓ breaking change detection in CI ✓ schema versioning strategy defined
+Report chosen boundary and rejected alternatives, source of truth, version/provenance, provider-state isolation, compatibility findings, commands/results, publication/deployment gates, and residual unverified consumers or environments.

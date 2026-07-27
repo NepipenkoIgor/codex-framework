@@ -1,0 +1,25 @@
+technology	track	resolver	official_source	action_template
+nextjs	stable	npm:next	https://nextjs.org/blog	npx create-next-app@latest
+react	stable	npm:react	https://react.dev/versions	npm create vite@latest -- --template react-ts
+angular	stable	npm:@angular/core	https://angular.dev/reference/releases	npx @angular/cli@latest new
+vue	stable	npm:vue	https://vuejs.org/about/releases	npm create vue@latest
+nuxt	stable	npm:nuxt	https://nuxt.com/blog	npm create nuxt@latest
+typescript	stable	npm:typescript	https://devblogs.microsoft.com/typescript/	npm install --save-dev typescript@latest
+vite	stable	npm:vite	https://vite.dev/releases	npm create vite@latest
+nodejs	lts	node-lts	https://nodejs.org/en/about/previous-releases	install Node {major} LTS with the project's version manager
+nestjs	stable	npm:@nestjs/core	https://docs.nestjs.com/	npx @nestjs/cli@latest new
+bun	stable	npm:bun	https://bun.sh/	install Bun {version} with the project's approved version manager
+elysia	stable	npm:elysia	https://elysiajs.com/blog	bun create elysia@latest
+dotnet	lts	dotnet-lts	https://dotnet.microsoft.com/en-us/download/dotnet	dotnet new webapi --framework net{major}.0
+python	stable	python-stable	https://www.python.org/downloads/	uv python install {major_minor}
+react-native	stable	npm:react-native	https://reactnative.dev/versions	use the latest stable release supported by the selected mobile framework
+expo	stable	npm:expo	https://docs.expo.dev/versions/latest/	npx create-expo-app@latest --template default@sdk-{major}
+flutter	stable	flutter-stable	https://docs.flutter.dev/release	install Flutter {version} stable with the project's version manager, then run flutter create
+dart	stable	dart-stable	https://dart.dev/resources/whats-new	use Dart {version} bundled with the resolved Flutter stable release
+firebase	stable	npm:firebase	https://firebase.google.com/support/release-notes/js	npm install firebase@latest
+stripe	stable	npm:stripe	https://github.com/stripe/stripe-node/releases	npm install stripe@latest
+openai	stable	npm:openai	https://github.com/openai/openai-node/releases	npm install openai@latest
+ai-sdk	stable	npm:ai	https://ai-sdk.dev/docs	npm install ai@latest
+supabase-js	stable	npm:@supabase/supabase-js	https://supabase.com/docs/reference/javascript/introduction	npm install @supabase/supabase-js@latest
+supabase-ssr	stable	npm:@supabase/ssr	https://supabase.com/docs/guides/auth/server-side/creating-a-client	npm install @supabase/ssr@latest
+n8n	stable	npm:n8n	https://docs.n8n.io/hosting/installation/npm/	npm install n8n@latest

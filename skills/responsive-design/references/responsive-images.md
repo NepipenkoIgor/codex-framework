@@ -1,66 +1,11 @@
-# Responsive Image Patterns
+# Responsive Images
 
-## srcset and sizes
+Use this reference when responsive image selection or art direction is in scope. Image processing/security is outside this reference; do not automatically route or load another skill.
 
-```html
-<img
-  src="/images/hero-800.jpg"
-  srcset="
-    /images/hero-400.jpg 400w,
-    /images/hero-800.jpg 800w,
-    /images/hero-1200.jpg 1200w,
-    /images/hero-1600.jpg 1600w
-  "
-  sizes="
-    (max-width: 640px) 100vw,
-    (max-width: 1024px) 50vw,
-    33vw
-  "
-  alt="Hero image description"
-  loading="lazy"
-  decoding="async"
-/>
-```
+1. Measure the rendered slot across actual containers, viewport ranges and DPRs. Express `sizes` from that layout; browser selection cannot repair a false slot declaration.
+2. Use `srcset` width descriptors when the rendered slot varies and `sizes` can describe it; density descriptors such as `1x`/`2x` remain valid for a genuinely fixed-size slot. Use `<picture>` only for deliberate art direction or format negotiation. Keep a valid `<img>` fallback, intrinsic dimensions/aspect ratio, and meaningful `alt` (or empty `alt` for decorative content).
+3. Do not lazy-load a measured LCP candidate. Do not eagerly load every above-fold candidate. Verify requested resource, emitted markup and network priority in supported browsers.
+4. For framework components, use only properties exposed by the installed version. For Next.js specifically, current and pinned lines may differ between `preload`, `priority`, and fetch-priority behavior; consult installed types and [official Image docs](https://nextjs.org/docs/app/api-reference/components/image).
+5. Test crop meaning, focal point, localization, forced-colors/high contrast where relevant, failure fallback, layout shift, cache/privacy and actual transferred variants.
 
-- `srcset` with `w` descriptors tells the browser which image sizes are available
-- `sizes` tells the browser how wide the image will be displayed at each breakpoint
-- Browser chooses the best image based on viewport width AND device pixel ratio
-- Always provide `alt` text -- empty string for decorative images
-
-## Picture Element for Art Direction
-
-```html
-<picture>
-  <source media="(min-width: 1024px)" srcset="/images/hero-wide.jpg" />
-  <source media="(min-width: 640px)" srcset="/images/hero-medium.jpg" />
-  <img src="/images/hero-mobile.jpg" alt="Hero image" loading="lazy" />
-</picture>
-```
-
-- Use `<picture>` when different crops/compositions are needed at different sizes
-- Use `srcset` when the same image just needs different resolutions
-- Use `type` attribute for format selection: `<source type="image/avif">`, `<source type="image/webp">`
-
-## Next.js Image
-
-```tsx
-import Image from 'next/image';
-
-<Image
-  src="/hero.jpg"
-  alt="Hero"
-  width={1200}
-  height={600}
-  sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
-  priority={false}
-  placeholder="blur"
-  blurDataURL="data:image/jpeg;base64,..."
-/>
-```
-
-## Lazy Loading
-
-- Use `loading="lazy"` on all images below the fold
-- Use `loading="eager"` (or Next.js `priority`) on above-the-fold hero images
-- Use `decoding="async"` to avoid blocking the main thread
-- Provide width and height attributes (or aspect-ratio CSS) to prevent layout shift
+Official HTML source: [WHATWG responsive images](https://html.spec.whatwg.org/multipage/images.html#responsive-images).

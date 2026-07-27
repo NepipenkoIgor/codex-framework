@@ -1,51 +1,11 @@
-# GSAP Patterns
+# GSAP Integration
 
-## Timeline
+Use GSAP only when the installed project needs a timeline, gesture or scroll sequence not adequately expressed by CSS/framework primitives. Verify installed plugins, licensing and bundler/CSP compatibility in official GSAP documentation.
 
-```typescript
-import { gsap } from 'gsap';
+- Import modules/plugins explicitly. Never call GSAP through `eval`, string-built code or permissive CSP.
+- Scope selectors and timelines to the component; kill timelines, ScrollTriggers, observers and callbacks on interruption/unmount.
+- Model reduced motion as a distinct final-state path. Globally accelerating a timeline is not sufficient: it can still flash motion, reorder callbacks or leave lifecycle cleanup timing-dependent.
+- Define scroll trigger ownership, refresh on layout changes, and avoid hijacking native scrolling. Capability and input-mode gate nonessential effects.
+- Test rapid route changes, detached nodes, background tabs, dynamic content, reduced motion and cleanup with leak/performance evidence.
 
-const tl = gsap.timeline({ defaults: { ease: 'power2.out', duration: 0.3 } });
-
-tl.from('.hero-title', { y: 30, opacity: 0 })
-  .from('.hero-subtitle', { y: 20, opacity: 0 }, '-=0.15')
-  .from('.hero-cta', { y: 20, opacity: 0 }, '-=0.15')
-  .from('.hero-image', { scale: 0.95, opacity: 0 }, '-=0.2');
-```
-
-## ScrollTrigger
-
-```typescript
-import { gsap } from 'gsap';
-import { ScrollTrigger } from 'gsap/ScrollTrigger';
-gsap.registerPlugin(ScrollTrigger);
-
-gsap.from('.section', {
-  scrollTrigger: {
-    trigger: '.section',
-    start: 'top 80%',
-    end: 'top 20%',
-    scrub: false,
-  },
-  y: 40,
-  opacity: 0,
-  duration: 0.5,
-  stagger: 0.1,
-});
-```
-
-## Usage Guidelines
-
-- Use GSAP for complex multi-element sequences that CSS cannot handle
-- Use GSAP for scroll-driven animations with precise trigger control
-- Clean up GSAP instances on component unmount -- use `gsap.context()` for scoped cleanup
-- Prefer CSS transitions for simple state changes -- GSAP is overhead for basic hover effects
-
-## Reduced Motion
-
-```typescript
-const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-if (prefersReducedMotion) {
-  gsap.globalTimeline.timeScale(20); // effectively instant
-}
-```
+Official source: [GSAP documentation](https://gsap.com/docs/v3/).

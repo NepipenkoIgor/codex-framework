@@ -1,182 +1,36 @@
 ---
 name: ddd-patterns
-description: Design domain-driven systems with bounded contexts, aggregates, entities, value objects, domain events, domain services, repositories, and anti-corruption layers
+description: Design domain boundaries, language, aggregates, invariants, repositories, domain events, and integration contracts only where business complexity justifies them. Use when domain modeling decisions are unresolved; do not use to force layers onto simple CRUD or for direct implementation.
 metadata:
-  version: 1.3
-  argument-hint: "domain name, bounded contexts, aggregate root entities, domain events, integration points with other services, framework (Node.js/ASP.NET)"
+  owner: codex-framework
+  reviewed: "2026-07-27"
+  version: 1.5
+  argument-hint: "business capabilities/invariants, ambiguity/change rate, transaction and integration boundaries, existing model"
 ---
 
-Design domain-driven architecture for $ARGUMENTS.
+# Domain-Driven Design Patterns
 
+Design `$ARGUMENTS` read-only.
 
-## Strategic DDD
+Inspect manifests/lockfiles and generate project stack context before version-sensitive framework/ORM/event guidance. Preserve installed runtime and capability pins, verify matching official documentation, and treat upgrades as separate migrations; read-only greenfield design hands version selection to authorized project setup.
 
-### Bounded Context Identification
+Identify the applicable repository target, governing instructions and implementation owner. For any proposed later mutation, state the required write authority and effect-appropriate recovery or rollback before handing the design to an implementation workflow.
 
-A bounded context is a linguistic and model boundary. The same concept has different meanings across contexts (e.g., "Customer" in Sales = preferences; in Shipping = address; in Billing = payment method).
+1. Gather business language, policies, invariants, ownership, change hotspots and integration pain from domain experts and repository behavior. Show concrete complexity that a domain model would reduce.
+2. If behavior is simple CRUD with stable language and no meaningful invariants, recommend a simpler modular model. DDD does not require entities/value objects/repositories/services/events or layered/hexagonal architecture everywhere.
+3. Define bounded contexts by language, ownership and consistency, not tables, teams or deployment count. Document context relationships and translation/anti-corruption needs.
 
-Discovery: identify business capabilities, map ubiquitous language per capability (where terms diverge, draw a boundary), identify data ownership, identify integration points, choose mapping pattern.
+## Model contracts
 
-### Context Mapping Patterns
+- An aggregate is the smallest consistency/concurrency boundary needed to enforce invariants. Choose root, identity and transaction scope from business rules; avoid giant aggregates and arbitrary one-aggregate-per-transaction dogma when the store supports a justified atomic invariant.
+- Enforce authorization outside and inside domain operations where actor/resource policy affects invariants. Tenant scope is part of identity and repository queries where applicable.
+- Use optimistic/pessimistic concurrency and database constraints according to conflict semantics; define retry versus user-visible conflict.
+- Repositories represent meaningful aggregate persistence when useful, not mandatory ORM wrappers. Domain services exist for domain operations that fit no entity/value object, not miscellaneous orchestration.
+- Domain events describe committed facts. When publishing across a transaction boundary, define outbox/CDC, at-least-once duplicates, idempotent consumers, schema compatibility and timeout/reconciliation; in-memory dispatch is not reliable integration.
+- Sagas/compensation and event sourcing are optional and require explicit long-running or historical/replay value.
 
-| Pattern | When to use |
-|---------|-------------|
-| Shared Kernel | Closely collaborating teams, stable shared concepts |
-| Customer-Supplier | Clear provider/consumer with upstream accommodation |
-| Conformist | Upstream won't change, downstream accepts their model |
-| Anti-Corruption Layer (ACL) | Upstream model is foreign, legacy, or unstable |
-| Open Host Service (OHS) | Multiple consumers need stable documented API |
-| Published Language (PL) | Industry standards, shared event schemas |
-| Separate Ways | Cost of integration exceeds benefit |
+## Verification and output
 
-### Anti-Corruption Layer
+Test aggregate invariants, concurrent commands, constraint conflicts, tenant/resource authorization, transaction rollback, outbox crash window, duplicate/reordered events and context translation with executable examples or model scenarios.
 
-The ACL translates external models to domain types at the bounded context boundary. External types never cross the ACL. Only the ACL knows about the external model.
-
-```typescript
-// ACL: translate Stripe model to domain model
-class PaymentGatewayTranslator {
-  toDomain(stripe: StripePaymentIntent): PaymentResult {
-    return {
-      paymentId: PaymentId.from(stripe.id),
-      amount: Money.fromCents(stripe.amount, stripe.currency),
-      status: this.mapStatus(stripe.status),
-      receiptUrl: stripe.charges.data[0]?.receipt_url ?? null,
-    };
-  }
-}
-```
-
-.NET: same pattern with `record` types and `switch` expressions for status mapping.
-
-## Tactical DDD Building Blocks
-
-| Block | Purpose | Identity |
-|-------|---------|----------|
-| Entity | Object with identity, mutable state, lifecycle | By ID |
-| Value Object | Immutable, defined by attributes, no identity | By value equality |
-| Aggregate | Consistency boundary, cluster of entities/VOs | Aggregate root ID |
-| Domain Event | Something that happened in the domain | Event ID |
-| Domain Service | Stateless operation spanning multiple aggregates | N/A |
-| Repository | Abstracts persistence for aggregates | N/A |
-
-### Value Objects
-
-Immutable, equality by value, self-validating, no identity. Replace primitive obsession: `Money` not `decimal`, `EmailAddress` not `string`.
-
-```typescript
-class Money {
-  private constructor(readonly amount: number, readonly currency: string) {
-    if (!Number.isFinite(amount) || amount < 0) throw new Error('Invalid amount');
-  }
-  static fromCents(cents: number, currency: string): Money { return new Money(cents / 100, currency.toUpperCase()); }
-  add(other: Money): Money { this.assertSameCurrency(other); return new Money(this.amount + other.amount, this.currency); }
-  multiply(factor: number): Money { return new Money(Math.round(this.amount * factor * 100) / 100, this.currency); }
-  equals(other: Money): boolean { return this.amount === other.amount && this.currency === other.currency; }
-}
-```
-
-.NET: use `record` for structural equality. Same validation in constructor.
-
-### Aggregates
-
-Aggregate root is the only entry point. One aggregate per transaction. Keep small (only data for invariants). Reference other aggregates by ID. Return domain events from command methods.
-
-```typescript
-class Order {
-  private lineItems: OrderLineItem[] = [];
-  private status: OrderStatus;
-
-  addLineItem(productId: ProductId, quantity: Quantity, unitPrice: Money): void {
-    if (this.status !== OrderStatus.Draft) throw new OrderNotModifiableError(this.id);
-    if (this.lineItems.length >= 50) throw new OrderItemLimitExceededError(this.id);
-    if (this.lineItems.some(li => li.productId.equals(productId))) throw new DuplicateProductError(this.id, productId);
-    this.lineItems.push(new OrderLineItem(LineItemId.generate(), productId, quantity, unitPrice));
-  }
-
-  confirm(): OrderConfirmedEvent {
-    if (this.lineItems.length === 0) throw new EmptyOrderError(this.id);
-    this.status = OrderStatus.Confirmed;
-    return new OrderConfirmedEvent(this.id, this.totalAmount, new Date());
-  }
-}
-```
-
-### Domain Events
-
-Events signal what happened. Aggregates collect events internally; application service dispatches after persistence.
-
-```typescript
-class OrderService {
-  async confirmOrder(orderId: string): Promise<void> {
-    const order = await this.orderRepo.findById(OrderId.from(orderId));
-    order.confirm();
-    await this.orderRepo.save(order);
-    for (const event of order.pullDomainEvents()) { await this.eventBus.publish(event); }
-  }
-}
-```
-
-### Domain Services
-
-Use when an operation spans multiple aggregates (e.g., transfer between accounts). Load both aggregates, execute domain logic, save separately (eventual consistency).
-
-### Repositories
-
-Interface in domain layer, implementation in infrastructure. One per aggregate root. Returns domain objects, not persistence entities. Methods: `findById`, `save`, `findByX` with pagination.
-
-## Application Services (Use Cases)
-
-Orchestrate: validate command -> load data -> create/modify aggregate -> persist -> publish events. No domain logic -- delegate to aggregates and domain services. Handle cross-cutting: transactions, authorization, logging. Translate between DTOs and domain types.
-
-## Invariant Validation Placement
-
-| Layer | What to validate |
-|-------|-----------------|
-| Transport | Input format, required fields, types (Zod/FluentValidation) |
-| Application service | Authorization, existence checks, cross-aggregate rules |
-| Aggregate | Business invariants within consistency boundary |
-| Value object | Self-validity (email format, money non-negative) |
-
-## Code Organization
-
-```
-src/domain/{aggregate}/ — aggregate root, entities, VOs, events, errors, repository interface
-src/domain/shared/ — shared value objects (Money, Email, Quantity)
-src/application/{aggregate}/ — use cases, command schemas
-src/infrastructure/persistence/ — repository implementations
-src/infrastructure/integrations/ — external service adapters + ACLs
-```
-
-## Anti-Patterns
-
-- Anemic domain model: all logic in services, aggregates are just data bags
-- Cross-aggregate transactions: modifying multiple aggregates in one DB transaction violates consistency boundaries
-- Primitive obsession: `string` for email, `number` for money — use value objects
-- Repository for non-root entities: bypasses aggregate invariants
-- Shared database between bounded contexts: creates implicit coupling that defeats context isolation
-
-## Output Format
-
-```
-Bounded Contexts:     [list with ubiquitous language ownership]
-Context Map:          [relationships with patterns]
-Aggregates:           [per context with invariants]
-Value Objects:        [shared and context-specific]
-Domain Events:        [events crossing boundaries]
-Repositories:         [per aggregate root]
-ACLs:                 [for external integrations]
-Application Services: [use case orchestration]
-```
-
-## Done Criteria
-
-- Bounded contexts have clear linguistic boundaries
-- Context mapping defines explicit integration patterns
-- Aggregates enforce all invariants within their consistency boundary
-- Value objects replace primitives for domain concepts
-- Domain events communicate across boundaries
-- Repositories abstract persistence with domain-layer interfaces
-- ACLs insulate domain from external models
-- Application services orchestrate without containing domain logic
-- Code organization reflects domain boundaries
+Report evidence for/against DDD, ubiquitous language, contexts/map, aggregates/invariants/concurrency, persistence/events/integration, simpler alternatives rejected, verification and residual ambiguity.

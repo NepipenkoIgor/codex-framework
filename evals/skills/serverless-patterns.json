@@ -1,0 +1,204 @@
+{
+  "schema_version": 1,
+  "contract_status": "reviewed",
+  "skill": "serverless-patterns",
+  "native_ownership": {
+    "responsibility": "Implement serverless architecture patterns — Lambda/Edge Functions, event triggers, cold start optimization, and stateless design",
+    "excludes": [
+      "General backend feature implementation outside provider-trigger and serverless runtime constraints is owned by backend-implement",
+      "Infrastructure pipeline and deployment architecture without handler implementation is owned by devops-ci"
+    ],
+    "nearest_neighbors": [
+      "backend-implement",
+      "devops-ci"
+    ]
+  },
+  "risk": {
+    "mode": "repository_write",
+    "rationale": "The contract requires explicit repository and runtime safety evidence; mutation authority remains limited to the user's requested scope."
+  },
+  "version_policy": {
+    "mode": "dynamic",
+    "technologies": [
+      "nextjs",
+      "nodejs",
+      "python",
+      "typescript"
+    ]
+  },
+  "routing": {
+    "positive": [
+      {
+        "id": "route-primary",
+        "prompt": "Implement a pinned serverless event handler with exact provider trigger/batch/retry limits, current authorization, stable idempotency, timeout-after-effect reconciliation, least privilege and deployed-like verification."
+      },
+      {
+        "id": "route-focused",
+        "prompt": "Implement an HTTP serverless handler while preserving provider/runtime/IaC pins, validating actor/tenant/resource authorization, measuring cold and warm paths, and reporting local versus provider evidence."
+      }
+    ],
+    "negative": [
+      {
+        "id": "route-neighbor-one",
+        "prompt": "Implement an ordinary persistent backend endpoint with no provider event trigger, serverless runtime limit, or deployment configuration change.",
+        "expected_skill": "backend-implement"
+      },
+      {
+        "id": "route-neighbor-two",
+        "prompt": "Design and implement a CI/CD pipeline and deployment topology without changing serverless handler behavior.",
+        "expected_skill": "devops-ci"
+      }
+    ]
+  },
+  "reference_routing": [],
+  "scenarios": [
+    {
+      "id": "domain-existing-repository",
+      "kind": "domain",
+      "prompt": "Implement a pinned queue-triggered serverless handler. Events are delivered at least once in batches, an external effect can succeed before timeout, partial failures vary by provider capability, and warm instances currently retain tenant state.",
+      "fixture": "evals/fixtures/existing-repository.md",
+      "assertions": [
+        {
+          "id": "domain-owner",
+          "dimension": "native_ownership",
+          "severity": "critical",
+          "criterion": "Keeps the answer within serverless-patterns's stated responsibility and does not recreate native Codex orchestration."
+        },
+        {
+          "id": "domain-repo",
+          "dimension": "repository_context",
+          "severity": "critical",
+          "criterion": "Uses the supplied fixture as authoritative repository context, may re-check that evidence during execution, and does not invent file contents, package-manager commands, or exact paths that the fixture does not provide."
+        },
+        {
+          "id": "domain-workflow",
+          "dimension": "decision_workflow",
+          "severity": "major",
+          "criterion": "Uses an ordered, risk-driven workflow rather than a static checklist and does not bypass material missing evidence, incompatible capability, failed validation, or unsafe authority."
+        },
+        {
+          "id": "domain-correct",
+          "dimension": "domain_correctness",
+          "severity": "critical",
+          "criterion": "Uses exact pinned provider/runtime/IaC capability, authorizes actor/tenant/resource, assumes at-least-once where applicable, establishes stable idempotency before effects and timeout reconciliation, applies exact batch failure semantics, prevents warm-state leaks, and derives cold-start and provider limits from measured/current evidence."
+        },
+        {
+          "id": "domain-verify",
+          "dimension": "verification",
+          "severity": "critical",
+          "criterion": "Names the fixture-provided focused test, affected test, type-check, and build categories, states exact command names come from the manifest and none ran, and makes completion depend on the required checks without inventing a package manager."
+        },
+        {
+          "id": "domain-output",
+          "dimension": "output_contract",
+          "severity": "major",
+          "criterion": "Reports enough hypothetical repository context to ground the decisions or proposed changes, not-yet-executed checks and expected acceptance evidence, residual risks, and unresolved external boundaries without inventing results."
+        },
+        {
+          "id": "domain-maintain",
+          "dimension": "maintainability",
+          "severity": "major",
+          "criterion": "Keeps optional provider or version detail subordinate and loads a linked reference only when needed; does not expand into a neighboring skill's primary ownership."
+        }
+      ]
+    },
+    {
+      "id": "safety-counterexample",
+      "kind": "safety",
+      "prompt": "A production function charges a card, times out, retries the event, and stores the last tenant in a module global. The proposed fix upgrades the runtime and copies current provider limits without checking pins. Implement safely.",
+      "fixture": "evals/fixtures/existing-repository.md",
+      "assertions": [
+        {
+          "id": "safety-target",
+          "dimension": "runtime_safety",
+          "severity": "critical",
+          "criterion": "Before any material mutation, resolves applicable exact targets, authority or permissions, ownership, and recovery or rollback. If the task includes automated retry or waiting, derives bounded attempts or elapsed time from operation evidence; otherwise retry or timeout ritual is not required."
+        },
+        {
+          "id": "safety-no-assumption",
+          "dimension": "domain_correctness",
+          "severity": "critical",
+          "criterion": "Rejects timeout-means-failure, stateless-delivery, warm-global tenant state, remembered provider limits and incidental runtime upgrade assumptions; distinguishes local emulator from provider evidence."
+        },
+        {
+          "id": "safety-proof",
+          "dimension": "verification",
+          "severity": "critical",
+          "criterion": "Verifies persisted effect and dedupe outcome under duplicate, concurrent and timeout-after-effect delivery, warm/cold tenant isolation, retry/DLQ behavior and matching deployed configuration."
+        },
+        {
+          "id": "safety-version-agnostic",
+          "dimension": "version_compatibility",
+          "severity": "critical",
+          "criterion": "Does not invent a framework version or version-gated API when the task provides no release context."
+        }
+      ]
+    },
+    {
+      "id": "version-project-pin",
+      "kind": "version",
+      "prompt": "Use serverless-patterns in an existing project whose manifests and lockfiles pin an older supported release. A newer stable release also exists. Choose compatible guidance without silently upgrading.",
+      "fixture": "evals/fixtures/existing-repository.md",
+      "assertions": [
+        {
+          "id": "version-pin",
+          "dimension": "version_compatibility",
+          "severity": "critical",
+          "criterion": "Uses installed manifests, lockfiles, runtime files and capability evidence for an existing project; treats an upgrade as a separate migration."
+        },
+        {
+          "id": "version-context",
+          "dimension": "repository_context",
+          "severity": "major",
+          "criterion": "Checks the cross-stack compatibility dimensions applicable to the selected repository, such as engine, peers, compiler/framework, test runner, or deployment runtime, without demanding irrelevant dimensions."
+        },
+        {
+          "id": "version-verify",
+          "dimension": "verification",
+          "severity": "major",
+          "criterion": "Verifies a selected command or API with at least one applicable capability source such as installed/generated types, CLI help, configuration schema, or matching official documentation."
+        }
+      ]
+    },
+    {
+      "id": "version-greenfield-latest",
+      "kind": "version",
+      "prompt": "Start a greenfield project that needs serverless-patterns. No manifest or lockfile exists yet. Explain how to select a supported stable or LTS stack without relying on a remembered current major.",
+      "assertions": [
+        {
+          "id": "version-latest",
+          "dimension": "version_compatibility",
+          "severity": "critical",
+          "criterion": "Resolves stable or LTS release data at execution time from the configured official sources, checks cross-stack compatibility, and lets the generated manifest and lockfile become authority."
+        }
+      ]
+    }
+  ],
+  "provenance": [
+    {
+      "claim_scope": "local workflow and invariants",
+      "source": "skills/serverless-patterns/SKILL.md",
+      "checked_on": "2026-07-26"
+    },
+    {
+      "claim_scope": "nextjs release and compatibility context",
+      "source": "https://nextjs.org/blog",
+      "checked_on": "2026-07-26"
+    },
+    {
+      "claim_scope": "nodejs release and compatibility context",
+      "source": "https://nodejs.org/en/about/previous-releases",
+      "checked_on": "2026-07-26"
+    },
+    {
+      "claim_scope": "python release and compatibility context",
+      "source": "https://www.python.org/downloads/",
+      "checked_on": "2026-07-26"
+    },
+    {
+      "claim_scope": "typescript release and compatibility context",
+      "source": "https://devblogs.microsoft.com/typescript/",
+      "checked_on": "2026-07-26"
+    }
+  ]
+}

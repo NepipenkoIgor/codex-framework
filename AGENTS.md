@@ -9,6 +9,7 @@ This repository is a thin, native Codex extension layer. Codex owns planning, mo
 3. For multi-step implementation work with a clear outcome, start a native goal immediately and continue it automatically. A progress update or plan is never a terminal response: proceed to the next executable step until the definition of done is met, a real blocker requires a user decision, or the user explicitly asks to pause. Do not start a goal for a question, review, one-off explanation, or an explicitly plan-only request.
 4. Use a custom agent only for a bounded responsibility. The parent owns requirements, decisions, integration, and the final report.
 5. Verify the actual diff and changed behavior. Report residual risk rather than claiming certainty.
+6. Before version-sensitive work, generate an ephemeral stack context with `scripts/framework-stack-context.py`: inspect manifests and lockfiles for an existing project, or resolve stable frameworks and production LTS runtimes from official distribution channels for a new project. Verify generated manifests and apply version-specific recipes only when the installed stack exposes the required capability. Preserve existing pins unless migration is explicitly in scope.
 
 ## Visible orchestration
 
@@ -46,6 +47,14 @@ Let the native catalog choose models by default. Pin only a justified reasoning 
 ## Skills and Integrations
 
 Use the smallest matching skill set. Skills are reusable workflow knowledge, not a reason to preload every domain. Prefer installed native plugins and MCP servers over project wrappers. Start connectors read-only and enable write actions only for the task that requires them. For UI work, use the native in-app Browser first; retain screenshots only when they prove a visual result that DOM, console, or network evidence cannot.
+
+## Process hygiene
+
+- Clean up only resources started by the current task. Track exact process identifiers or tool sessions; never use broad `pkill`, wildcard deletion, or shared temporary-directory cleanup.
+- Stop task-owned development servers and browser sessions before close-out unless the user explicitly asks to keep them running. Let test runners manage servers they started themselves.
+- When an API contract changes, update the repository's authoritative API documentation or schema in the same change.
+- Follow the repository's existing branch, commit, and pull-request workflow. User intent and closer project instructions override framework defaults.
+- Verify current official documentation before introducing a version-sensitive framework or provider pattern.
 
 Use the Browser plugin for observable UI verification. Use GitHub integration for issue, PR, and CI context when it is available. Do not add filesystem, git, or browser MCP servers that duplicate Codex tools.
 

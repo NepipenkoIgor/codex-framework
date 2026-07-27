@@ -1,190 +1,57 @@
 ---
 name: responsive-design
-description: Implement responsive layouts using Tailwind CSS, fluid typography, container queries, responsive images, mobile-first patterns, and adaptive UI strategies
+description: Implement responsive page and component layouts across viewport, container, zoom, text spacing, writing direction, and input modes. Use when adaptive layout behavior is primary; do not use for general styling or a broad accessibility audit.
 metadata:
-  version: 1.5
-  argument-hint: "minimum viewport width, breakpoint strategy (mobile-first/desktop-first), typography needs"
+  owner: codex-framework
+  reviewed: "2026-07-26"
+  version: 2.0
+  argument-hint: "content constraints, embedding containers, browser/device matrix, zoom/reflow target, framework and SSR behavior"
 ---
 
-Implement $ARGUMENTS.
+# Responsive Design
 
-## Documentation
+Derive stack context from manifests/lockfiles, installed types/configuration, actual DOM/content, containing blocks, design tokens, framework adapter, CSS processor, Tailwind/build plugins, content detection, browser targets, rendering mode, localization, SSR/hydration and visual/browser tests as one compatibility unit. A repository helper may summarize this evidence but is not required. Existing manifests and lockfiles are authority; for authorized greenfield work resolve stable/LTS releases from configured official sources at execution time, verify compatibility, and make the generated manifest and lockfile authoritative. Verify container-query, viewport-unit, image, and framework APIs against current official docs and installed capability.
 
-> Use available docs lookup tools or official docs when you encounter unknown API syntax, current library versions, or framework-specific configuration. Do not rely on training data for library docs — fetch current docs on demand.
+Load exactly one relevant deep dive for the task. Do not load Tailwind detail merely because Tailwind is installed; select it only when installed utility syntax itself is the unresolved subject.
 
-## Mobile-First vs Desktop-First
+- responsive image selection or art direction: [responsive-images.md](references/responsive-images.md)
+- adaptive navigation and disclosure: [responsive-navigation.md](references/responsive-navigation.md)
+- tabular reflow: [responsive-tables.md](references/responsive-tables.md)
+- installed Tailwind utility syntax: [tailwind-responsive.md](references/tailwind-responsive.md)
 
-Mobile-first (default -- use unless project convention differs):
-- Start with the smallest screen layout as the base CSS
-- Add complexity with `min-width` media queries (Tailwind: `sm:`, `md:`, `lg:`, `xl:`, `2xl:`)
+## Layout Contract
 
-```html
-<div class="flex flex-col gap-4 md:flex-row md:gap-6 lg:gap-8">
-  <main class="w-full md:w-2/3 lg:w-3/4">...</main>
-  <aside class="w-full md:w-1/3 lg:w-1/4">...</aside>
-</div>
-```
+- Start from content and actual container constraints, not remembered device widths. A component embedded in a sidebar, split pane, translated page, or zoomed viewport may need container queries; page chrome and browser-wide behavior may need media queries.
+- Prefer source order and one stable semantic DOM that reflows. Duplicating desktop/mobile trees risks duplicate IDs, focus targets, announcements, state, and hydration.
+- Use flexible tracks with explicit minimum-content behavior (`min-width: 0`, wrapping, overflow policy). Preserve long unbroken strings, enlarged text, localization, RTL/vertical writing modes where required, safe areas, virtual keyboards, and user font settings.
+- Do not disable pinch zoom. Verify WCAG 1.4.10 reflow at the normative equivalent viewport and 1.4.4 text resize, plus repository-supported higher zoom and text-spacing cases. Horizontal scrolling may be appropriate for intrinsically two-dimensional content, but not for the page as a whole.
+- For WCAG 2.2 AA, SC 2.5.8 requires a pointer target that can contain a 24 by 24 CSS-pixel square, or a valid spacing, equivalent, inline, user-agent-control, or essential exception. Document any exception. The 44 by 44 CSS-pixel target is SC 2.5.5 Enhanced (AAA), though it can be a product preference.
+- SSR must not guess a breakpoint and emit materially different markup unless the server has a reliable, cache-safe input and hydration contract. Prefer CSS for presentation; for JS-only behavior use capability/media observation after hydration with a stable initial state and cleanup.
 
-Desktop-first (use when): redesigning an existing desktop app; primary audience is desktop (admin panels, dashboards).
+## Workflow
 
-## Fluid Typography
+1. Inventory content extremes, component containers, viewport/input/browser matrix, SSR/hydration, zoom/text-spacing, localization, persistent/fixed UI, images, tables, and existing breakpoints.
+   If an unsafe responsive hotfix is already deployed, first resolve its exact affected flows, deployment target and rollback authority, define a measurable rollback trigger, and roll it back or isolate it before implementing the replacement.
+2. Define invariants and failure policy: what may wrap, stack, scroll, collapse, truncate, move, or remain visible. Preserve task order and access to functionality.
+3. Implement the smallest set of fluid rules. Add breakpoints only where measured content constraints fail; name repository tokens by intent rather than device folklore.
+4. Use container queries only after establishing the query container and fallback. Avoid style/layout containment that clips required overflow or changes sizing unexpectedly.
+5. Verify real content and interactions, not a list of canonical widths. Inspect computed layout and accessibility tree before adding more variants.
 
-| Role | clamp() |
-|------|---------|
-| H1 | `clamp(1.75rem, 1.25rem + 2.5vw, 2.5rem)` |
-| H2 | `clamp(1.25rem, 1rem + 1.25vw, 1.75rem)` |
-| Body | `clamp(0.875rem, 0.825rem + 0.25vw, 1rem)` |
-| Small | `clamp(0.75rem, 0.7rem + 0.25vw, 0.875rem)` |
+## Verification
 
-Rules:
-- Never use viewport units alone for font-size -- breaks zoom accessibility
-- Always use `clamp()` with rem base + vw scaling
-- Minimum: 14px body, 12px captions; max line length: 65ch
+- Narrow/wide viewport and each distinct embedding container; intermediate widths around every content-driven breakpoint.
+- Browser zoom/reflow, text-only enlargement, WCAG text-spacing overrides, long translations, RTL, long URLs/numbers, dynamic errors, validation, virtual keyboard, and safe areas.
+- Keyboard, touch, mouse, coarse/fine pointer, orientation, focus visibility and order; target-size measurements with documented exceptions.
+- SSR response versus hydrated DOM, resize/orientation changes, no-JS behavior, slow hydration, and browser capability fallback.
+- For every affected critical journey such as checkout, prove the complete user-visible success path still reaches its authoritative persisted/provider outcome at representative responsive states; visibility and interaction checks alone are insufficient.
+- Visual/browser tests plus DOM/accessibility assertions and affected build/tests. A screenshot at preset device widths is not sufficient proof.
 
-## Container Queries
+## Output Contract
 
-```css
-.card-wrapper { container-type: inline-size; container-name: card; }
-@container card (min-width: 400px) { .card { display: grid; grid-template-columns: 200px 1fr; } }
-@container card (max-width: 399px) { .card { display: flex; flex-direction: column; } }
-```
+- Content/container and breakpoint decisions
+- Reflow, zoom, target-size, SSR/hydration, and overflow contracts
+- Loaded reference and installed capability evidence
+- Test matrix and observed results
+- Residual browser, localization, content, and design risks
 
-- Container queries: reusable components in different layout contexts
-- Media queries: page-level layout changes
-
-## CSS Grid Responsive Patterns
-
-```css
-/* Auto-flow cards: minimum 280px, fill available space */
-.card-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 1.5rem; }
-```
-
-```html
-<!-- Dashboard layout -->
-<div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
-  <div class="lg:col-span-8"><!-- Main --></div>
-  <div class="lg:col-span-4"><!-- Sidebar --></div>
-</div>
-```
-
-## Breakpoint Strategy
-
-| Prefix | Min-width | Target |
-|--------|-----------|--------|
-| (none) | 0px | Mobile portrait (320-639px) |
-| sm | 640px | Large phone/small tablet |
-| md | 768px | Tablet portrait |
-| lg | 1024px | Tablet landscape, laptop |
-| xl | 1280px | Desktop |
-| 2xl | 1536px | Large desktop |
-
-Testing checklist: verify at 320, 375, 768, 1024, 1280, 1536px.
-
-## Touch Targets
-
-- Minimum: 44x44px (WCAG 2.5.8); recommended 48x48px
-- Minimum 8px gap between targets
-- Bottom sheets preferred over centered modals on mobile
-
-## Viewport and Safe Areas
-
-```html
-<meta name="viewport" content="width=device-width, initial-scale=1" />
-```
-
-- Never set `maximum-scale=1` or `user-scalable=no`
-- Use `env(safe-area-inset-*)` for fixed elements on notched devices
-
-## Modern CSS Techniques
-
-### Dynamic Viewport Units
-
-```css
-.hero { min-height: 100dvh; } /* adapts to browser chrome on mobile */
-.modal { height: 100svh; }    /* never extends behind browser chrome */
-```
-
-### CSS `has()` Selector
-
-```css
-.form-group:has(.input:invalid) { border-color: var(--color-error); }
-```
-
-### CSS Subgrid
-
-```css
-.product-card { display: grid; grid-template-rows: subgrid; grid-row: span 3; }
-```
-
-Supported in Chrome 117+, Firefox 71+, Safari 16+.
-
-## Framework-Specific Patterns
-
-### Angular
-
-```typescript
-isMobile = toSignal(
-  inject(BreakpointObserver).observe([Breakpoints.Handset]).pipe(map(r => r.matches)),
-  { initialValue: false },
-);
-```
-
-Use `BreakpointObserver` for structural changes (show/hide components); Tailwind prefixes for styling.
-
-### Blazor (MudBlazor)
-
-```razor
-<MudGrid Spacing="4">
-  <MudItem xs="12" sm="6" md="4">...</MudItem>
-</MudGrid>
-<MudHidden Breakpoint="Breakpoint.SmAndDown"><AppSidebar /></MudHidden>
-```
-
-For JS-driven breakpoint detection use `IJSRuntime` in `OnAfterRenderAsync`.
-
-### SvelteKit
-
-```svelte
-<script lang="ts">
-  let innerWidth = $state(0);
-  let isMobile = $derived(innerWidth < 768);
-</script>
-<svelte:window bind:innerWidth />
-```
-
-Use `@tailwindcss/vite` plugin; `@container` variant for component-level queries.
-
-### Vue / Nuxt
-
-Use Tailwind responsive prefixes for styling. For programmatic breakpoints: `useBreakpoints()` from VueUse or a `matchMedia` composable.
-
-> Use available docs lookup tools or official docs to fetch current Tailwind, MudBlazor, Angular CDK, and SvelteKit docs for implementation syntax.
-
-## Anti-Patterns
-
-- Only viewport breakpoints for reusable components — use container queries instead
-- Viewport units alone for font-size — always pair with `clamp()` and a rem base
-- Overriding viewport zoom (`user-scalable=no`) — WCAG 1.4.4 violation
-- Hiding content instead of reflowing
-
-## Implementation Workflow
-
-1. Detect framework and existing responsive patterns
-2. Identify layout type: page, component, or content
-3. Choose mobile-first or desktop-first
-4. Implement base layout with fluid sizing (`clamp`, `%`, `fr`)
-5. Add breakpoint overrides for layout changes
-6. Add container queries for components in variable contexts
-7. Verify at 320, 375, 640, 768, 1024, 1280, 1536
-8. Test touch targets (44px+), safe areas, zoom at 200%
-
-## Done Criteria
-
-- Layout works at all key viewports: 320, 375, 640, 768, 1024, 1280, 1536
-- No horizontal overflow at any viewport width
-- All text readable without zooming (14px+ body minimum)
-- Touch targets meet 44x44px minimum on mobile
-- Typography uses fluid scaling with `clamp()`
-- Layout survives 200% text zoom
-- Safe areas handled for fixed elements on notched devices
-- Container queries used for reusable components in variable contexts
+Normative sources: [WCAG 2.2](https://www.w3.org/TR/WCAG22/), [SC 2.5.8 understanding](https://www.w3.org/WAI/WCAG22/Understanding/target-size-minimum), and [CSS Containment](https://www.w3.org/TR/css-contain-3/).

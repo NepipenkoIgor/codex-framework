@@ -1,109 +1,11 @@
-# Shared Configuration Management
+# Shared configuration
 
-## TypeScript Config
+Share configuration only where packages have the same contract. Inspect installed compiler, linter, formatter, test/build tooling, module system, package exports and deployment targets; use their local schema/types and matching official docs for exact syntax.
 
-Base config at root, extended by each package:
+- Prefer an explicit base plus small platform/package overlays. A frontend, Node service, library, native package and generated client may require different module, target, DOM, JSX, declaration or test settings.
+- Package shared config with clear ownership and versioning when consumers need independent upgrades; use root files only when the repository release boundary makes that coupling intentional.
+- Include shared config and its transitive inputs in task/cache keys. Generated config needs a source of truth and drift check.
+- Avoid path aliases that work only in the editor while bypassing package exports or runtime resolution. Verify compiler, test runner, bundler and published consumer behavior together.
+- Do not centralize dependency versions or style rules solely for uniformity. Preserve justified package-specific constraints and document exceptions close to their owner.
 
-```json
-// tsconfig.base.json (root)
-{
-  "compilerOptions": {
-    "target": "ES2022",
-    "module": "ESNext",
-    "moduleResolution": "bundler",
-    "strict": true,
-    "esModuleInterop": true,
-    "skipLibCheck": true,
-    "forceConsistentCasingInFileNames": true,
-    "resolveJsonModule": true,
-    "isolatedModules": true,
-    "declaration": true,
-    "declarationMap": true,
-    "sourceMap": true,
-    "paths": {
-      "@acme/shared-types": ["packages/shared-types/src/index.ts"],
-      "@acme/ui": ["packages/ui/src/index.ts"],
-      "@acme/utils": ["packages/utils/src/index.ts"]
-    }
-  }
-}
-```
-
-```json
-// apps/web/tsconfig.json
-{
-  "extends": "../../tsconfig.base.json",
-  "compilerOptions": {
-    "outDir": "./dist",
-    "rootDir": "./src",
-    "jsx": "react-jsx"
-  },
-  "include": ["src/**/*"],
-  "references": [
-    { "path": "../../packages/shared-types" },
-    { "path": "../../packages/ui" }
-  ]
-}
-```
-
-## ESLint Config
-
-Shared config package:
-
-```json
-// config/eslint/base.js
-module.exports = {
-  parser: '@typescript-eslint/parser',
-  extends: ['eslint:recommended', 'plugin:@typescript-eslint/recommended', 'prettier'],
-  rules: {
-    '@typescript-eslint/no-explicit-any': 'error',
-    '@typescript-eslint/no-unused-vars': ['error', { argsIgnorePattern: '^_' }],
-  },
-};
-
-// config/eslint/react.js
-module.exports = {
-  extends: ['./base.js', 'plugin:react/recommended', 'plugin:react-hooks/recommended'],
-  // React-specific rules
-};
-
-// config/eslint/node.js
-module.exports = {
-  extends: ['./base.js', 'plugin:node/recommended'],
-  // Node-specific rules
-};
-```
-
-Consuming in packages:
-```json
-// apps/web/.eslintrc.json
-{ "extends": ["../../config/eslint/react.js"] }
-
-// apps/api/.eslintrc.json
-{ "extends": ["../../config/eslint/node.js"] }
-```
-
-## Prettier Config
-
-Single config at root -- all packages use it:
-
-```json
-// .prettierrc (root)
-{
-  "semi": true,
-  "singleQuote": true,
-  "trailingComma": "all",
-  "printWidth": 100,
-  "tabWidth": 2
-}
-```
-
-## pnpm Workspace
-
-```yaml
-# pnpm-workspace.yaml
-packages:
-  - 'apps/*'
-  - 'packages/*'
-  - 'tools/*'
-```
+Verify representative packages for every platform, clean build and published/packed consumption where relevant, editor/CLI parity, cache invalidation, mixed config versions during migration, generated-file drift and rollback.

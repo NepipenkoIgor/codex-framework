@@ -1,50 +1,11 @@
-# Responsive Table Patterns
+# Responsive Tables
 
-## Horizontal Scroll (Simplest)
+Use this reference for read-oriented tabular data. Interactive composite-grid behavior is outside this reference; if it becomes the primary requested task, stop and route that separate request rather than creating a hidden dependency chain.
 
-```html
-<div class="overflow-x-auto -mx-4 sm:mx-0">
-  <div class="min-w-[600px] px-4 sm:px-0">
-    <table class="w-full">...</table>
-  </div>
-</div>
-```
+- Preserve native table semantics when users need row/column relationships. A horizontally scrollable region can be correct for intrinsically two-dimensional content; label it when needed, make keyboard scrolling possible, keep focus visible, and signal overflow without obscuring cells.
+- Do not hide columns by generic priority. Agree which fields may be omitted and provide an accessible way to retrieve them. Authorization and redaction remain server-side.
+- A card alternative changes relationships. If used, keep one exposed rendering, preserve row identity/actions/status, avoid duplicate IDs and confirm screen-reader comprehension.
+- Sticky headers/columns must survive zoom, text spacing, long content, RTL and focus without covering targets. Virtualization and editing require a separately scoped interactive-grid contract and are not implemented by this read-oriented reference.
+- Test intermediate container widths, keyboard scrolling, screen-reader headers, print/export, long localized cells, errors/empty states and browser zoom/reflow exceptions.
 
-- Wrap table in scrollable container
-- Negative margins on mobile to extend to screen edges
-- Add visual indicator (fade or shadow) that content is scrollable
-
-## Card Layout Fallback
-
-```html
-<!-- Table on desktop, cards on mobile -->
-<div class="hidden sm:block">
-  <table>...</table>
-</div>
-<div class="sm:hidden space-y-3">
-  {items.map(item => (
-    <div class="border rounded-lg p-4 space-y-2">
-      <div class="flex justify-between">
-        <span class="font-medium">{item.name}</span>
-        <StatusBadge status={item.status} />
-      </div>
-      <div class="text-sm text-secondary">
-        <span>{item.date}</span> · <span>{item.category}</span>
-      </div>
-    </div>
-  ))}
-</div>
-```
-
-## Column Hiding
-
-```html
-<th class="hidden lg:table-cell">Created</th>
-<th class="hidden xl:table-cell">Updated</th>
-<!-- Always show: Name, Status, Actions -->
-```
-
-- Hide non-essential columns at narrower breakpoints
-- Always keep: primary identifier, status, actions
-- Hide first: dates, descriptions, secondary metadata
-- Use `title` attribute or expandable rows for hidden data
+Official guidance: [WAI Tables Tutorial](https://www.w3.org/WAI/tutorials/tables/).

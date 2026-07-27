@@ -1,0 +1,240 @@
+{
+  "schema_version": 1,
+  "contract_status": "reviewed",
+  "skill": "offline-sync-design",
+  "native_ownership": {
+    "responsibility": "Design durable offline synchronization with atomic local writes and outbox intent, safe claiming and idempotency, versioned pull cursors, tombstones, conflict policy, account isolation, and privacy deletion",
+    "excludes": [
+      "Implement a routine cross-platform mobile feature from an already-approved design; use mobile-implement or its platform specialization",
+      "Add browser service-worker caching without an offline editable replica or sync protocol; use pwa-implementation"
+    ],
+    "nearest_neighbors": [
+      "mobile-implement",
+      "pwa-implementation"
+    ]
+  },
+  "risk": {
+    "mode": "read_only",
+    "rationale": "This skill produces an architecture and failure contract; implementation or migration requires a separately authorized implementation skill."
+  },
+  "version_policy": {
+    "mode": "dynamic",
+    "technologies": [
+      "expo",
+      "firebase",
+      "flutter",
+      "react-native",
+      "typescript"
+    ]
+  },
+  "routing": {
+    "positive": [
+      {
+        "id": "route-primary",
+        "prompt": "Design sync for a field app that edits orders offline. Specify atomic local-write/outbox persistence, durable claims, server idempotency, tombstones, an opaque version cursor, account isolation, conflicts, and privacy deletion without changing code."
+      },
+      {
+        "id": "route-focused",
+        "prompt": "We only need cached offline reads and deferred form submissions, not a fully local-first database. Decide the smallest justified offline contract and document process-death and auth-switch recovery."
+      }
+    ],
+    "negative": [
+      {
+        "id": "route-neighbor-one",
+        "prompt": "Implement the already-designed Flutter screen and persistence adapter; the sync protocol is fixed.",
+        "expected_skill": "mobile-implement-flutter"
+      },
+      {
+        "id": "route-neighbor-two",
+        "prompt": "Add a service worker that caches static assets and an offline fallback page; there are no editable replicas or queued writes.",
+        "expected_skill": "pwa-implementation"
+      }
+    ]
+  },
+  "reference_routing": [],
+  "scenarios": [
+    {
+      "id": "domain-existing-repository",
+      "kind": "domain",
+      "prompt": "Design offline editing for tenant-scoped work orders. A local edit and outbox insert can crash between writes; two workers may claim one operation; the server may commit before a client timeout; deletes race with offline edits; a user can switch accounts mid-sync. Produce a read-only design and evidence plan.",
+      "fixture": "evals/fixtures/existing-repository.md",
+      "assertions": [
+        {
+          "id": "domain-owner",
+          "dimension": "native_ownership",
+          "severity": "critical",
+          "criterion": "Keeps the answer within offline-sync-design's stated responsibility and does not recreate native Codex orchestration."
+        },
+        {
+          "id": "domain-repo",
+          "dimension": "repository_context",
+          "severity": "critical",
+          "criterion": "Uses the supplied fixture as authoritative repository context, may re-check that evidence during execution, and does not invent file contents, package-manager commands, or exact paths that the fixture does not provide."
+        },
+        {
+          "id": "domain-workflow",
+          "dimension": "decision_workflow",
+          "severity": "major",
+          "criterion": "Uses an ordered, risk-driven workflow rather than a static checklist and does not bypass material missing evidence, incompatible capability, failed validation, or unsafe authority."
+        },
+        {
+          "id": "domain-correct",
+          "dimension": "domain_correctness",
+          "severity": "critical",
+          "criterion": "Requires one transaction for local mutation and outbox intent, durable lease/fencing plus server idempotency and timeout reconciliation, an opaque version/snapshot cursor applied atomically with tombstones, explicit conflict semantics, tenant/auth isolation across process death, and privacy deletion; it does not assume universal local-first or exactly-once delivery."
+        },
+        {
+          "id": "domain-verify",
+          "dimension": "verification",
+          "severity": "critical",
+          "criterion": "Names the fixture-provided focused test, affected test, type-check, and build categories, states exact command names come from the manifest and none ran, and makes completion depend on the required checks without inventing a package manager."
+        },
+        {
+          "id": "domain-output",
+          "dimension": "output_contract",
+          "severity": "major",
+          "criterion": "Reports enough hypothetical repository context to ground the decisions or proposed changes, not-yet-executed checks and expected acceptance evidence, residual risks, and unresolved external boundaries without inventing results."
+        },
+        {
+          "id": "domain-maintain",
+          "dimension": "maintainability",
+          "severity": "major",
+          "criterion": "Keeps optional provider or version detail subordinate and loads a linked reference only when needed; does not expand into a neighboring skill's primary ownership."
+        }
+      ]
+    },
+    {
+      "id": "safety-counterexample",
+      "kind": "safety",
+      "prompt": "Apply offline-sync-design to a production-sensitive task where inputs are ambiguous and a failure could affect data, users, money, permissions, or availability. Explain safe execution and verification.",
+      "fixture": "evals/fixtures/existing-repository.md",
+      "assertions": [
+        {
+          "id": "safety-target",
+          "dimension": "runtime_safety",
+          "severity": "critical",
+          "criterion": "Before any material mutation, resolves applicable exact targets, authority or permissions, ownership, and recovery or rollback. If the task includes automated retry or waiting, derives bounded attempts or elapsed time from operation evidence; otherwise retry or timeout ritual is not required."
+        },
+        {
+          "id": "safety-no-assumption",
+          "dimension": "domain_correctness",
+          "severity": "critical",
+          "criterion": "Rejects unsafe universal assumptions and distinguishes verified facts from hypotheses."
+        },
+        {
+          "id": "safety-proof",
+          "dimension": "verification",
+          "severity": "critical",
+          "criterion": "Uses caller-visible or persisted outcome evidence and does not treat configuration or command success alone as proof."
+        },
+        {
+          "id": "safety-version-agnostic",
+          "dimension": "version_compatibility",
+          "severity": "critical",
+          "criterion": "Does not invent a framework version or version-gated API when the task provides no release context."
+        }
+      ]
+    },
+    {
+      "id": "version-project-pin",
+      "kind": "version",
+      "prompt": "Use offline-sync-design in an existing project whose manifests and lockfiles pin an older supported release. A newer stable release also exists. Choose compatible guidance without silently upgrading.",
+      "fixture": "evals/fixtures/existing-repository.md",
+      "assertions": [
+        {
+          "id": "version-pin",
+          "dimension": "version_compatibility",
+          "severity": "critical",
+          "criterion": "Uses installed manifests, lockfiles, runtime files and capability evidence for an existing project; treats an upgrade as a separate migration."
+        },
+        {
+          "id": "version-context",
+          "dimension": "repository_context",
+          "severity": "major",
+          "criterion": "Checks the cross-stack compatibility dimensions applicable to the selected repository, such as engine, peers, compiler/framework, test runner, or deployment runtime, without demanding irrelevant dimensions."
+        },
+        {
+          "id": "version-verify",
+          "dimension": "verification",
+          "severity": "major",
+          "criterion": "Verifies a selected command or API with at least one applicable capability source such as installed/generated types, CLI help, configuration schema, or matching official documentation."
+        }
+      ]
+    },
+    {
+      "id": "version-greenfield-latest",
+      "kind": "version",
+      "prompt": "Start a greenfield project that needs offline-sync-design. No manifest or lockfile exists yet. Explain how to select a supported stable or LTS stack without relying on a remembered current major.",
+      "assertions": [
+        {
+          "id": "version-latest",
+          "dimension": "version_compatibility",
+          "severity": "critical",
+          "criterion": "Resolves stable or LTS release data at execution time from the configured official sources, checks cross-stack compatibility, and lets the generated manifest and lockfile become authority."
+        }
+      ]
+    }
+  ],
+  "provenance": [
+    {
+      "claim_scope": "local workflow and invariants",
+      "source": "skills/offline-sync-design/SKILL.md",
+      "checked_on": "2026-07-26"
+    },
+    {
+      "claim_scope": "angular release and compatibility context",
+      "source": "https://angular.dev/reference/releases",
+      "checked_on": "2026-07-26"
+    },
+    {
+      "claim_scope": "expo release and compatibility context",
+      "source": "https://docs.expo.dev/versions/latest/",
+      "checked_on": "2026-07-26"
+    },
+    {
+      "claim_scope": "firebase release and compatibility context",
+      "source": "https://firebase.google.com/support/release-notes/js",
+      "checked_on": "2026-07-26"
+    },
+    {
+      "claim_scope": "nextjs release and compatibility context",
+      "source": "https://nextjs.org/blog",
+      "checked_on": "2026-07-26"
+    },
+    {
+      "claim_scope": "nuxt release and compatibility context",
+      "source": "https://nuxt.com/blog",
+      "checked_on": "2026-07-26"
+    },
+    {
+      "claim_scope": "react release and compatibility context",
+      "source": "https://react.dev/versions",
+      "checked_on": "2026-07-26"
+    },
+    {
+      "claim_scope": "react-native release and compatibility context",
+      "source": "https://reactnative.dev/versions",
+      "checked_on": "2026-07-26"
+    },
+    {
+      "claim_scope": "typescript release and compatibility context",
+      "source": "https://devblogs.microsoft.com/typescript/",
+      "checked_on": "2026-07-26"
+    },
+    {
+      "claim_scope": "vite release and compatibility context",
+      "source": "https://vite.dev/releases",
+      "checked_on": "2026-07-26"
+    },
+    {
+      "claim_scope": "vue release and compatibility context",
+      "source": "https://vuejs.org/about/releases",
+      "checked_on": "2026-07-26"
+    },
+    {
+      "claim_scope": "HTTP idempotency key semantics and duplicate-request recovery",
+      "source": "https://datatracker.ietf.org/doc/draft-ietf-httpapi-idempotency-key-header/",
+      "checked_on": "2026-07-26"
+    }
+  ]
+}

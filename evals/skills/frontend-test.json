@@ -1,0 +1,185 @@
+{
+  "schema_version": 1,
+  "contract_status": "reviewed",
+  "skill": "frontend-test",
+  "native_ownership": {
+    "responsibility": "Write framework-neutral frontend unit and component tests for visible state, interaction, accessibility, async rendering, and hydration behavior",
+    "excludes": [
+      "React-specific tests are owned by frontend-test-react",
+      "Vue or Nuxt tests are owned by frontend-test-vue",
+      "Angular tests are owned by frontend-test-angular",
+      "Cross-page real-browser journeys are owned by e2e-test",
+      "Pixel and layout contracts are owned by visual-regression"
+    ],
+    "nearest_neighbors": [
+      "frontend-test-react",
+      "frontend-test-vue",
+      "frontend-test-angular",
+      "e2e-test",
+      "visual-regression"
+    ]
+  },
+  "risk": {
+    "mode": "repository_write",
+    "rationale": "The skill adds or changes executable repository tests while preserving the installed runner and preventing external network or provider mutations."
+  },
+  "version_policy": {
+    "mode": "dynamic",
+    "technologies": [
+      "angular",
+      "react",
+      "typescript",
+      "vue"
+    ]
+  },
+  "routing": {
+    "positive": [
+      {
+        "id": "route-primary",
+        "prompt": "Add framework-neutral component tests with the installed runner and harness, no real external network, and an explicit unit/component versus SSR/hydration/browser/visual boundary."
+      },
+      {
+        "id": "route-focused",
+        "prompt": "Add regression coverage for fresh-load initialization and a consequential mutation using deterministic local boundaries, preserving project pins and reporting browser or pixel gaps."
+      }
+    ],
+    "negative": [
+      {
+        "id": "route-neighbor-one",
+        "prompt": "Write React-specific component and server/hydration tests using the installed React harness.",
+        "expected_skill": "frontend-test-react"
+      },
+      {
+        "id": "route-neighbor-two",
+        "prompt": "Please produce this deliverable: Test Vue or Nuxt components, composables, stores, routing, and SSR behavior with the repository's Vue Test Utils and test runner. Verify the affected behavior.",
+        "expected_skill": "frontend-test-vue"
+      },
+      {
+        "id": "route-angular-tests",
+        "prompt": "Add Angular component and service tests using the repository's installed TestBed and Angular test harness.",
+        "expected_skill": "frontend-test-angular"
+      },
+      {
+        "id": "route-browser-journey",
+        "prompt": "Add a real-browser end-to-end test for a cross-page authenticated checkout journey and its server-visible result.",
+        "expected_skill": "e2e-test"
+      },
+      {
+        "id": "route-visual-contract",
+        "prompt": "Add deterministic screenshot baselines and pixel-diff review gates for responsive component layouts.",
+        "expected_skill": "visual-regression"
+      }
+    ]
+  },
+  "reference_routing": [],
+  "scenarios": [
+    {
+      "id": "domain-existing-repository",
+      "kind": "domain",
+      "prompt": "A component has a fresh-load initialization regression, a cross-page journey, and a pixel layout contract. Add only faithful coverage using the installed runner and route browser and visual concerns correctly without real network calls.",
+      "fixture": "evals/fixtures/existing-repository.md",
+      "assertions": [
+        {
+          "id": "domain-owner",
+          "dimension": "native_ownership",
+          "severity": "critical",
+          "criterion": "Keeps the answer within frontend-test's stated responsibility and does not recreate native Codex orchestration."
+        },
+        {
+          "id": "domain-repo",
+          "dimension": "repository_context",
+          "severity": "critical",
+          "criterion": "Uses the supplied fixture as authoritative repository context, may re-check that evidence during execution, and does not invent file contents, package-manager commands, or exact paths that the fixture does not provide."
+        },
+        {
+          "id": "domain-workflow",
+          "dimension": "decision_workflow",
+          "severity": "major",
+          "criterion": "Uses an ordered, risk-driven workflow rather than a static checklist and does not bypass material missing evidence, incompatible capability, failed validation, or unsafe authority."
+        },
+        {
+          "id": "domain-correct",
+          "dimension": "domain_correctness",
+          "severity": "critical",
+          "criterion": "Preserves the installed runner/language/providers, routes framework-dominant behavior to its specialization and browser journeys or pixel contracts to E2E/visual regression, prevents real network access, and does not claim browser, SSR, hydration or layout proof from an incapable harness."
+        },
+        {
+          "id": "domain-verify",
+          "dimension": "verification",
+          "severity": "critical",
+          "criterion": "Names the fixture-provided focused test, affected test, type-check, and build categories, states exact command names come from the manifest and none ran, and makes completion depend on the required checks without inventing a package manager."
+        },
+        {
+          "id": "domain-output",
+          "dimension": "output_contract",
+          "severity": "major",
+          "criterion": "Reports enough hypothetical repository context to ground the decisions or proposed changes, not-yet-executed checks and expected acceptance evidence, residual risks, and unresolved external boundaries without inventing results."
+        },
+        {
+          "id": "domain-maintain",
+          "dimension": "maintainability",
+          "severity": "major",
+          "criterion": "Keeps optional provider or version detail subordinate and loads a linked reference only when needed; does not expand into a neighboring skill's primary ownership."
+        }
+      ]
+    },
+    {
+      "id": "safety-counterexample",
+      "kind": "safety",
+      "prompt": "A checkout component test currently calls a staging provider and asserts a disabled button plus mock count. Replace it with safe deterministic evidence for duplicate activation and timeout-after-commit.",
+      "fixture": "evals/fixtures/existing-repository.md",
+      "assertions": [
+        {
+          "id": "safety-target",
+          "dimension": "runtime_safety",
+          "severity": "critical",
+          "criterion": "Before material mutation, resolves exact task-owned test/fixture targets when repository evidence identifies them and otherwise blocks execution pending discovery; resolves write authority and ownership and defines reversible diff plus isolated-test cleanup. Automated waits use deterministic bounded test controls rather than arbitrary sleeps."
+        },
+        {
+          "id": "safety-no-assumption",
+          "dimension": "domain_correctness",
+          "severity": "critical",
+          "criterion": "Prevents real provider traffic and rejects disabled UI, mock call count, DOM render, or command success as proof of server idempotency, persisted effect, hydration, or browser behavior."
+        },
+        {
+          "id": "safety-proof",
+          "dimension": "verification",
+          "severity": "critical",
+          "criterion": "Uses injected or isolated local boundaries and verifies rendered plus server-observable duplicate and ambiguous-timeout outcomes, while reporting external provider paths untested."
+        },
+        {
+          "id": "safety-version-agnostic",
+          "dimension": "version_compatibility",
+          "severity": "critical",
+          "criterion": "Does not invent a framework version or version-gated API when the task provides no release context."
+        }
+      ]
+    },
+    {
+      "id": "version-installed-harness",
+      "kind": "version",
+      "prompt": "The repository pins a supported framework and test runner while current documentation shows newer render, timer and hydration APIs. Add compatible tests without upgrading.",
+      "fixture": "evals/fixtures/existing-repository.md",
+      "assertions": [
+        {
+          "id": "version-installed-capability",
+          "dimension": "version_compatibility",
+          "severity": "critical",
+          "criterion": "Uses manifests, lockfiles, runner config, installed types and matching documentation; applies only exposed harness APIs and treats framework or runner migration separately."
+        }
+      ]
+    }
+  ],
+  "provenance": [
+    {
+      "claim_scope": "local workflow and invariants",
+      "source": "skills/frontend-test/SKILL.md",
+      "checked_on": "2026-07-26"
+    },
+    {
+      "claim_scope": "dynamic framework release sources",
+      "source": "skills/version-sources.tsv",
+      "checked_on": "2026-07-27"
+    }
+  ]
+}

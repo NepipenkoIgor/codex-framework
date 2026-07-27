@@ -1,123 +1,53 @@
 ---
 name: datagrid-patterns
-description: Data table and grid architecture — pagination strategy, scrolling, sorting, filtering, inline editing, batch operations, column management, and export
+description: Implement large interactive tables and grids with server query contracts, selection, editing, batch actions, export safety, concurrency, and accessible semantics. Use when grid interaction and data semantics are primary; do not use for general dashboard reporting.
 metadata:
-  version: 2.2
-  argument-hint: "row count (100 / 1K / 10K+ rows), required features (edit/batch/export), framework"
+  owner: codex-framework
+  reviewed: "2026-07-26"
+  version: 2.3
+  argument-hint: "dataset, query/snapshot semantics, actions, authorization, accessibility, export requirements"
 ---
 
-Design data table architecture for $ARGUMENTS with appropriate performance and feature patterns.
+# Datagrid Patterns
 
+Generate stack context with `python3 scripts/framework-stack-context.py project <path>`, then inspect the framework adapter, installed grid/table core, API contract, row identity/versioning, authorization rules, dataset scale, export consumers/formats, browser targets, generated DOM and installed test harness as one compatibility unit. For greenfield work resolve the selected stack with `python3 scripts/framework-stack-context.py latest <technologies...>`. Verify version-specific APIs against installed types, observed DOM and matching official docs; keep a capability fallback and treat grid-package migration as separate scope.
 
-## Table Architecture Choice
+## Choose Semantics First
 
-Choose based on row count and feature complexity:
+- Use a native HTML table for read-oriented tabular data and ordinary links/buttons. Do not add `role="grid"` merely for styling.
+- Use the ARIA grid pattern only for a composite application widget with deliberate cell/row navigation, a single managed tab stop, focus persistence, selection semantics, and tested keyboard behavior. Virtualization must preserve logical row/column metadata and announcements.
+- Define stable row identity separately from display position. Sorting, filtering, pagination, selection, and edits operate on IDs and row versions, never indexes.
 
-| Approach | Best for | Complexity |
-|----------|----------|------------|
-| Plain HTML + CSS | <100 rows, display-only | Low |
-| Headless (TanStack Table) | Custom styling, any framework, 100-10K rows | Medium |
-| Full grid (AG Grid) | Enterprise, Excel-like, 10K+ rows, pivoting/grouping | High |
-| Framework-native | PrimeNG, MudBlazor, Vuetify, NativeScript | Medium |
+## Server Contract
 
-Decision matrix:
-- <100 rows, simple → HTML table
-- Custom styled, moderate interaction → TanStack Table
-- Excel-like editing, grouping, pivoting → AG Grid
-- Already using component library → use theirs
+Choose native-table versus composite ARIA-grid semantics before selecting rendering or interaction APIs, then define the following server contracts. Server query, snapshot, authorization and mutation semantics remain independent of the selected grid rendering library.
 
-## Pagination Strategy
+1. Specify allowed sort/filter fields, null/collation/time-zone semantics, deterministic tie-breakers, pagination/cursor behavior, total-count meaning, and query limits.
+2. Define whether a multi-page selection means explicit IDs, current-query membership, or a frozen dataset snapshot. For query-wide actions/export, persist a normalized query plus an authoritative snapshot/version/token; do not reinterpret it against a changed dataset silently.
+3. Reauthorize every row and action server-side. A selected row set from the browser is not permission evidence. Destructive actions also compare the authoritative row version or equivalent concurrency token captured by the operation; stale rows conflict rather than being silently deleted. Return per-row accepted/rejected/conflict outcomes without leaking inaccessible row existence.
+4. Protect inline edits with row versions or another concurrency contract. Preserve user input on conflict and offer an explicit refresh/merge/retry path.
+5. Batch actions need operation identity, bounded chunking, cancellation semantics, progress based on durable outcomes, and a partial-failure model. Bind the exact tenant to the frozen selection and require consequence-appropriate destructive confirmation before execution; confirmation never replaces server authorization. Avoid presenting an ambiguous timeout as total failure or retrying the whole batch blindly.
 
-| Strategy | Best for | Note |
-|----------|----------|------|
-| Offset-based | <100K rows, simple use cases | Page 1, 2, 3... |
-| Cursor-based | 100K+ rows, real-time data | More scalable, harder to skip |
-| No pagination (virtual scroll) | 10K+ rows same session | Render only visible |
+## Export Safety
 
-## Sorting & Filtering
+- Export from the authorized server-side dataset/snapshot, not whatever rows happen to be rendered.
+- Treat spreadsheet formulas as executable content. For CSV/TSV intended for spreadsheet software, neutralize cells whose interpreted value can begin with formula/control syntax according to the chosen consumer and documented policy; quoting alone is not a universal defense. Test round trips in supported consumers.
+- Apply field-level authorization, redaction, locale/encoding/newline rules, auditability, size limits, and asynchronous delivery where required. Prevent download URLs from becoming cross-tenant bearer leaks.
 
-- **Sorting:** Server-side for API; reset page to 1 on sort change; multi-column support `sort=name:asc,date:desc`
-- **Filtering:** Per-column with chips; debounce text 300ms; operators for dates/numbers `filter[amount][gte]=100`
-- **Reset:** Button to clear all filters and sorts back to defaults
+## Verification
 
-## Row Selection & Batch Operations
+- Stable sort and pagination under inserts/deletes; filter normalization; empty/large datasets; snapshot expiry; count semantics.
+- Selection across pages and filters; permission and row-version changes; mixed authorized/unauthorized rows; partial batch failure; cancel/retry; timeout after commit; concurrent edits. Prove persisted per-row outcomes, snapshot accounting, protected audit evidence and caller-visible reconciliation for destructive batches.
+- Native table and grid variants with keyboard, screen reader, focus after virtualized row removal, sticky regions, zoom, and responsive alternatives.
+- CSV formula/control payloads, separators, quotes, Unicode, newlines, redacted fields, large export, and supported spreadsheet consumers.
+- Focused unit/integration/browser tests and persisted server outcomes. Report library/browser limitations separately.
 
-- Checkbox column with "select all on page" + "select all matching filters"
-- Confirmation dialog for destructive batch actions
-- Progress indicator for long-running operations
-- Deselect all after operation completes
+## Output Contract
 
-## Inline Editing
+- Query, identity, snapshot, selection, edit, and batch contracts
+- Authorization and export threat model
+- Chosen native-table or ARIA-grid semantics
+- Tests and observable results
+- Residual scale, consumer, and assistive-technology risks
 
-- Click to enter edit, Enter/blur to save, Escape to cancel
-- Show save indicator during mutation
-- Revert to original on error
-- Disable other row editing while one is saving
-
-## Column Management (Optional)
-
-- Column visibility toggle (checkbox per column)
-- Drag-to-reorder columns
-- Resize by dragging header edge
-- Persist preferences in localStorage per table ID
-- "Reset to defaults" button
-
-## Export Options
-
-- **CSV:** With UTF-8 BOM for Excel compatibility
-- **Excel:** Formatted, colored headers, proper column widths
-- **PDF:** For complex layouts, use server-side rendering
-- **Large exports:** Background job → poll for completion → download from presigned URL
-
-## Virtual Scrolling (10K+ rows)
-
-- TanStack Virtual for React, framework-native for others
-- Set estimateSize to actual row height
-- Use overscan: 5-15 to prevent blank spaces
-- Sticky header requires fixed container height
-
-## Responsive Design
-
-- **Desktop:** Horizontal scroll with sticky first column
-- **Tablet:** Horizontal scroll, hide non-critical columns
-- **Mobile:** Card view per row, one column per card
-- Sticky first column on scroll for row context
-
-## Accessibility Requirements
-
-- ARIA roles: `role="grid"`, `role="row"`, `role="columnheader"`, `role="gridcell"`
-- Keyboard: Tab/Shift-Tab, arrow keys, Enter to activate, Space to select
-- Screen reader: Announce sort changes, filter count, selection count
-- `aria-sort` on headers, `aria-rowindex` for virtual rows
-
-## Performance Targets
-
-| Row Count | Strategy | Expected Load |
-|-----------|----------|----------------|
-| <100 | Render all | <100ms |
-| 100-1K | Client pagination | <300ms |
-| 1K-10K | Virtual scrolling | <500ms |
-| 10K+ | Server-side + virtual | <1s per page |
-
-## Anti-Patterns to Avoid
-
-1. Re-creating column defs on every render (kills virtualization)
-2. Select all without confirmation (accidental bulk operations)
-3. CSV without BOM (garbled non-ASCII)
-4. Not resetting pagination on filter/sort (wrong results)
-5. No sticky column on horizontal scroll (lose row context)
-
-## Architecture Done Criteria
-
-- Table library chosen for row count and features
-- Pagination strategy decided (offset vs cursor)
-- Sorting/filtering architecture clear (client vs server)
-- Column management plan (visibility, reorder, resize, persist)
-- Inline editing approach (cell or row)
-- Batch operation strategy with confirmation
-- Export formats decided (CSV, Excel, PDF)
-- Virtual scrolling for 10K+ rows
-- Responsive strategy for mobile (scroll vs card)
-- Accessibility audit planned (ARIA, keyboard, screen reader)
-
-> For extended implementation patterns, ask to invoke `/datagrid-patterns-implement` on demand.
+Official foundations: [WAI-ARIA APG Grid Pattern](https://www.w3.org/WAI/ARIA/apg/patterns/grid/) and [OWASP CSV Injection](https://owasp.org/www-community/attacks/CSV_Injection).

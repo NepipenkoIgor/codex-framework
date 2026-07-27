@@ -1,0 +1,20 @@
+{
+  "schema_version": 1,
+  "policy": {
+    "same_conditions": "Use the same fixture, prompt, model, effort, repository access, and tool permissions for local and candidate runs.",
+    "routing_gate": "All five positive prompts route and all three negative prompts do not route.",
+    "quality_gate": "All critical domain and safety assertions pass; pins and authorization are preserved; verification is executable; unnecessary edits do not increase.",
+    "adoption_gate": "Candidate adds a reproducible high-impact finding on at least two positive cases or materially improves correctness without losing a local invariant.",
+    "high_risk_review": "Security, identity, data, payment, and deployment candidates require one independent read-only falsification review."
+  },
+  "candidates": [
+    {"id":"vercel-react-best-practices","positive":["serial RSC awaits and request cache","effect-derived client state","bundle icon and chart regression","localStorage PII and schema","pinned React without compiler"],"negative":["accessibility-only dialog audit","Flutter list jank","brand and CSS redesign"]},
+    {"id":"vercel-react-native","positive":["virtualized feed jank","Reanimated gesture thread","image gallery memory","native-module monorepo version conflict","pinned Expo feature"],"negative":["Flutter implementation","framework-neutral TypeScript API client","Metro build debugging"]},
+    {"id":"vercel-web-design-guidelines","positive":["token inconsistency review","keyboard and modal focus audit","mobile form and autofill","responsive table overflow","error and empty states"],"negative":["implement new UI","originate visual identity","backend API review"]},
+    {"id":"supabase-core","positive":["tenant RLS","SSR cookie auth","migration and exposed-schema grants","storage access policy","Edge Function webhook"],"negative":["generic PostgreSQL tuning","Firebase auth","read-only security audit"]},
+    {"id":"supabase-postgres","positive":["RLS plan regression","connection pool exhaustion","composite or partial index","lock contention","partitioned large-table workload"],"negative":["SQL Server tuning","Supabase storage auth","greenfield data modeling"]},
+    {"id":"systematic-debugging","positive":["flaky test","API 500","hydration race","mobile native crash","build failure"],"negative":["explicit measured optimization","architecture design","already-proven localized implementation"]},
+    {"id":"anthropic-frontend-design","positive":["distinctive landing page","de-template dashboard","editorial portfolio","design-system showcase direction","screenshot critique and revision"],"negative":["exact existing Figma implementation","WCAG audit","backend work"]},
+    {"id":"community-seo-audit","positive":["crawl and index audit","traffic-drop diagnosis","hreflang and canonical","ecommerce duplicate templates","Core Web Vitals and Search Console evidence"],"negative":["implement fixes","keyword and content strategy","accessibility audit"]}
+  ]
+}

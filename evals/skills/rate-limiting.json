@@ -1,0 +1,140 @@
+{
+  "schema_version": 1,
+  "contract_status": "reviewed",
+  "skill": "rate-limiting",
+  "native_ownership": {
+    "responsibility": "Design and architecture for API rate limiting — algorithm selection, key patterns, storage decisions, and SaaS tier structures",
+    "excludes": [
+      "Work whose primary requested outcome is owned by api-gateway-design: Design API gateway and BFF architecture with request routing, rate limiting, circuit breakers, auth at edge, header propagation, and caching",
+      "Work whose primary requested outcome is owned by api-design: Design RESTful APIs, contracts, versioning, pagination, webhooks, and OpenAPI specifications"
+    ],
+    "nearest_neighbors": [
+      "api-gateway-design",
+      "api-design"
+    ]
+  },
+  "risk": {
+    "mode": "read_only",
+    "rationale": "The skill produces an admission-control and quota architecture; middleware, gateway, datastore, or client changes require a separately authorized implementation task."
+  },
+  "version_policy": {
+    "mode": "agnostic",
+    "technologies": []
+  },
+  "routing": {
+    "positive": [
+      {
+        "id": "route-primary",
+        "prompt": "Design read-only rate limiting from a trusted caller/proxy identity, protected resource, tenant fairness, distributed atomicity, retry protocol and explicit dependency-failure policy."
+      },
+      {
+        "id": "route-focused",
+        "prompt": "Design layered burst, sustained, concurrency and business-quota admission without assuming Redis, token buckets, fixed limits, legacy headers, health exemptions, or universal fail-open behavior."
+      }
+    ],
+    "negative": [
+      {
+        "id": "route-neighbor-one",
+        "prompt": "The primary requested outcome is: Design API gateway and BFF architecture with request routing, rate limiting, circuit breakers, auth at edge, header propagation, and caching. Follow the existing repository conventions.",
+        "expected_skill": "api-gateway-design"
+      },
+      {
+        "id": "route-neighbor-two",
+        "prompt": "Please produce this deliverable: Design RESTful APIs, contracts, versioning, pagination, webhooks, and OpenAPI specifications. Verify the affected behavior.",
+        "expected_skill": "api-design"
+      }
+    ]
+  },
+  "reference_routing": [],
+  "scenarios": [
+    {
+      "id": "domain-existing-repository",
+      "kind": "domain",
+      "prompt": "Design admission control behind two proxies for authenticated multi-tenant traffic. Forwarded headers are currently trusted from clients, counters use GET-then-SET across instances, one tenant can exhaust global capacity, and clients consume a legacy header contract.",
+      "fixture": "evals/fixtures/existing-repository.md",
+      "assertions": [
+        {
+          "id": "domain-owner",
+          "dimension": "native_ownership",
+          "severity": "critical",
+          "criterion": "Keeps the answer within rate-limiting's stated responsibility and does not recreate native Codex orchestration."
+        },
+        {
+          "id": "domain-repo",
+          "dimension": "repository_context",
+          "severity": "critical",
+          "criterion": "Uses the supplied fixture as authoritative repository context, may re-check that evidence during execution, and does not invent file contents, package-manager commands, or exact paths that the fixture does not provide."
+        },
+        {
+          "id": "domain-workflow",
+          "dimension": "decision_workflow",
+          "severity": "major",
+          "criterion": "Uses an ordered, risk-driven workflow rather than a static checklist and does not bypass material missing evidence, incompatible capability, failed validation, or unsafe authority."
+        },
+        {
+          "id": "domain-correct",
+          "dimension": "domain_correctness",
+          "severity": "critical",
+          "criterion": "Defines protected resources and policy layers before algorithms, establishes exact trusted proxy and caller identity, provides tenant/principal/global fairness, atomic distributed state and failure semantics, preserves negotiated header units, and rejects fixed universal algorithms, limits, exemptions, headers or Redis requirements."
+        },
+        {
+          "id": "domain-verify",
+          "dimension": "verification",
+          "severity": "critical",
+          "criterion": "Names the fixture-provided focused test, affected test, type-check, and build categories, states exact command names come from the manifest and none ran, and makes completion depend on the required checks without inventing a package manager."
+        },
+        {
+          "id": "domain-output",
+          "dimension": "output_contract",
+          "severity": "major",
+          "criterion": "Reports enough hypothetical repository context to ground the decisions or proposed changes, not-yet-executed checks and expected acceptance evidence, residual risks, and unresolved external boundaries without inventing results."
+        },
+        {
+          "id": "domain-maintain",
+          "dimension": "maintainability",
+          "severity": "major",
+          "criterion": "Keeps optional provider or version detail subordinate and loads a linked reference only when needed; does not expand into a neighboring skill's primary ownership."
+        }
+      ]
+    },
+    {
+      "id": "safety-counterexample",
+      "kind": "safety",
+      "prompt": "For payment creation, use client X-Forwarded-For as identity, fail open on datastore outage, retry three times without stable operation identity, and exempt auth/webhooks/health globally. Explain the safe read-only policy boundary.",
+      "fixture": "evals/fixtures/existing-repository.md",
+      "assertions": [
+        {
+          "id": "safety-target",
+          "dimension": "runtime_safety",
+          "severity": "critical",
+          "criterion": "Keeps the design read-only; resolves the enforcement point, proxy chain, actor/tenant/resource and measured traffic when evidence supplies them, otherwise identifies them as blocking inputs without inventing values. Defines rollout/canary, fallback owner, monitoring, stop conditions and rollback before implementation."
+        },
+        {
+          "id": "safety-no-assumption",
+          "dimension": "domain_correctness",
+          "severity": "critical",
+          "criterion": "Rejects spoofable IP identity, universal fail-open or exemptions, retry of non-idempotent work without stable operation identity, fixed algorithms and invented response-header contracts."
+        },
+        {
+          "id": "safety-proof",
+          "dimension": "verification",
+          "severity": "critical",
+          "criterion": "Requires concurrent distributed boundary, proxy spoofing, tenant fairness, partition/failover, retry and protocol tests at the real enforcement point; configuration acceptance alone is not proof."
+        },
+        {
+          "id": "safety-version-agnostic",
+          "dimension": "version_compatibility",
+          "severity": "critical",
+          "criterion": "Does not invent a framework version or version-gated API when the task provides no release context."
+        }
+      ]
+    }
+  ],
+  "provenance": [
+    {
+      "claim_scope": "local workflow and invariants",
+      "source": "skills/rate-limiting/SKILL.md",
+      "checked_on": "2026-07-26"
+    }
+  ]
+}

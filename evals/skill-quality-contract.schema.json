@@ -1,0 +1,108 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "contract_status", "skill", "native_ownership", "risk", "version_policy", "routing", "reference_routing", "scenarios", "provenance"],
+  "properties": {
+    "schema_version": { "const": 1 },
+    "contract_status": { "enum": ["scaffold", "reviewed"] },
+    "skill": { "type": "string", "minLength": 1 },
+    "native_ownership": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["responsibility", "excludes", "nearest_neighbors"],
+      "properties": {
+        "responsibility": { "type": "string", "minLength": 20 },
+        "excludes": { "type": "array", "minItems": 1, "items": { "type": "string", "minLength": 1 } },
+        "nearest_neighbors": { "type": "array", "minItems": 1, "items": { "type": "string", "minLength": 1 } }
+      }
+    },
+    "risk": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["mode", "rationale"],
+      "properties": {
+        "mode": { "enum": ["read_only", "repository_write", "external_write", "destructive"] },
+        "rationale": { "type": "string", "minLength": 20 }
+      }
+    },
+    "version_policy": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["mode", "technologies"],
+      "properties": {
+        "mode": { "enum": ["agnostic", "dynamic", "project_pinned"] },
+        "technologies": { "type": "array", "items": { "type": "string", "minLength": 1 } }
+      }
+    },
+    "routing": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["positive", "negative"],
+      "properties": {
+        "positive": { "type": "array", "minItems": 2, "items": { "$ref": "#/$defs/positive" } },
+        "negative": { "type": "array", "minItems": 2, "items": { "$ref": "#/$defs/negative" } }
+      }
+    },
+    "reference_routing": {
+      "type": "array",
+      "items": {
+        "type": "object", "additionalProperties": false, "required": ["id", "prompt", "expected", "forbidden"],
+        "properties": {
+          "id": { "type": "string", "minLength": 1 },
+          "prompt": { "type": "string", "minLength": 20 },
+          "expected": { "type": "array", "items": { "type": "string", "minLength": 1 } },
+          "forbidden": { "type": "array", "items": { "type": "string", "minLength": 1 } }
+        }
+      }
+    },
+    "scenarios": {
+      "type": "array",
+      "minItems": 2,
+      "items": { "$ref": "#/$defs/scenario" }
+    },
+    "provenance": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["claim_scope", "source", "checked_on"],
+        "properties": {
+          "claim_scope": { "type": "string", "minLength": 1 },
+          "source": { "type": "string", "minLength": 1 },
+          "checked_on": { "type": "string", "pattern": "^\\d{4}-\\d{2}-\\d{2}$" }
+        }
+      }
+    }
+  },
+  "$defs": {
+    "positive": {
+      "type": "object", "additionalProperties": false, "required": ["id", "prompt"],
+      "properties": { "id": { "type": "string" }, "prompt": { "type": "string", "minLength": 20 } }
+    },
+    "negative": {
+      "type": "object", "additionalProperties": false, "required": ["id", "prompt", "expected_skill"],
+      "properties": { "id": { "type": "string" }, "prompt": { "type": "string", "minLength": 20 }, "expected_skill": { "type": "string" } }
+    },
+    "scenario": {
+      "type": "object", "additionalProperties": false, "required": ["id", "kind", "prompt", "assertions"],
+      "properties": {
+        "id": { "type": "string" },
+        "kind": { "enum": ["domain", "safety", "version"] },
+        "prompt": { "type": "string", "minLength": 20 },
+        "fixture": { "type": "string" },
+        "assertions": { "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/assertion" } }
+      }
+    },
+    "assertion": {
+      "type": "object", "additionalProperties": false, "required": ["id", "dimension", "severity", "criterion"],
+      "properties": {
+        "id": { "type": "string" },
+        "dimension": { "enum": ["native_ownership", "routing", "repository_context", "decision_workflow", "domain_correctness", "runtime_safety", "version_compatibility", "verification", "output_contract", "maintainability"] },
+        "severity": { "enum": ["critical", "major"] },
+        "criterion": { "type": "string", "minLength": 10 }
+      }
+    }
+  }
+}

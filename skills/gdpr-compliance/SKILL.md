@@ -1,233 +1,88 @@
 ---
 name: gdpr-compliance
-description: GDPR/privacy compliance for SaaS — subject access requests (SAR), right to erasure, data export, consent logging, cookie consent, data retention policies. Not legal advice — engineering patterns only.
+description: Implement engineering controls for data-subject requests, consent evidence, retention, erasure, portability, processor coordination, and privacy evidence. Use when a product must operationalize an approved privacy/legal policy; do not use as legal advice or as a substitute for a data inventory and counsel decision.
 metadata:
-  version: 1.0
+  owner: codex-framework
+  reviewed: "2026-07-26"
+  version: 2.0
   domain: backend
-  keywords: [GDPR, privacy, SAR, subject access request, right to erasure, right to be forgotten, data export, consent, cookie consent, data retention, PII, CCPA, data deletion, privacy request]
+  keywords: [GDPR, privacy, SAR, subject access request, erasure, portability, consent, retention, PII, processor, legal hold]
 ---
 
-# GDPR Compliance
+# Privacy Rights Engineering
 
-> Engineering patterns only. Always have legal review your privacy policy and DPA.
+Engineering patterns only. Legal counsel or the accountable privacy function owns applicability, lawful basis, exemptions, deadlines, retention, and notices.
 
-## Subject Access Request (SAR) — Data Export
+## Repository Discovery
 
-```typescript
-// Export all PII for a user across all tables
-async function handleSAR(userId: string, requestedBy: string) {
-  await auditLog({ action: 'privacy.sar_requested', actorId: requestedBy, meta: { subjectId: userId } });
+Start from the approved record of processing/data map. Trace identifiers and personal data across primary databases, identity systems, object storage, caches, search, analytics, data warehouse/lake, logs, backups, queues/dead letters, support tools, email/CRM, billing, and every processor/subprocessor. Record controller/processor ownership, region, purpose/legal basis, retention rule, deletion/export API, backup behavior, and evidence owner. A hard-coded table list is not proof of completeness.
 
-  const data = await collectUserData(userId);
-  const exportFile = await generateExportFile(data);
+## Request State Machine
 
-  // Deliver securely — password-protected zip or signed URL (short TTL)
-  const signedUrl = await storage.createSignedUrl(exportFile, { expiresIn: '7d' });
-  await email.send({ to: data.user.email, template: 'sar-ready', data: { downloadUrl: signedUrl } });
+Model each request durably:
 
-  await auditLog({ action: 'privacy.sar_delivered', actorId: requestedBy, meta: { subjectId: userId } });
-}
-
-async function collectUserData(userId: string) {
-  // Collect from every table that stores PII — keep this list current
-  const [user, profile, orders, events, auditLogs, sessions] = await Promise.all([
-    db.users.findById(userId),
-    db.profiles.findOne({ userId }),
-    db.orders.findMany({ userId }),
-    db.analyticsEvents.findMany({ userId }, { limit: 10000 }),
-    db.auditLogs.findMany({ actorId: userId }),
-    db.sessions.findMany({ userId }),
-  ]);
-
-  return { user, profile, orders, events, auditLogs, sessions };
-}
-
-async function generateExportFile(data: UserData): Promise<string> {
-  const json = JSON.stringify(data, null, 2);
-  const path = `exports/sar-${data.user.id}-${Date.now()}.json`;
-  await storage.upload(path, Buffer.from(json), { contentType: 'application/json' });
-  return path;
-}
+```text
+received -> identity_pending -> scoped -> approved|refused
+         -> executing -> partial_retry|blocked_by_hold -> verified -> delivered -> closed
 ```
 
-## Right to Erasure (Right to be Forgotten)
+- Verify identity proportionately before revealing or erasing data; minimize and promptly dispose of extra verification evidence.
+- Store request type, subject identifiers, authority/representative evidence, received date, policy-derived due date, extension/escalation, scope, legal decisions, per-system steps, attempts, artifacts, reviewer, and timestamps.
+- Respond without undue delay and use the approved policy for the one-month rule and permitted extension; never encode “30 days” as universal legal logic.
+- A refusal or partial fulfillment records the approved reason and notification/escalation requirements.
 
-```typescript
-async function handleErasureRequest(userId: string, requestedBy: string) {
-  const user = await db.users.findById(userId);
+## Durable Per-System Execution
 
-  // Pre-erasure checks
-  const openInvoices = await db.invoices.findMany({ userId, status: 'open' });
-  if (openInvoices.length > 0) {
-    throw new ConflictError('Cannot erase account with outstanding invoices — resolve billing first');
-  }
+Create one idempotent step per data store and processor. Each step has `pending/running/succeeded/failed/not_applicable/retained`, an idempotency key, attempts, evidence, and next action. A workflow is complete only when all required steps are terminal and independently verified. Provider failure results in `partial_retry` or documented escalation, never silent success.
 
-  await auditLog({ action: 'privacy.erasure_requested', actorId: requestedBy, meta: { subjectId: userId } });
+Use a data-subject key/index for caches and derived stores. `DEL "user:*"` does not expand wildcards; delete enumerated keys or use a bounded `SCAN`/maintained index without blocking the cache. Treat backups separately: document restore-time suppression/re-erasure and retention rather than pretending an online delete rewrites immutable backups.
 
-  await db.$transaction(async (tx) => {
-    // Anonymize rather than delete where records must be retained (billing, legal)
-    await tx.orders.updateMany({ userId }, {
-      // Keep order for accounting — remove PII
-      customerName: '[deleted]',
-      customerEmail: '[deleted]',
-      shippingAddress: null,
-    });
+## Access and Portability
 
-    // Hard delete where no retention requirement
-    await tx.sessions.deleteMany({ userId });
-    await tx.analyticsEvents.deleteMany({ userId });
-    await tx.profiles.deleteMany({ userId });
-    await tx.verificationTokens.deleteMany({ userId });
-    await tx.magicLinks.deleteMany({ userId });
+- Export only data within the approved subject/scope and protect third-party rights.
+- Include processing metadata required by policy, not just raw application rows.
+- Generate in an isolated job, encrypt at rest, use a short-lived authenticated delivery channel, bind download to the verified requester, audit access, and delete artifacts on schedule.
+- Validate completeness against the data map and processor step manifest; limits/pagination cannot silently truncate the result.
 
-    // Anonymize the user record itself — preserve ID for FK integrity
-    await tx.users.update({ id: userId }, {
-      email: `deleted-${userId}@erased.invalid`,
-      name: '[deleted]',
-      passwordHash: null,
-      emailVerifiedAt: null,
-      deletedAt: new Date(),
-    });
-  });
+## Erasure, Restriction, and Holds
 
-  // Cancel active subscriptions
-  if (user.stripeCustomerId) {
-    const subscriptions = await stripe.subscriptions.list({ customer: user.stripeCustomerId });
-    await Promise.all(subscriptions.data.map(sub =>
-      stripe.subscriptions.cancel(sub.id)
-    ));
-  }
+Build an approved decision matrix per data category: delete, irreversible anonymization, restrict, retain under a documented ground, or escalate. Before an intentionally irreversible deletion or anonymization, append an immutable decision record containing the approved target/scope, authority, hold result, actor, time, and the fact that rollback is impossible; recovery is reconciliation and forward-fix, not invented restoration. Financial/audit records are not blanket exemptions and example retention periods are not legal rules. A legal hold retains only the justified subset and blocks conflicting steps with explicit evidence.
 
-  // Remove from external services
-  await Promise.allSettled([
-    analytics.deleteUser(userId),
-    emailProvider.unsubscribe(user.email),
-    redis.del(`user:${userId}:*`), // clear all user cache keys
-  ]);
+External cancellation, deletion, and anonymization run as idempotent workflow steps. Do not wrap only local tables in a transaction and then mark the request complete after `Promise.allSettled`. Revoke sessions/credentials early where appropriate, preserve a minimal tombstone/idempotency record, and verify processor outcomes.
 
-  await auditLog({ action: 'privacy.erasure_completed', actorId: requestedBy, meta: { subjectId: userId } });
-}
-```
+## Consent and Retention
 
-## Consent Logging
+- Record append-only consent/withdrawal evidence with purpose, policy version, channel, locale, timestamp, and subject; do not collect unnecessary IP/device data by default.
+- Consent is one possible legal basis, not a universal prerequisite for every processing purpose.
+- Enforce retention from a reviewed policy register by data category and system. Jobs run with dry-run/report mode, legal-hold checks, bounded batches, evidence counts, and alerts for failures or unexpected volume.
+- Cookie/client controls must actually prevent non-essential processing before consent when the approved policy requires it; hiding a banner is not enforcement.
 
-```typescript
-// Record every consent event with full context
-interface ConsentRecord {
-  userId: string;
-  consentType: 'marketing' | 'analytics' | 'functional' | 'terms' | 'privacy_policy';
-  granted: boolean;
-  version: string;      // policy version user consented to
-  method: 'checkbox' | 'api' | 'import';
-  ipAddress: string;
-  userAgent: string;
-  timestamp: Date;
-}
+## Verification
 
-async function recordConsent(record: ConsentRecord) {
-  // Append-only — never update or delete consent records
-  await db.consentLogs.create(record);
-}
+- Submit a request for another subject and with insufficient authority; no data is disclosed or erased.
+- Fail one processor/cache/warehouse step; the request remains partial/retrying and cannot close.
+- Compare the export/erasure manifest with schema, data catalog, processors, backups, and restored data.
+- Exercise legal hold plus erasure; only the justified subset remains and all other required steps finish.
+- Verify every cache key through its maintained subject index or bounded scan; no wildcard assumption.
+- Restore a backup into an isolated environment and prove suppression/re-erasure controls run before use.
+- Verify delivery links expire, require the intended authenticated requester, and are audited.
 
-async function getCurrentConsents(userId: string) {
-  // Latest consent per type
-  return db.consentLogs.findMany({
-    where: { userId },
-    orderBy: { timestamp: 'desc' },
-    distinct: ['consentType'],
-  });
-}
-```
+## Output Contract
 
-## Cookie Consent
+Report the data/processor inventory, identity and authority controls, request state machine, policy-derived deadlines, per-system execution/evidence, export delivery, erasure/hold decisions, backup strategy, consent/retention controls, executed failure cases, and every legal assumption awaiting accountable approval.
 
-```typescript
-// Server-side consent check before setting non-essential cookies
-function applyConsentPolicy(res: Response, consents: ConsentRecord[]) {
-  const analyticsConsented = consents.some(c => c.consentType === 'analytics' && c.granted);
-  const marketingConsented = consents.some(c => c.consentType === 'marketing' && c.granted);
+## Official Provenance
 
-  if (!analyticsConsented) {
-    // Remove/don't set analytics cookies
-    res.clearCookie('_ga');
-    res.clearCookie('_gid');
-    res.clearCookie('ph_*'); // PostHog
-  }
+- European Commission: `https://commission.europa.eu/law/law-topic/data-protection/information-business-and-organisations/dealing-requests-individuals_en`
+- European Commission GDPR obligations: `https://commission.europa.eu/law/law-topic/data-protection/information-business-and-organisations/obligations_en`
 
-  if (!marketingConsented) {
-    res.clearCookie('_fbp');
-    res.clearCookie('_gcl_au');
-  }
-}
-
-// Frontend: banner shown until all consent types are explicitly set
-// Never pre-check "marketing" or "analytics" boxes — explicit opt-in required
-```
-
-## Data Retention Policy
-
-```typescript
-// Run as a scheduled job (weekly or monthly)
-async function enforceRetentionPolicy() {
-  const now = new Date();
-
-  // Sessions: 30 days
-  await db.sessions.deleteMany({ updatedAt: { lt: subDays(now, 30) } });
-
-  // Analytics raw events: 13 months (one year + comparison window)
-  await db.analyticsEvents.deleteMany({ createdAt: { lt: subMonths(now, 13) } });
-
-  // Audit logs: 7 years (compliance requirement — do NOT delete)
-  // Invoices / financial records: 7 years (do NOT delete)
-
-  // Verification tokens: 48 hours after expiry
-  await db.verificationTokens.deleteMany({ expiresAt: { lt: subDays(now, 2) } });
-
-  // Erasure requests: anonymize request record after 30 days (keep for compliance proof)
-  await db.erasureRequests.updateMany(
-    { completedAt: { lt: subDays(now, 30) }, anonymizedAt: null },
-    { requestorEmail: '[anonymized]', anonymizedAt: now }
-  );
-
-  await auditLog({ action: 'privacy.retention_policy_run', meta: { timestamp: now } });
-}
-```
-
-## Privacy Request Workflow
-
-```typescript
-// Centralized request intake — tracks SLA compliance
-async function submitPrivacyRequest(type: 'access' | 'erasure' | 'portability', userId: string) {
-  const request = await db.privacyRequests.create({
-    type,
-    subjectId: userId,
-    status: 'pending',
-    dueAt: addDays(new Date(), 30), // GDPR: 30-day response SLA
-  });
-
-  await notifyDPO({ request }); // Data Protection Officer notification
-  return request;
-}
-```
-
-## Rules
-
-- Audit logs and financial records are EXEMPT from erasure — retain per legal requirements
-- Anonymize (replace PII) rather than delete for records needed for accounting integrity
-- Consent records are append-only — never mutate or delete
-- SAR exports delivered via signed URL (7-day TTL) — never emailed as attachment
-- Erasure is irreversible — require explicit confirmation from user before proceeding
-- `timingSafeEqual` for any token comparison in privacy flows
-- Never log PII in application logs — use userId only, never email or name in logs
-- Data retention runs as scheduled job — not on-demand (prevents accidental cascades)
-- Pre-erasure check: block if open invoices, active subscription mid-cycle
+Re-check official guidance and the applicable supervisory authority before changing policy-dependent behavior.
 
 ## Done Criteria
 
-- [ ] SAR export collects PII from ALL tables — no gaps (verify with schema audit)
-- [ ] Erasure anonymizes billing records rather than deleting (retains financial integrity)
-- [ ] Erasure cancels Stripe subscription and removes from external services
-- [ ] Consent records are append-only — no update/delete allowed on consent_logs table
-- [ ] Data retention job runs on schedule — not triggered by user actions
-- [ ] Privacy request SLA tracking in place (30-day GDPR deadline)
-- [ ] All privacy actions produce audit log entries
+- Identity/authority is verified before consequential fulfillment.
+- Inventory includes local, derived, processor, backup, queue, and analytics paths.
+- Required steps are idempotent, retryable, evidenced, and cannot fail silently.
+- Completion requires verified terminal status for every required step.
+- Legal holds, retention, refusal, and deadlines come from approved policy rather than hard-coded examples.
+- Failure, restore, replay, and unauthorized-request tests pass.

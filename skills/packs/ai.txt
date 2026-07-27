@@ -1,0 +1,16 @@
+# AI application and LLM engineering
+ai-agent-architecture
+ai-cost-modeling
+ai-llm-debug
+ai-product-operations
+ai-streaming
+automation-ai-workflows
+chatbot-implement
+llm-evaluation
+llm-security
+mlops
+multimodal-processing
+prompt-engineering
+prompt-management
+rag-pipeline
+vector-database

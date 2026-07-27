@@ -1,211 +1,37 @@
 ---
 name: test-data-management
-description: Implement test data factories, database seeding, fixture management, and anonymized production data for testing
+description: Implement isolated test factories, fixtures, seeds, anonymized datasets, and bounded cleanup with privacy and relational integrity. Use when test-data infrastructure is the requested deliverable; not for feature implementation or E2E coverage itself.
 metadata:
-  version: 1.2
-  argument-hint: "data model complexity, test scenarios, volume requirements, anonymization needs"
+  owner: codex-framework
+  reviewed: "2026-07-27"
+  version: 2.0
+  argument-hint: "exact environment/database, schemas and relationships, worker isolation, volume, privacy and retention policy"
 ---
 
 Implement test data management for $ARGUMENTS.
 
+## Resolve the target before writing
 
-## Factory Pattern (TypeScript)
+Read repository instructions, manifests/lockfiles, database configuration, migrations/schema, test runner and workers, existing factories/seeds, environment guards, CI topology, privacy policy, and cleanup conventions. Resolve the exact database/project/account, environment, schema/namespace and credentials from trusted configuration. Prove it is an approved non-production target before any mutation; ambiguous ownership or production reachability is a stop condition.
 
-```typescript
-import { faker } from '@faker-js/faker';
+Preserve installed libraries and repository patterns. Verify APIs from installed types/CLI/schema or matching official docs. For greenfield tool selection, use `scripts/framework-stack-context.py`; never upgrade a test stack incidentally.
 
-interface UserFactory {
-  build(overrides?: Partial<User>): User;
-  create(overrides?: Partial<User>): Promise<User>;
-  buildMany(count: number, overrides?: Partial<User>): User[];
-  createMany(count: number, overrides?: Partial<User>): Promise<User[]>;
-}
+## Data design
 
-function defineFactory<T>(defaults: () => T, persist: (data: T) => Promise<T>): Factory<T> {
-  return {
-    build: (overrides = {}) => ({ ...defaults(), ...overrides }),
-    create: async (overrides = {}) => persist({ ...defaults(), ...overrides }),
-    buildMany: (count, overrides = {}) => Array.from({ length: count }, () => ({ ...defaults(), ...overrides })),
-    createMany: async (count, overrides = {}) =>
-      Promise.all(Array.from({ length: count }, () => persist({ ...defaults(), ...overrides }))),
-  };
-}
+- Derive factories from the authoritative schema and business invariants. Build parent records before dependents and preserve foreign keys, tenant ownership, uniqueness, checks, enum/domain constraints, temporal rules, and application-visible defaults.
+- Make deterministic reproduction possible by recording seed, scenario, worker/run identifier and relevant schema version. Randomness must not hide the failing values.
+- Allocate an isolated transaction, schema/database, tenant, account, or namespaced identifier range per test/worker according to repository capabilities. UUIDs alone do not prove isolation where shared global constraints or queries exist.
+- Bound requested volume, concurrency, batch size, runtime and cost. Avoid unbounded `Promise.all`, full-table copies and uncontrolled fan-out.
+- Synthetic data is preferred. Production-derived data requires explicit authority, data minimization, irreversible or risk-assessed transformation, restricted transfer/storage, retention and deletion. Replacing obvious names does not prove anonymity.
 
-const userFactory = defineFactory(
-  () => ({
-    id: faker.string.uuid(),
-    email: faker.internet.email(),
-    name: faker.person.fullName(),
-    role: 'user' as const,
-    createdAt: faker.date.recent({ days: 30 }),
-  }),
-  async (data) => db.users.create({ data }),
-);
+## Mutation and cleanup
 
-const orderFactory = defineFactory(
-  () => ({
-    id: faker.string.uuid(),
-    userId: faker.string.uuid(),
-    status: 'pending' as const,
-    total: parseFloat(faker.commerce.price({ min: 10, max: 500 })),
-    items: [{ productId: faker.string.uuid(), quantity: faker.number.int({ min: 1, max: 5 }), price: parseFloat(faker.commerce.price()) }],
-  }),
-  async (data) => db.orders.create({ data }),
-);
+Never run shared `TRUNCATE ... CASCADE`, drop shared schemas, or delete by broad/unresolved predicates. Use exact run-owned identifiers and database-supported transactions/savepoints where possible. Cleanup must be idempotent, ordered by relationships or cascades that were explicitly reviewed, and scoped to data created by this run.
 
-// Usage in tests
-const user = await userFactory.create({ role: 'admin' });
-const orders = await orderFactory.createMany(5, { userId: user.id, status: 'completed' });
-```
+For committed setup, register ownership before or atomically with writes so a crash can be recovered. On partial failure, roll back the transaction or clean only recorded run-owned rows; preserve evidence if cleanup fails. Development seed replacement is a separately authorized operation with preview, target guard, backup/rollback where material, and explicit confirmation.
 
-## Factory Pattern (.NET)
+## Verification and output
 
-```csharp
-public class UserFactory
-{
-    private readonly Faker<User> _faker = new Faker<User>()
-        .RuleFor(u => u.Id, f => f.Random.Guid())
-        .RuleFor(u => u.Email, f => f.Internet.Email())
-        .RuleFor(u => u.Name, f => f.Person.FullName)
-        .RuleFor(u => u.Role, "user")
-        .RuleFor(u => u.CreatedAt, f => f.Date.Recent(30));
+Test parallel workers, retries, partial setup, partial cleanup, tenant boundaries, referential integrity, uniqueness, deterministic reproduction, privacy transformation, retention and zero accidental modification of pre-existing rows. Compare pre/post counts or ownership queries for the exact namespace and run focused plus affected repository checks.
 
-    public User Build(Action<User>? configure = null)
-    {
-        var user = _faker.Generate();
-        configure?.Invoke(user);
-        return user;
-    }
-
-    public async Task<User> CreateAsync(AppDbContext db, Action<User>? configure = null)
-    {
-        var user = Build(configure);
-        db.Users.Add(user);
-        await db.SaveChangesAsync();
-        return user;
-    }
-
-    public List<User> BuildMany(int count) => _faker.Generate(count);
-}
-```
-
-## Seed Scripts
-
-```typescript
-// seeds/development.ts
-export async function seed(db: Database) {
-  await db.transaction(async (tx) => {
-    // Idempotent: clear and re-seed
-    await tx.execute('TRUNCATE users, orders, products CASCADE');
-
-    const admin = await userFactory.create({ email: 'admin@dev.local', role: 'admin' });
-    const users = await userFactory.createMany(10);
-
-    const products = await productFactory.createMany(20);
-
-    for (const user of users) {
-      const orderCount = faker.number.int({ min: 0, max: 5 });
-      await orderFactory.createMany(orderCount, {
-        userId: user.id,
-        items: faker.helpers.arrayElements(products, { min: 1, max: 3 }).map(p => ({
-          productId: p.id, quantity: faker.number.int({ min: 1, max: 3 }), price: p.price,
-        })),
-      });
-    }
-  });
-}
-
-// Run: npx tsx seeds/development.ts
-```
-
-## Fixture Management
-
-```typescript
-// fixtures/checkout-flow.ts
-export async function setupCheckoutFixture(db: Database) {
-  const user = await userFactory.create({ role: 'user' });
-  const product = await productFactory.create({ price: 29.99, stock: 100 });
-  const cart = await cartFactory.create({ userId: user.id, items: [{ productId: product.id, quantity: 2 }] });
-
-  return { user, product, cart, cleanup: async () => {
-    await db.execute('DELETE FROM carts WHERE id = $1', [cart.id]);
-    await db.execute('DELETE FROM products WHERE id = $1', [product.id]);
-    await db.execute('DELETE FROM users WHERE id = $1', [user.id]);
-  }};
-}
-
-// In test
-let fixture: Awaited<ReturnType<typeof setupCheckoutFixture>>;
-beforeEach(async () => { fixture = await setupCheckoutFixture(db); });
-afterEach(async () => { await fixture.cleanup(); });
-```
-
-## Data Anonymization
-
-```typescript
-// Anonymize production snapshot for staging
-const anonymizationRules: Record<string, ColumnRule[]> = {
-  users: [
-    { column: 'email', transform: (row) => `user-${row.id}@staging.local` },
-    { column: 'name', transform: () => faker.person.fullName() },
-    { column: 'phone', transform: () => faker.phone.number() },
-    { column: 'password_hash', transform: () => hashSync('staging-password', 10) },
-  ],
-  orders: [
-    { column: 'shipping_address', transform: () => faker.location.streetAddress() },
-    { column: 'billing_address', transform: () => faker.location.streetAddress() },
-  ],
-  payments: [
-    { column: 'card_last4', transform: () => '4242' },
-    { column: 'stripe_customer_id', transform: () => `cus_staging_${faker.string.alphanumeric(14)}` },
-  ],
-};
-
-async function anonymizeDatabase(sourceUrl: string, targetUrl: string) {
-  for (const [table, rules] of Object.entries(anonymizationRules)) {
-    const rows = await sourceDb.query(`SELECT * FROM ${table}`);
-    for (const row of rows) {
-      for (const rule of rules) {
-        row[rule.column] = rule.transform(row);
-      }
-    }
-    await targetDb.batchInsert(table, rows);
-  }
-}
-```
-
-## Snapshot Testing Data
-
-```typescript
-// Create deterministic snapshots with seeded faker
-function createDeterministicData(seed: number) {
-  faker.seed(seed);
-  return {
-    users: userFactory.buildMany(5),
-    orders: orderFactory.buildMany(10),
-  };
-}
-
-// In test — same seed = same data every time
-const data = createDeterministicData(42);
-expect(data).toMatchSnapshot();
-```
-
-## Anti-Patterns
-
-- Shared mutable test data across suites — concurrent writes cause race conditions and flaky failures
-- Production data in tests without anonymization — PII violation; always anonymize before importing snapshots
-- Random data without a deterministic seed — failures are non-reproducible and hard to debug
-- Seeding in `beforeAll` shared across tests — hidden coupling; one test's mutation breaks all others
-
-## Workflow
-
-1. Identify entities and their relationships
-2. Create factories with sensible defaults using faker
-3. Build scenario-specific fixtures (checkout, onboarding, etc.)
-4. Create seed scripts for development and staging
-5. Add anonymization pipeline for production snapshots
-6. Integrate factory usage into existing test suites
-7. Add CI step to verify seed scripts run without errors
-
-Done: ✓ factories for all core entities ✓ faker defaults with override support ✓ scenario fixtures with cleanup ✓ seed scripts for dev/staging ✓ data anonymization rules for PII ✓ deterministic mode for snapshot tests ✓ parallel-safe with UUID keys ✓ CI verification of seeds
+Report resolved target and proof it is non-production, ownership/isolation scheme, schemas and invariants, volume bounds, privacy provenance, setup/cleanup transaction behavior, actual checks, remaining data left by the run, and recovery instructions. A successful seed command is not proof of privacy, isolation or cleanup.

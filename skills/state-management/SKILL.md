@@ -1,115 +1,22 @@
 ---
 name: state-management
-description: State management architecture and patterns — choosing tools, layering strategy, persistence, and testing
+description: Design frontend state ownership, server materialization, optimistic operations, offline behavior, persistence and conflict recovery. Use for an unresolved state architecture decision; do not use for routine local component state implementation.
 metadata:
-  version: 1.6
-  argument-hint: "framework (React/Angular/Vue/Svelte), state scope (local/feature/global), server state handling"
+  owner: codex-framework
+  reviewed: "2026-07-26"
+  version: 2.0
+  argument-hint: "installed stack, state categories, SSR/offline needs, mutation/conflict authority"
 ---
 
-Design state management for $ARGUMENTS using appropriate patterns and tools for the framework and scope.
+# State Management
 
+Produce a design from repository evidence; do not select a tool from a universal table.
 
-## State Location Decision Tree
+1. Inventory URL/router, local UI, form/draft, server/cache, authenticated subject/tenant, durable client and cross-tab/device state. Name the authority and lifecycle for each value.
+2. For SSR, create request-scoped state and serialize only authorized data. Hydration materialization must be offline-valid: distinguish server snapshot, stale cache, missing network and current authorization; never reuse one user's singleton store across requests.
+3. Model each optimistic mutation as an operation with immutable ID, base/version, exact optimistic patch, inverse/reconciliation data and server idempotency. Reconcile timeout-after-commit, duplicate/reordered response, conflict, rejection, logout/tenant switch and process death. Do not blindly roll back over newer operations.
+4. Offline writes require a durable atomic local mutation/outbox boundary, ownership isolation, tombstones/conflict policy and server authorization on reconnect. Derive retry attempts and total elapsed time from operation/server semantics, background window, queue freshness and observed recovery evidence; after exhaustion expose a durable unresolved state rather than inventing constants. If those guarantees are not justified, use cached reads or disable offline mutation.
+5. Choose existing framework/store/cache primitives from installed capabilities, team conventions, bundle/runtime cost and testability. For explicitly authorized greenfield setup only, resolve stable/LTS components from official sources, verify cross-stack compatibility, generate manifest/lockfile and make them authority. Capacity, stale time, persistence size and normalization thresholds come from measured workload—not fixed constants.
+6. Verify multiple concurrent operations, conflict, stale server snapshot, refresh/navigation, SSR cross-request isolation, offline/reconnect, account switch, storage corruption/quota and devtools/log redaction.
 
-Choose the right tool for the scope:
-
-1. **Component-local** → useState/signal/ref (simplest, preferred)
-2. **Shared between siblings** → lift to parent, pass down
-3. **Shared across distant components** → context/provide-inject/service
-4. **App-wide with complex updates** → store (Redux/Zustand/Pinia/NgRx)
-5. **Server state (API data)** → TanStack Query/SWR/Apollo (NOT a store)
-6. **Complex async workflows** → state machine (XState) or reducer
-7. **URL-driven state** → URL params (single source of truth)
-
-**Golden rule:** Never put server state in a client store. Separate concerns.
-
-## State Categories
-
-| Category | Examples | Storage | Tool |
-|----------|----------|---------|------|
-| Client (UI) | theme, modal open, form draft | memory/localStorage | useState/Zustand |
-| Server (API) | users list, posts, profile | cache | TanStack Query |
-| URL | filters, pagination, search | URL params | useSearchParams |
-| Complex async | multi-step wizard, form submission | state machine | XState |
-| Persisted | user preferences, saved searches | localStorage | Zustand persist |
-
-## Persistence Strategy
-
-| Storage | Best for | Considerations |
-|---------|----------|----------------|
-| URL params | Filters, pagination, sort (shareable, bookmarkable) | No sensitive data |
-| sessionStorage | Wizard progress, form drafts (temporary) | Clears on tab close |
-| localStorage | User preferences, theme, dark mode | Version migrations, clear on logout |
-| IndexedDB | Offline data, large datasets (100+ MB) | Complex queries |
-| Database | Source of truth for sensitive data | Always sync after local changes |
-
-## Optimistic Updates
-
-Pattern for instant UI feedback:
-
-1. Store previous state before mutation
-2. Apply update optimistically (show new state immediately)
-3. Send mutation to server
-4. On failure: rollback to previous, show error
-5. Disable conflicting actions during pending mutation
-
-## Derived & Computed State
-
-Never store what can be computed:
-
-- React: `useMemo()` for expensive computations
-- Angular: `computed()` signal for reactive derived values
-- Vue: `computed()` property
-- Svelte: `$derived` rune
-- Blazor: `@computed` pattern
-
-## State Normalization
-
-For collections with 50+ items needing frequent ID lookups:
-
-```typescript
-interface NormalizedState<T> {
-  byId: Record<string, T>;
-  allIds: string[];
-}
-```
-
-Use Redux Toolkit `createEntityAdapter` or Zustand with Immer.
-
-
-
-## Framework Choice Summary
-
-| Framework | Default | Client Store | Server State | Complex Async |
-|-----------|---------|--------------|--------------|---------------|
-| React | useState | Zustand/Jotai | TanStack Query | XState |
-| Angular | Signals | NgRx SignalStore | TanStack Query | Signals + RxJS |
-| Vue 3 | Pinia | Pinia | TanStack Query | Composables |
-| Svelte 5 | Runes | Runes + stores | SvelteKit load | XState |
-| Next.js | Server Actions | Zustand | TanStack Query | Server Actions |
-| Blazor | Cascading | Services | HttpClient | SignalR |
-
-## Server State Patterns
-
-Separate client state from server state:
-
-- **Client store:** User preferences, theme, UI state
-- **Server cache:** TanStack Query for API data with invalidation
-- **Mutations:** Always go through mutations with optimistic updates
-- **Revalidation:** Invalidate related queries on mutation
-
-## Testing Strategy
-
-- **Unit tests:** State transitions, reducers, selectors
-- **Integration tests:** State + components interact correctly
-- **Optimistic updates:** Verify rollback on error
-- **Persistence:** Verify migrations on localStorage changes
-
-## Anti-Patterns
-
-1. **Server in store:** Storing API data in Redux/Zustand (use TanStack Query)
-2. **Infinite loops:** Using effect to sync derived state (use computed)
-3. **Boolean bloat:** Multiple boolean flags for state (use discriminated unions)
-4. **Global everything:** All state in single global store (colocate when possible)
-
-> For extended implementation patterns, ask to invoke `/state-management-implement` on demand.
+Return state map/authority, operation state machine, SSR/offline materialization, persistence/privacy, selected capability evidence, failure tests and residual consistency risk.

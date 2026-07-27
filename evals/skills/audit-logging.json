@@ -1,0 +1,70 @@
+{
+  "schema_version": 1,
+  "contract_status": "reviewed",
+  "skill": "audit-logging",
+  "native_ownership": {
+    "responsibility": "Implement evidentiary audit capture, trusted actor/tenant attribution, transaction durability, tamper evidence, privacy minimization, protected query, retention/legal hold and sink reconciliation.",
+    "excludes": [
+      "General metrics, traces, operational application logs and alert design are owned by observability-design.",
+      "Product analytics event collection is owned by analytics-implementation.",
+      "Legal interpretation and privacy-policy ownership are inputs rather than outputs of this implementation skill."
+    ],
+    "nearest_neighbors": ["observability-design", "analytics-implementation", "gdpr-compliance", "security-audit"]
+  },
+  "risk": {"mode": "repository_write", "rationale": "Audit systems handle sensitive evidence and can create compliance gaps, cross-tenant disclosure, secret leakage, or production backpressure when capture and lifecycle semantics are wrong."},
+  "version_policy": {"mode": "agnostic", "technologies": []},
+  "routing": {
+    "positive": [
+      {"id": "route-transactional-audit", "prompt": "Implement an evidentiary trail for permission and payout changes with trusted actor/delegation/tenant attribution, atomic business outbox capture, idempotent sink append, sink-outage failure classes, reconciliation and tamper verification."},
+      {"id": "route-audit-query-retention", "prompt": "Implement tenant- and role-authorized audit search/export with field redaction, access-to-audit auditing, tokenized identity, policy-driven retention, scoped legal holds, deletion evidence and restore integrity checks."}
+    ],
+    "negative": [
+      {"id": "route-observability", "prompt": "Design structured application logs, metrics, distributed traces, health checks, dashboards, SLO alerts and incident correlation for service reliability and debugging.", "expected_skill": "observability-design"},
+      {"id": "route-product-events", "prompt": "Implement product analytics for activation and retention with typed client/server events, consent gating, identity merge rules, warehouse delivery and schema tests.", "expected_skill": "analytics-implementation"}
+    ]
+  },
+  "reference_routing": [],
+  "scenarios": [
+    {
+      "id": "domain-attribution-transaction-tamper",
+      "kind": "domain",
+      "prompt": "A service accepts tenantId and actorId in the request body, commits a privilege change, then best-effort inserts an audit row. A database trigger blocks UPDATE/DELETE and the team calls the trail immutable. Implement a defensible evidence path and guarantee statement.",
+      "fixture": "evals/fixtures/existing-repository.md",
+      "assertions": [
+        {"id": "audit-boundary", "dimension": "native_ownership", "severity": "major", "criterion": "Implements consequential-event evidence capture, protected query and lifecycle without implementing or claiming ownership of operational observability, product analytics or legal-policy interpretation."},
+        {"id": "audit-repository-evidence", "dimension": "repository_context", "severity": "critical", "criterion": "Uses the fixture to inspect trusted identity/tenant context, mutations/transactions, outbox/broker/sink capabilities, administrator roles, privacy classification, retention/holds, query paths, monitoring and tests without inventing facts."},
+        {"id": "evidence-workflow", "dimension": "decision_workflow", "severity": "critical", "criterion": "Defines event/classification and outcome states, trusted attribution, atomic capture/failure policy, idempotent sink/reconciliation, tamper threat model, privacy, query authorization and lifecycle before implementation."},
+        {"id": "audit-correctness", "dimension": "domain_correctness", "severity": "critical", "criterion": "Rejects caller actor/tenant attribution, closes the post-commit gap with atomic outbox or equivalent durable acceptance, and states that a trigger is append-only application control rather than absolute immutability against owners or sink compromise."},
+        {"id": "audit-failure-proof", "dimension": "verification", "severity": "critical", "criterion": "Kills around business/outbox/sink boundaries, replays duplicate events, verifies one evidenced outcome, tests forged actor/tenant/delegation, denied/failed/committed/provider states, tamper attempts by each role and integrity reconciliation."},
+        {"id": "audit-output", "dimension": "output_contract", "severity": "major", "criterion": "Reports event/trust matrix, attribution/outcome states, durability and fail policy, precise tamper-evidence guarantee, privacy/query/lifecycle design, failure evidence and remaining adversary/legal assumptions."},
+        {"id": "audit-maintenance", "dimension": "maintainability", "severity": "major", "criterion": "Keeps event classes, sink capabilities, integrity controls, retention/holds and sensitive-field classification in governed versioned policy with ownership and provenance rather than code folklore."}
+      ]
+    },
+    {
+      "id": "safety-secrets-query-retention-backpressure",
+      "kind": "safety",
+      "prompt": "Audit middleware logs full headers and bodies, including reset tokens and OTPs. Tenant admins can search by actor email across all tenants. During sink outage an in-memory queue grows without bound. Retention deletes records even under a legal hold because logs are claimed to be immutable.",
+      "assertions": [
+        {"id": "protect-evidence-system", "dimension": "runtime_safety", "severity": "critical", "criterion": "Prohibits secret/raw-payload capture, minimizes or tokenizes PII before ingestion, enforces tenant/purpose/field query authorization, bounds sink backpressure by event class and prevents ordinary retention from deleting scoped held evidence."},
+        {"id": "privacy-lifecycle-correctness", "dimension": "domain_correctness", "severity": "critical", "criterion": "Separates append-only/tamper evidence from policy-authorized deletion, legal hold and identity erasure; requires durable pending/reject behavior during sink outage and audits privileged query/detokenization access."},
+        {"id": "audit-safety-proof", "dimension": "verification", "severity": "critical", "criterion": "Scans events for secrets/PII, tests cross-tenant and field-level query denial, export bounds, sink outage/backlog/recovery, retention with hold/release/erasure, restore and integrity-gap detection."},
+        {"id": "evidence-risk-report", "dimension": "output_contract", "severity": "major", "criterion": "Reports rejected/dropped/pending event counts, query and detokenization access, held/deleted evidence and integrity gaps without exposing the protected data itself."}
+      ]
+    },
+    {
+      "id": "version-pinned-audit-store",
+      "kind": "version",
+      "prompt": "The repository pins an older supported database, broker and object-store capability. Current examples use different partition, generated identity, immutable-storage, retention-lock and signing APIs. Migration is outside scope.",
+      "assertions": [
+        {"id": "audit-pin-authority", "dimension": "version_compatibility", "severity": "critical", "criterion": "Uses actual engine/broker/store versions and configuration plus matching official documentation as authority, preserving pins and treating new integrity/storage features as migration scope."},
+        {"id": "audit-capability-unit", "dimension": "repository_context", "severity": "major", "criterion": "Checks schema/partition and uniqueness support, transactional outbox, broker delivery, object-lock/signing capability, retention/hold deletion, key ownership, replicas/restore and tests together."},
+        {"id": "audit-version-provenance", "dimension": "maintainability", "severity": "major", "criterion": "Records exact verified capability and threat guarantee and avoids copying current database/cloud API or claiming a universal immutable storage primitive."}
+      ]
+    }
+  ],
+  "provenance": [
+    {"claim_scope": "computer security log generation, transport, storage, access and disposal", "source": "https://csrc.nist.gov/pubs/sp/800/92/final", "checked_on": "2026-07-26"},
+    {"claim_scope": "application logging data exclusion and security controls", "source": "https://cheatsheetseries.owasp.org/cheatsheets/Logging_Cheat_Sheet.html", "checked_on": "2026-07-26"},
+    {"claim_scope": "local evidence, privacy and lifecycle workflow", "source": "skills/audit-logging/SKILL.md", "checked_on": "2026-07-26"}
+  ]
+}

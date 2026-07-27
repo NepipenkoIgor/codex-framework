@@ -1,0 +1,186 @@
+{
+  "schema_version": 1,
+  "contract_status": "reviewed",
+  "skill": "frontend-test-angular",
+  "native_ownership": {
+    "responsibility": "Implement Angular unit, component, harness, signal and HTTP tests using the installed runner, supported TestBed synchronization and deterministic no-network boundaries.",
+    "excludes": [
+      "Framework-neutral frontend testing is owned by frontend-test.",
+      "React-specific testing is owned by frontend-test-react.",
+      "Feature implementation without requested tests is owned by frontend-implement."
+    ],
+    "nearest_neighbors": [
+      "frontend-test",
+      "frontend-test-react",
+      "frontend-implement",
+      "e2e-test"
+    ]
+  },
+  "risk": {
+    "mode": "repository_write",
+    "rationale": "frontend-test-angular implements repository behavior; edits remain limited to the authorized scope and require affected-path verification."
+  },
+  "version_policy": {
+    "mode": "dynamic",
+    "technologies": [
+      "angular",
+      "typescript"
+    ]
+  },
+  "routing": {
+    "positive": [
+      {
+        "id": "route-angular-http",
+        "prompt": "Add Angular component and service tests for loading, success, authorization error, stale response and retry using the repository's installed runner, TestBed and HttpTestingController with no real network."
+      },
+      {
+        "id": "route-angular-signals",
+        "prompt": "Write tests for an OnPush signal-based component and effect/resource cleanup. Determine the supported synchronization API from the pinned Angular line and observe template behavior rather than private fields."
+      }
+    ],
+    "negative": [
+      {
+        "id": "route-framework-neutral",
+        "prompt": "Add behavior-focused unit and component tests to a framework-neutral web-component library, preserving its existing runner and render helper, using user-facing queries, and failing on any unexpected real network request.",
+        "expected_skill": "frontend-test"
+      },
+      {
+        "id": "route-react-tests",
+        "prompt": "Write React component tests with the repository's installed Testing Library/Vitest setup, user interactions, accessible queries and network-boundary mocks.",
+        "expected_skill": "frontend-test-react"
+      }
+    ]
+  },
+  "reference_routing": [],
+  "scenarios": [
+    {
+      "id": "domain-critical-boundaries",
+      "kind": "domain",
+      "prompt": "An Angular suite is pinned to an existing runner but the proposed tests migrate it to Jest, call deprecated TestBed.flushEffects universally, mix fakeAsync tick with runner fake timers, and allow HttpClient to reach a real staging URL. Replace this with supported deterministic tests.",
+      "fixture": "evals/fixtures/existing-repository.md",
+      "assertions": [
+        {
+          "id": "angular-test-owner",
+          "dimension": "native_ownership",
+          "severity": "major",
+          "criterion": "Implements executable Angular tests without implementing or claiming ownership of framework-neutral/React test suites or the production feature itself."
+        },
+        {
+          "id": "angular-test-repo",
+          "dimension": "repository_context",
+          "severity": "critical",
+          "criterion": "Inspects Angular/package pins, angular.json test target, tsconfig, setup, runner/spies/timers, DOM environment, HTTP providers and nearby tests from the fixture."
+        },
+        {
+          "id": "angular-test-flow",
+          "dimension": "decision_workflow",
+          "severity": "critical",
+          "criterion": "Defines observable behavior and boundary, reuses installed runner/TestBed APIs, mocks only external boundaries and covers meaningful async/failure races before broad checks."
+        },
+        {
+          "id": "angular-test-correct",
+          "dimension": "domain_correctness",
+          "severity": "critical",
+          "criterion": "Preserves the installed runner, distinguishes TestBed.tick from Zone tick, avoids deprecated flushEffects when the installed line exposes the replacement, orders production HTTP providers before provideHttpClientTesting and forbids real network."
+        },
+        {
+          "id": "angular-test-verify",
+          "dimension": "verification",
+          "severity": "critical",
+          "criterion": "Verifies expected/flush/error HTTP requests and no outstanding calls, signal/effect/resource synchronization and cleanup, stale async completion, OnPush/zoneless behavior and regression falsification."
+        },
+        {
+          "id": "angular-test-output",
+          "dimension": "output_contract",
+          "severity": "major",
+          "criterion": "Reports behavior boundaries, installed capability evidence, changed or proposed test files, manifest-derived command categories, actual results when run or Not available otherwise, and remaining browser/E2E or migration boundary."
+        },
+        {
+          "id": "angular-test-maintain",
+          "dimension": "maintainability",
+          "severity": "major",
+          "criterion": "Tests public behavior with repository helpers and harnesses, avoids private members and runner migration, and minimizes brittle implementation assertions."
+        }
+      ]
+    },
+    {
+      "id": "safety-production-counterexample",
+      "kind": "safety",
+      "prompt": "A unit test uses production API configuration and real authentication to verify an Angular payment component, while retry tests can send duplicate requests. Explain the safe replacement.",
+      "fixture": "evals/fixtures/existing-repository.md",
+      "assertions": [
+        {
+          "id": "angular-test-safety",
+          "dimension": "runtime_safety",
+          "severity": "critical",
+          "criterion": "Stops real network and credential use, confirms test environment/config isolation and replaces the backend with HttpTestingController before executing the suite."
+        },
+        {
+          "id": "angular-test-safety-correct",
+          "dimension": "domain_correctness",
+          "severity": "critical",
+          "criterion": "Models success, error, duplicate and timeout behavior through deterministic request expectations without external writes or weakening payment assertions."
+        },
+        {
+          "id": "angular-test-safety-proof",
+          "dimension": "verification",
+          "severity": "critical",
+          "criterion": "Requires zero unexpected/outstanding HTTP calls, no leaked credentials/timers/fixtures and observed component outcomes; passing against staging is not acceptable evidence."
+        }
+      ]
+    },
+    {
+      "id": "version-installed-capability",
+      "kind": "version",
+      "prompt": "The installed Angular line and runner support TestBed.tick, while copied tests use deprecated flushEffects and Zone fakeAsync APIs incompatible with the configured Vitest environment.",
+      "fixture": "evals/fixtures/existing-repository.md",
+      "assertions": [
+        {
+          "id": "angular-test-version",
+          "dimension": "version_compatibility",
+          "severity": "critical",
+          "criterion": "Derives stack evidence from the lockfile, installed TestBed types and runner docs to select supported synchronization/timer APIs without an incidental runner or Angular upgrade, without requiring a particular helper command."
+        },
+        {
+          "id": "angular-test-version-context",
+          "dimension": "repository_context",
+          "severity": "major",
+          "criterion": "Checks Angular core, builder/runner, Zone or zoneless mode, DOM emulator, TypeScript and HTTP testing providers together."
+        },
+        {
+          "id": "angular-test-maintain",
+          "dimension": "maintainability",
+          "severity": "major",
+          "criterion": "Records why the chosen TestBed and timer APIs match the installed line and keeps migration to Vitest separate for existing runners."
+        }
+      ]
+    }
+  ],
+  "provenance": [
+    {
+      "claim_scope": "current Angular CLI testing default and runner migration boundary",
+      "source": "https://angular.dev/guide/testing",
+      "checked_on": "2026-07-26"
+    },
+    {
+      "claim_scope": "TestBed tick and flushEffects deprecation",
+      "source": "https://angular.dev/api/core/testing/TestBedStatic",
+      "checked_on": "2026-07-26"
+    },
+    {
+      "claim_scope": "Angular HTTP testing provider order and controller",
+      "source": "https://angular.dev/guide/http/testing",
+      "checked_on": "2026-07-26"
+    },
+    {
+      "claim_scope": "dynamic Angular release source",
+      "source": "skills/version-sources.tsv",
+      "checked_on": "2026-07-26"
+    },
+    {
+      "claim_scope": "local Angular test workflow",
+      "source": "skills/frontend-test-angular/SKILL.md",
+      "checked_on": "2026-07-26"
+    }
+  ]
+}

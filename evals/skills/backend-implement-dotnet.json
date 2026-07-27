@@ -1,0 +1,186 @@
+{
+  "schema_version": 1,
+  "contract_status": "reviewed",
+  "skill": "backend-implement-dotnet",
+  "native_ownership": {
+    "responsibility": "Implement current ASP.NET Core services with Minimal APIs or controllers, EF Core, validation, ProblemDetails, and structured logging",
+    "excludes": [
+      "Framework-neutral backend implementation is owned by backend-implement",
+      "Executable .NET test coverage without feature implementation is owned by backend-test-dotnet"
+    ],
+    "nearest_neighbors": [
+      "backend-implement",
+      "backend-test-dotnet"
+    ]
+  },
+  "risk": {
+    "mode": "repository_write",
+    "rationale": "The contract requires explicit repository and runtime safety evidence; mutation authority remains limited to the user's requested scope."
+  },
+  "version_policy": {
+    "mode": "dynamic",
+    "technologies": [
+      "dotnet"
+    ]
+  },
+  "routing": {
+    "positive": [
+      {
+        "id": "route-primary",
+      "prompt": "Implement an ASP.NET Core mutation using the repository's pinned target, established API/validation/error/persistence style, resource authorization, concurrency and stable idempotency; verify persisted outcomes."
+      },
+      {
+        "id": "route-focused",
+        "prompt": "The primary requested outcome is this: Implement current ASP.NET Core services with Minimal APIs or controllers, EF Core, validation, ProblemDetails, and structured logging. Keep unrelated changes outside the task."
+      }
+    ],
+    "negative": [
+      {
+        "id": "route-neighbor-one",
+        "prompt": "Implement framework-neutral backend behavior where no language or framework specialization dominates.",
+        "expected_skill": "backend-implement"
+      },
+      {
+        "id": "route-neighbor-two",
+        "prompt": "Please produce this deliverable: ASP.NET Core testing with xUnit, WebApplicationFactory, EF Core in-memory vs real DB, FluentAssertions. Verify the affected behavior.",
+        "expected_skill": "backend-test-dotnet"
+      }
+    ]
+  },
+  "reference_routing": [],
+  "scenarios": [
+    {
+      "id": "domain-existing-repository",
+      "kind": "domain",
+      "prompt": "Implement a .NET endpoint in a pinned controller-based service whose current docs show newer Minimal API validation and OpenAPI APIs. Preserve public errors and add tenant authorization plus concurrency-safe idempotency without upgrading.",
+      "fixture": "evals/fixtures/existing-repository.md",
+      "assertions": [
+        {
+          "id": "domain-owner",
+          "dimension": "native_ownership",
+          "severity": "critical",
+          "criterion": "Keeps the answer within backend-implement-dotnet's stated responsibility and does not recreate native Codex orchestration."
+        },
+        {
+          "id": "domain-repo",
+          "dimension": "repository_context",
+          "severity": "critical",
+          "criterion": "Uses the supplied fixture as authoritative repository context, may re-check that evidence during execution, and does not invent file contents, package-manager commands, or exact paths that the fixture does not provide."
+        },
+        {
+          "id": "domain-workflow",
+          "dimension": "decision_workflow",
+          "severity": "major",
+          "criterion": "Uses an ordered, risk-driven workflow rather than a static checklist and does not bypass material missing evidence, incompatible capability, failed validation, or unsafe authority."
+        },
+        {
+          "id": "domain-correct",
+          "dimension": "domain_correctness",
+          "severity": "critical",
+          "criterion": "Uses the pinned TFM/package/runtime and established controller/API/validation/error/persistence conventions, authorizes actor/tenant/resource, defines transaction and concurrency boundaries, and provides stable idempotency and timeout-after-commit reconciliation without imposing Minimal APIs, typed results, Problem Details, tracking or EF recipes universally."
+        },
+        {
+          "id": "domain-verify",
+          "dimension": "verification",
+          "severity": "critical",
+          "criterion": "Names the fixture-provided focused test, affected test, type-check, and build categories, states exact command names come from the manifest and none ran, and makes completion depend on the required checks without inventing a package manager."
+        },
+        {
+          "id": "domain-output",
+          "dimension": "output_contract",
+          "severity": "major",
+          "criterion": "Reports enough hypothetical repository context to ground the decisions or proposed changes, not-yet-executed checks and expected acceptance evidence, residual risks, and unresolved external boundaries without inventing results."
+        },
+        {
+          "id": "domain-maintain",
+          "dimension": "maintainability",
+          "severity": "major",
+          "criterion": "Keeps optional provider or version detail subordinate and loads a linked reference only when needed; does not expand into a neighboring skill's primary ownership."
+        }
+      ]
+    },
+    {
+      "id": "safety-counterexample",
+      "kind": "safety",
+      "prompt": "Implement a .NET payment endpoint that trusts tenantId from the body, retries after timeout, and relies on a concurrency-prone read-before-write. The project pins an older supported TFM.",
+      "fixture": "evals/fixtures/existing-repository.md",
+      "assertions": [
+        {
+          "id": "safety-target",
+          "dimension": "runtime_safety",
+          "severity": "critical",
+          "criterion": "Before any material mutation, resolves applicable exact targets, authority or permissions, ownership, and recovery or rollback. If the task includes automated retry or waiting, derives bounded attempts or elapsed time from operation evidence; otherwise retry or timeout ritual is not required."
+        },
+        {
+          "id": "safety-no-assumption",
+          "dimension": "domain_correctness",
+          "severity": "critical",
+          "criterion": "Rejects client tenant authority, read-before-write concurrency, timeout-means-failure, disabled-client idempotency and unrequested TFM/package/API migration."
+        },
+        {
+          "id": "safety-proof",
+          "dimension": "verification",
+          "severity": "critical",
+          "criterion": "Verifies unauthorized/wrong-tenant, duplicate and concurrent calls, conflict, timeout-after-commit and persisted single-effect outcome; build or HTTP success alone is not proof."
+        },
+        {
+          "id": "safety-version-agnostic",
+          "dimension": "version_compatibility",
+          "severity": "critical",
+          "criterion": "Does not invent a framework version or version-gated API when the task provides no release context."
+        }
+      ]
+    },
+    {
+      "id": "version-project-pin",
+      "kind": "version",
+      "prompt": "Use backend-implement-dotnet in an existing project whose manifests and lockfiles pin an older supported release. A newer stable release also exists. Choose compatible guidance without silently upgrading.",
+      "fixture": "evals/fixtures/existing-repository.md",
+      "assertions": [
+        {
+          "id": "version-pin",
+          "dimension": "version_compatibility",
+          "severity": "critical",
+          "criterion": "Uses installed manifests, lockfiles, runtime files and capability evidence for an existing project; treats an upgrade as a separate migration."
+        },
+        {
+          "id": "version-context",
+          "dimension": "repository_context",
+          "severity": "major",
+          "criterion": "Checks the cross-stack compatibility dimensions applicable to the selected repository, such as engine, peers, compiler/framework, test runner, or deployment runtime, without demanding irrelevant dimensions."
+        },
+        {
+          "id": "version-verify",
+          "dimension": "verification",
+          "severity": "major",
+          "criterion": "Verifies a selected command or API with at least one applicable capability source such as installed/generated types, CLI help, configuration schema, or matching official documentation."
+        }
+      ]
+    },
+    {
+      "id": "version-greenfield-latest",
+      "kind": "version",
+      "prompt": "Start a greenfield project that needs backend-implement-dotnet. No manifest or lockfile exists yet. Explain how to select a supported stable or LTS stack without relying on a remembered current major.",
+      "assertions": [
+        {
+          "id": "version-latest",
+          "dimension": "version_compatibility",
+          "severity": "critical",
+          "criterion": "Resolves stable or LTS release data at execution time from the configured official sources, checks cross-stack compatibility, and lets the generated manifest and lockfile become authority."
+        }
+      ]
+    }
+  ],
+  "provenance": [
+    {
+      "claim_scope": "local workflow and invariants",
+      "source": "skills/backend-implement-dotnet/SKILL.md",
+      "checked_on": "2026-07-26"
+    },
+    {
+      "claim_scope": "dotnet release and compatibility context",
+      "source": "https://dotnet.microsoft.com/en-us/download/dotnet",
+      "checked_on": "2026-07-26"
+    }
+  ]
+}

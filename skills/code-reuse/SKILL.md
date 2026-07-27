@@ -1,60 +1,31 @@
 ---
 name: code-reuse
-description: Find duplication, consolidate patterns, and improve reuse boundaries without over-abstracting.
+description: Consolidate demonstrated duplicate knowledge into the smallest stable abstraction while preserving bounded-context ownership and behavior. Use when reuse or duplication reduction is the primary requested outcome; not when similarity is incidental.
 metadata:
-  version: 2.0
-  argument-hint: "scope, duplicate pattern, language/framework, desired refactor depth"
+  owner: codex-framework
+  reviewed: "2026-07-27"
+  version: 3.0
+  argument-hint: "duplicate locations, owners/bounded contexts, behavior to preserve, expected divergence and dependency constraints"
 ---
 
-# Code Reuse
+Improve reuse for $ARGUMENTS.
 
-Use this skill when the task is about duplication, shared utilities, or extracting stable abstractions.
+## Decide whether duplication is harmful
 
-## When To Use
+Read instructions, exact target implementations and all callers, tests, public contracts, dependency graph, domain ownership and the authority/permissions to mutate each package. Establish a recoverable incremental rollback path before extraction. Compare semantics, change cadence, invariants, validation/error/auth/data behavior and likely evolution. Repeated lines are not necessarily repeated knowledge; duplication across bounded contexts may be intentional isolation.
 
-- Duplicated business logic, validation, formatting, queries, UI patterns, or test fixtures
-- Refactors that should reduce repeated code without changing behavior
-- Review work where repeated patterns create maintenance risk
-- Deciding whether to extract a helper, component, service, hook, schema, or package
+Classify the candidate as accidental copy, stable shared rule, presentation similarity, framework boilerplate, generated code, compatibility fork or independently evolving domain behavior. Search for an existing owned abstraction before creating another.
 
-## Workflow
+## Extract the smallest stable boundary
 
-1. Identify duplicate candidates with `rg`, structural search, or nearby-file inspection.
-2. Classify duplication: accidental copy/paste, intentional similarity, domain variation, or framework boilerplate.
-3. Compare behavior and ownership. Extract only when the variants truly share a stable responsibility.
-4. Look for existing helpers, components, schemas, services, fixtures, or package boundaries before adding new ones.
-5. Choose the smallest reuse shape: function, component, hook, schema, service method, test helper, or documented pattern.
-6. Refactor incrementally and preserve behavior.
-7. Run targeted tests or type checks that cover all touched call sites.
+- Prefer a focused function, schema, component, fixture or service owned by the domain that defines the invariant.
+- Keep domain-specific behavior inside its bounded context. Cross-package reuse needs a clear owner, compatibility contract and allowed dependency direction.
+- Avoid generic “shared”, boolean-flag APIs, callback mazes, premature frameworks and base classes that couple unrelated lifecycles.
+- Two examples are not proof of a reusable concept. Leave duplication when extraction increases coupling, hides policy or variants are likely to diverge.
+- Preserve authorization, validation, transaction, accessibility, error, observability and performance semantics. A reuse refactor must not silently standardize intentionally different behavior.
 
-## Quality Bar
+Existing project versions and APIs remain authoritative; verify version-specific abstractions from local types/tests or matching docs, and keep any migration separate.
 
-- Prefer KISS over clever abstraction.
-- DRY applies to repeated knowledge, not merely repeated lines.
-- Keep shared code named by domain responsibility, not vague implementation details.
-- Keep ownership clear so shared code does not become a dumping ground.
-- Make call sites simpler after extraction; if call sites become harder to read, reconsider.
+## Verification and output
 
-## Anti-Patterns
-
-- Abstracting two examples that are likely to diverge.
-- Creating a generic utility with boolean flags for unrelated behavior.
-- Moving domain-specific behavior into a global helper.
-- Hiding validation, auth, persistence, or UI semantics behind vague shared code.
-- Changing behavior while claiming a reuse-only refactor.
-
-## Verification
-
-- Check all call sites compile and still express the intended behavior.
-- Run targeted tests for each affected variant.
-- Compare before/after public contracts and UI/API behavior.
-- Confirm the abstraction does not introduce circular dependencies or layer violations.
-
-## Output Contract
-
-Status: done | partial | blocked
-Duplication found: [pattern and locations]
-Decision: [extract/reuse existing/leave duplicated]
-Changed: [files]
-Verification: [tests, type checks, review]
-Notes: [ownership or divergence risks]
+Characterize each variant before changing it, refactor incrementally, and run focused plus affected tests/type/build checks for every caller and package boundary. Explicitly prove authorization, validation, error and data behavior for every variant, plus cycles, bundle/runtime expansion, rollback and public API compatibility. Report candidates, ownership/evolution evidence, extract/reuse/leave decision, changes, actual checks and residual coupling/divergence risk.

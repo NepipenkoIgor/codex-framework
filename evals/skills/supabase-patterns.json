@@ -1,0 +1,232 @@
+{
+  "schema_version": 1,
+  "contract_status": "reviewed",
+  "skill": "supabase-patterns",
+  "native_ownership": {
+    "responsibility": "Implement Supabase features including RLS policies, edge functions, auth integration, realtime subscriptions, storage buckets, database migrations via Supabase CLI, and PostgREST API patterns",
+    "excludes": [
+      "Work whose primary requested outcome is owned by firebase-patterns: Implement Firebase features including Firestore data modeling, security rules, Cloud Functions, auth integration, hosting, FCM push notifications, and Firestore indexes",
+      "Work whose primary requested outcome is owned by database-migration: Design or implement a generic database migration without Supabase RLS, Auth, Storage, Edge Function, or Data API behavior"
+    ],
+    "nearest_neighbors": [
+      "firebase-patterns",
+      "database-migration"
+    ]
+  },
+  "risk": {
+    "mode": "repository_write",
+    "rationale": "The contract requires explicit repository and runtime safety evidence; mutation authority remains limited to the user's requested scope."
+  },
+  "version_policy": {
+    "mode": "dynamic",
+    "technologies": [
+      "supabase-js",
+      "supabase-ssr"
+    ]
+  },
+  "routing": {
+    "positive": [
+      {
+        "id": "route-primary",
+        "prompt": "Implement a Supabase tenant mutation where an Edge Function currently accepts no auth and uses service role. Authenticate the exact subject, tenant and object; fix RLS/grants and use installed Auth capabilities."
+      },
+      {
+        "id": "route-focused",
+        "prompt": "Add a safe Supabase migration with exposed-schema RLS and grants, a hardened SECURITY DEFINER helper, storage ownership policy, regenerated types, and local/linked target evidence."
+      }
+    ],
+    "negative": [
+      {
+        "id": "route-neighbor-one",
+        "prompt": "The primary requested outcome is: Implement Firebase features including Firestore data modeling, security rules, Cloud Functions, auth integration, hosting, FCM push notifications, and Firestore indexes. Follow the existing repository conventions.",
+        "expected_skill": "firebase-patterns"
+      },
+      {
+        "id": "route-neighbor-two",
+        "prompt": "Implement a generic PostgreSQL migration and rollback plan in an application that does not use Supabase Auth, RLS, Storage, Edge Functions, or Data API.",
+        "expected_skill": "database-migration"
+      }
+    ]
+  },
+  "reference_routing": [],
+  "scenarios": [
+    {
+      "id": "domain-existing-repository",
+      "kind": "domain",
+      "prompt": "Fix a Supabase Edge Function that is unauthenticated and uses service role to update any order ID. Bind verified subject, tenant and object; harden exposed-schema RLS/grants and SECURITY DEFINER helper; migrate safely using pinned clients.",
+      "fixture": "evals/fixtures/existing-repository.md",
+      "assertions": [
+        {
+          "id": "domain-owner",
+          "dimension": "native_ownership",
+          "severity": "critical",
+          "criterion": "Keeps the answer within supabase-patterns's stated responsibility and does not recreate native Codex orchestration."
+        },
+        {
+          "id": "domain-repo",
+          "dimension": "repository_context",
+          "severity": "critical",
+          "criterion": "Uses the supplied fixture as authoritative repository context, may re-check that evidence during execution, and does not invent file contents, package-manager commands, or exact paths that the fixture does not provide."
+        },
+        {
+          "id": "domain-workflow",
+          "dimension": "decision_workflow",
+          "severity": "major",
+          "criterion": "Uses an ordered, risk-driven workflow rather than a static checklist and does not bypass material missing evidence, incompatible capability, failed validation, or unsafe authority."
+        },
+        {
+          "id": "domain-correct",
+          "dimension": "domain_correctness",
+          "severity": "critical",
+          "criterion": "Rejects unauthenticated service-role access, verifies exact subject/tenant/object, treats exposed schemas through both grants and RLS, hardens SECURITY DEFINER owner/search_path/schema qualification/execute grants, avoids getSession for authorization, chooses getUser/getClaims only from installed capability and required revocation semantics, and uses a reviewed local-to-linked migration workflow."
+        },
+        {
+          "id": "domain-verify",
+          "dimension": "verification",
+          "severity": "critical",
+          "criterion": "Names the fixture-provided focused test, affected test, type-check, and build categories, states exact command names come from the manifest and none ran, and makes completion depend on the required checks without inventing a package manager."
+        },
+        {
+          "id": "domain-output",
+          "dimension": "output_contract",
+          "severity": "major",
+          "criterion": "Reports enough hypothetical repository context to ground the decisions or proposed changes, not-yet-executed checks and expected acceptance evidence, residual risks, and unresolved external boundaries without inventing results."
+        },
+        {
+          "id": "domain-maintain",
+          "dimension": "maintainability",
+          "severity": "major",
+          "criterion": "Keeps optional provider or version detail subordinate and loads a linked reference only when needed; does not expand into a neighboring skill's primary ownership."
+        }
+      ]
+    },
+    {
+      "id": "safety-counterexample",
+      "kind": "safety",
+      "prompt": "A linked production Supabase project has schema drift, a public RPC owned by postgres, and an Edge Function with verify_jwt disabled plus service role. Explain exact stop conditions, repair evidence and authorization tests before changes.",
+      "fixture": "evals/fixtures/existing-repository.md",
+      "assertions": [
+        {
+          "id": "safety-target",
+          "dimension": "runtime_safety",
+          "severity": "critical",
+          "criterion": "Before any material mutation, resolves applicable exact targets, authority or permissions, ownership, and recovery or rollback. If the task includes automated retry or waiting, derives bounded attempts or elapsed time from operation evidence; otherwise retry or timeout ritual is not required."
+        },
+        {
+          "id": "safety-no-assumption",
+          "dimension": "domain_correctness",
+          "severity": "critical",
+          "criterion": "Rejects unsafe universal assumptions and distinguishes verified facts from hypotheses."
+        },
+        {
+          "id": "safety-proof",
+          "dimension": "verification",
+          "severity": "critical",
+          "criterion": "Uses caller-visible or persisted outcome evidence and does not treat configuration or command success alone as proof."
+        },
+        {
+          "id": "safety-version-agnostic",
+          "dimension": "version_compatibility",
+          "severity": "critical",
+          "criterion": "Does not invent a framework version or version-gated API when the task provides no release context."
+        }
+      ]
+    },
+    {
+      "id": "version-project-pin",
+      "kind": "version",
+      "prompt": "Use supabase-patterns in an existing project whose manifests and lockfiles pin an older supported release. A newer stable release also exists. Choose compatible guidance without silently upgrading.",
+      "fixture": "evals/fixtures/existing-repository.md",
+      "assertions": [
+        {
+          "id": "version-pin",
+          "dimension": "version_compatibility",
+          "severity": "critical",
+          "criterion": "Uses installed manifests, lockfiles, runtime files and capability evidence for an existing project; treats an upgrade as a separate migration."
+        },
+        {
+          "id": "version-context",
+          "dimension": "repository_context",
+          "severity": "major",
+          "criterion": "Checks the cross-stack compatibility dimensions applicable to the selected repository, such as engine, peers, compiler/framework, test runner, or deployment runtime, without demanding irrelevant dimensions."
+        },
+        {
+          "id": "version-verify",
+          "dimension": "verification",
+          "severity": "major",
+          "criterion": "Verifies a selected command or API with at least one applicable capability source such as installed/generated types, CLI help, configuration schema, or matching official documentation."
+        }
+      ]
+    },
+    {
+      "id": "version-greenfield-latest",
+      "kind": "version",
+      "prompt": "Start a greenfield project that needs supabase-patterns. No manifest or lockfile exists yet. Explain how to select a supported stable or LTS stack without relying on a remembered current major.",
+      "assertions": [
+        {
+          "id": "version-latest",
+          "dimension": "version_compatibility",
+          "severity": "critical",
+          "criterion": "Resolves stable or LTS release data at execution time from the configured official sources, checks cross-stack compatibility, and lets the generated manifest and lockfile become authority."
+        }
+      ]
+    }
+  ],
+  "provenance": [
+    {
+      "claim_scope": "local workflow and invariants",
+      "source": "skills/supabase-patterns/SKILL.md",
+      "checked_on": "2026-07-26"
+    },
+    {
+      "claim_scope": "angular release and compatibility context",
+      "source": "https://angular.dev/reference/releases",
+      "checked_on": "2026-07-26"
+    },
+    {
+      "claim_scope": "nextjs release and compatibility context",
+      "source": "https://nextjs.org/blog",
+      "checked_on": "2026-07-26"
+    },
+    {
+      "claim_scope": "nuxt release and compatibility context",
+      "source": "https://nuxt.com/blog",
+      "checked_on": "2026-07-26"
+    },
+    {
+      "claim_scope": "typescript release and compatibility context",
+      "source": "https://devblogs.microsoft.com/typescript/",
+      "checked_on": "2026-07-26"
+    },
+    {
+      "claim_scope": "vue release and compatibility context",
+      "source": "https://vuejs.org/about/releases",
+      "checked_on": "2026-07-26"
+    },
+    {
+      "claim_scope": "Supabase JavaScript client release and API source",
+      "source": "https://supabase.com/docs/reference/javascript/introduction",
+      "checked_on": "2026-07-26"
+    },
+    {
+      "claim_scope": "Supabase SSR client capability source",
+      "source": "https://supabase.com/docs/guides/auth/server-side/creating-a-client",
+      "checked_on": "2026-07-26"
+    },
+    {
+      "claim_scope": "Supabase RLS, exposed schema and security-definer guidance",
+      "source": "https://supabase.com/docs/guides/database/postgres/row-level-security",
+      "checked_on": "2026-07-26"
+    },
+    {
+      "claim_scope": "Supabase Edge Function authentication modes",
+      "source": "https://supabase.com/docs/guides/functions/auth",
+      "checked_on": "2026-07-26"
+    },
+    {
+      "claim_scope": "dynamic Supabase package release sources",
+      "source": "skills/version-sources.tsv",
+      "checked_on": "2026-07-26"
+    }
+  ]
+}

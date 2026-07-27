@@ -1,205 +1,34 @@
 ---
 name: infrastructure-as-code
-description: Implement infrastructure as code CDK for cloud resource provisioning, module design, state management, and CI/CD integration
+description: Implement Terraform, OpenTofu, Pulumi, CDK, or repository-native infrastructure code with brownfield adoption, state safety, policy, CI plans, and controlled apply. Use when IaC repository changes are requested.
 metadata:
-  version: 1.4
-  argument-hint: "cloud provider (AWS/GCP/Azure), tool (Terraform/CDK/Pulumi), infrastructure type (networking/database/compute/storage)"
+  owner: codex-framework
+  reviewed: "2026-07-27"
+  version: 2.0
+  argument-hint: "exact accounts/projects/regions, existing resources and state, installed tool/provider, desired resources, mutation approval"
 ---
 
 Implement infrastructure as code for $ARGUMENTS.
 
+## Resolve reality before mutation
 
-## Tool Selection
+Read instructions, manifests/lockfiles, IaC modules/stacks, provider and CLI pins, backend/state configuration, CI, policies and deployment ownership. Resolve exact account/project/subscription, region, workspace/stack, credentials and current state serial/version. Refresh or inspect against the target with the repository's supported workflow immediately before interpreting a plan; a saved stale plan or guessed target is unsafe.
 
-| Tool | Language | Best for |
-|------|----------|----------|
-| Terraform | HCL | Multi-cloud, industry standard, large ecosystem |
-| Pulumi | TS, Python, Go, C# | Developers preferring real languages |
-| AWS CDK | TS, Python, Java, C# | AWS-native, construct ecosystem |
-| CDKTF | TS, Python, Go, C# | Terraform + real language |
+For brownfield resources, inventory ownership and drift before authoring. Import or adopt one exact resource at a time using the installed tool's supported mechanism, reconcile configuration to observed state, and review the post-import plan. Never create a duplicate to “bring it under IaC.” Do not claim all infrastructure is managed unless inventory proves it.
 
-Decision: multi-cloud -> Terraform. AWS-only -> CDK. Prefer TS/C# over HCL -> Pulumi/CDKTF.
+Preserve repository tool/provider pins and verify capabilities from installed CLI/schema/provider docs. For greenfield, use `scripts/framework-stack-context.py`; once the selection is accepted and generated, its committed manifest/configuration and resolved provider/tool lockfiles become the continuing authority for subsequent work until a separately authorized upgrade. S3 backend locking options have evolved; use the capability supported by the pinned Terraform/OpenTofu/backend and current official documentation rather than prescribing a remembered DynamoDB pattern.
 
-## Project Structure
+## Safe design and apply
 
-```
-infrastructure/
-  modules/
-    networking/       # main.tf, variables.tf, outputs.tf
-    database/
-    app-service/
-  environments/
-    dev/              # main.tf (calls modules), terraform.tfvars, backend.tf
-    staging/
-    production/
-```
+- Derive resource types, database engines/versions, instance sizes, retention, backup, encryption, deletion protection and lifecycle policy from requirements, provider capability, data criticality and cost—not fixed examples.
+- Split state by ownership/blast radius and dependency lifecycle, not a universal directory template. Protect state as sensitive data with least privilege, encryption, locking/versioning and recovery tests.
+- Treat secrets as references or encrypted sensitive values while recognizing that many IaC tools still persist values in state. Minimize and restrict state exposure.
+- Review create/update/replace/delete, dependencies, data migration, downtime, quotas and cost. Unknowns and refresh failures are stop conditions for consequential apply.
+- No blanket `DESTROY`, `-auto-approve`, apply-on-main or cleanup `destroy`. Destructive actions require exact target resolution, explicit scope, backup/restore, approval and rollback/recovery.
+- CI plan/apply roles must be separate and least privilege. Untrusted PRs receive no write credentials/state mutation and cannot publish a trusted plan artifact.
 
-## Terraform
+Apply only when the user authorized external mutation and the repository workflow's approvals are satisfied. Ensure the approved plan is fresh and bound to the same commit, variables, provider locks, state and target used for apply; handle cancellation/partial apply by refreshing and reconciling before retry.
 
-### Remote State
+## Verification and output
 
-```hcl
-terraform {
-  backend "s3" {
-    bucket         = "company-terraform-state"
-    key            = "environments/production/terraform.tfstate"
-    region         = "us-east-1"
-    encrypt        = true
-    dynamodb_table = "terraform-state-lock"
-  }
-}
-```
-
-### Module Design
-
-```hcl
-# modules/database/variables.tf
-variable "name" {
-  description = "Database instance name"
-  type        = string
-  validation {
-    condition     = can(regex("^[a-z][a-z0-9-]{2,28}[a-z0-9]$", var.name))
-    error_message = "4-30 lowercase alphanumeric or hyphens."
-  }
-}
-variable "environment" { type = string }
-variable "vpc_id"      { type = string }
-variable "subnet_ids"  { type = list(string) }
-
-# modules/database/main.tf
-resource "aws_db_instance" "this" {
-  identifier              = var.name
-  engine                  = "postgres"
-  engine_version          = "17"
-  instance_class          = "db.t3.medium"
-  storage_encrypted       = true
-  backup_retention_period = var.environment == "production" ? 30 : 7
-  deletion_protection     = var.environment == "production"
-  tags                    = local.tags
-}
-```
-
-Module rules: every module has `variables.tf`, `main.tf`, `outputs.tf`. Validation blocks on variables. Descriptions on all variables/outputs. Sensible defaults. Never hardcode AMI IDs or regions. Pin module versions.
-
-### Environment Composition
-
-```hcl
-module "database" {
-  source            = "../../modules/database"
-  name              = "myapp-production"
-  environment       = "production"
-  vpc_id            = module.networking.vpc_id
-  subnet_ids        = module.networking.private_subnet_ids
-}
-```
-
-Separate directories per env (2-5 envs), Terragrunt for larger orgs.
-
-### Import and Drift
-
-- Import: `terraform import aws_db_instance.this myapp-production`, then match HCL, plan should show zero changes
-- Drift: `terraform plan -detailed-exitcode` (exit 2 = drift). Run daily in CI, alert on drift.
-
-## Pulumi (TypeScript)
-
-```typescript
-import * as aws from '@pulumi/aws';
-import * as pulumi from '@pulumi/pulumi';
-
-const environment = pulumi.getStack();
-
-export function createDatabase(args: { name: string; subnetIds: pulumi.Input<string>[] }) {
-  return new aws.rds.Instance(args.name, {
-    engine: 'postgres', engineVersion: '17',
-    instanceClass: environment === 'production' ? 'db.r6g.large' : 'db.t3.medium',
-    storageEncrypted: true,
-    deletionProtection: environment === 'production',
-  });
-}
-```
-
-Pulumi secrets: `pulumi config set --secret dbPassword value`. Encrypted in state.
-
-## AWS CDK (TypeScript)
-
-```typescript
-export class DatabaseStack extends cdk.Stack {
-  constructor(scope: cdk.App, id: string, props: DatabaseStackProps) {
-    super(scope, id, props);
-    new rds.DatabaseInstance(this, 'Database', {
-      engine: rds.DatabaseInstanceEngine.postgres({ version: rds.PostgresEngineVersion.VER_17 }),
-      vpc: props.vpc,
-      storageEncrypted: true,
-      deletionProtection: props.environment === 'production',
-      removalPolicy: props.environment === 'production' ? cdk.RemovalPolicy.RETAIN : cdk.RemovalPolicy.DESTROY,
-    });
-  }
-}
-```
-
-Use CDK Aspects for cross-cutting policies (enforce encryption, mandatory tags).
-
-## Secret Management
-
-- Never in `.tf`/`.ts`/`.yaml` files
-- Use provider-native stores (Secrets Manager, Key Vault)
-- Reference by ARN/ID, never by value
-- Rotate on schedule, separate scopes per environment
-
-## CI/CD (GitHub Actions)
-
-```yaml
-jobs:
-  plan:
-    steps:
-      - uses: hashicorp/setup-terraform@v3
-      - uses: aws-actions/configure-aws-credentials@v4
-        with: { role-to-assume: ..., aws-region: us-east-1 }  # OIDC
-      - run: terraform init && terraform plan -out=tfplan
-      - name: Comment plan on PR  # post plan as PR comment
-  apply:
-    needs: plan
-    if: github.ref == 'refs/heads/main'
-    environment: production  # requires approval
-    steps:
-      - run: terraform init && terraform apply -auto-approve
-```
-
-Rules: plan on every PR, apply only on merge. OIDC auth. Require approval for production. Post plan as PR comment. Separate IAM roles for plan (read-only) and apply (write).
-
-## Testing
-
-- `terraform validate` + `terraform fmt -check` in CI on every PR
-- Terratest for integration tests of critical modules (in isolated test account)
-- Clean up with `defer terraform.Destroy`
-- Test module outputs and optional variable defaults
-
-## Anti-Patterns
-
-- Secrets in IaC files or state -- readable by anyone with state access
-- Single monolithic state file -- one broken resource blocks all others
-- No drift detection -- manual changes accumulate silently until next apply fails
-
-## Output Format
-
-```
-Tool:              [Terraform / Pulumi / CDK]
-Cloud:             [AWS / Azure / GCP / multi-cloud]
-State:             [backend and locking]
-Modules:           [list with inputs/outputs]
-Environments:      [list with promotion strategy]
-Secrets:           [management approach]
-CI/CD:             [plan/apply workflow and approvals]
-Testing:           [validation, integration, drift]
-```
-
-## Done Criteria
-
-- All infrastructure in code -- no manual creation
-- Remote state with locking and encryption
-- Modules reusable with clear interfaces and validation
-- CI/CD: plan on PR, apply on merge with approval gates
-- Secrets via provider-native stores, never in files
-- Drift detection on schedule with alerting
-- `terraform plan` shows zero changes after clean apply
-- IAM least privilege for CI/CD roles
+Run format/validate/policy/static checks, inspect a fresh plan, and where authorized verify provider-visible resource identity, health, security, drift and rollback/recovery. Test modules in isolated owned targets with exact cleanup. Report target and ownership evidence, tool/provider/state versions, imports, plan summary, approvals, actual external changes, checks, remaining unmanaged/drifted resources and recovery steps.

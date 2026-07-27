@@ -12,7 +12,15 @@ Codex owns planning, models, skill selection, approvals, sandboxing, worktrees, 
 bash scripts/setup.sh
 ```
 
-Start a new Codex session after installation. Codex discovers the installed skills and agents directly. A portable hooks plugin lives under `plugins/ai-codex-framework`; the default setup continues to install only the curated skill set.
+Start a new Codex session after installation. Codex discovers the installed skills and agents directly. A portable hooks plugin lives under `plugins/ai-codex-framework`; the default setup installs only the intentionally minimal universal core.
+
+Install opt-in domain packs explicitly:
+
+```bash
+bash scripts/setup.sh --pack frontend --pack fullstack
+```
+
+Available pack names are discovered from `skills/packs/*.txt`; current domains include `engineering`, `frontend`, `backend`, `fullstack`, `mobile`, `ai`, `automation`, `infra`, and `product`. Every non-core local skill has exactly one owning pack and is not loaded globally by default.
 
 To add the framework to a project without overwriting its existing instructions:
 
@@ -46,7 +54,9 @@ High-risk changes get one native falsification-review pass after implementation 
 
 ## Skills and integrations
 
-Skills are a maintained local library, not a blanket prompt payload. `scripts/setup.sh` installs the unchanged curated core from `skills/core.txt`; domain packs remain in the source library and should be added project-scoped only when needed. Prefer native Browser, GitHub, Figma, and product integrations over wrappers. Use Browser DOM, console, and network evidence before screenshots. Add MCP servers only for external context that Codex does not already provide.
+Skills are a maintained local library, not a blanket prompt payload. `scripts/setup.sh` installs the curated universal core from `skills/core.txt`; `skills/packs/*.txt` provide explicit domain sets. Prefer native Browser, GitHub, Figma, and product integrations over wrappers. Use Browser DOM, console, and network evidence before screenshots. Add MCP servers only for external context that Codex does not already provide.
+
+The corpus lifecycle, consolidation map, routing rules, and quality gates are documented in `docs/skills-governance.md`. Trusted community candidates are pinned to immutable upstream commits in `skills/community-pilot.tsv`; they remain opt-in until license, safety, routing, and representative-task evaluation pass. Use `bash scripts/community-skill-pilot.sh list` or read `docs/community-skills.md`.
 
 ## Native runtime features
 
@@ -64,9 +74,20 @@ Both surfaces consume the same project instructions, config, profiles, skills, a
 bash scripts/framework-eval.sh
 bash scripts/framework-drift-check.sh
 bash scripts/surface-parity-check.sh
+bash scripts/framework-skill-governance.sh
+bash scripts/framework-version-drift-check.sh
+bash scripts/framework-version-drift-check.sh --self-test
+# Network-backed resolution from current distribution channels:
+bash scripts/framework-version-drift-check.sh --live
+${CODEX_HOME:-$HOME/.codex}/bin/codex-framework-stack-context project /path/to/project --format markdown
+${CODEX_HOME:-$HOME/.codex}/bin/codex-framework-stack-context latest nextjs react nodejs --format markdown
+SKILL_QUALITY_ARTIFACT_DIR=/tmp/skill-quality bash scripts/framework-skill-routing-live-eval.sh --skill nextjs-development
+# Strict per-skill semantic evaluation (after a routing artifact exists):
+python3 scripts/framework-skill-quality.py semantic-live --skill nextjs-development --artifact-dir /tmp/skill-quality --routing-artifact /tmp/skill-quality/routing-nextjs-development.json
+python3 scripts/framework-skill-quality.py certify --skill nextjs-development --artifact-dir /tmp/skill-quality
 bash scripts/framework-health.sh
 # Optional model-backed routing regression check:
 bash scripts/framework-live-eval.sh
 ```
 
-The deterministic checks validate native configuration, profile boundaries, plugin packaging, surface parity, wrapper removal, hook safety, and the skill corpus. The optional live eval samples actual model routing decisions and consumes Codex usage.
+The deterministic checks validate native configuration, profile boundaries, plugin packaging, surface parity, wrapper removal, hook safety, skill ownership/review metadata, exact core/pack coverage, reachable references, unsafe cleanup recipes, dynamic release resolvers, numeric bootstrap pins, and a digest-bound contract for every skill. Quality is conjunctive across ten dimensions; there is no keyword average. Model-backed routing uses three fresh batched trials against the complete installable catalog, and semantic certification uses a solver plus an independent hidden-criteria judge. See `docs/version-currency.md` and `docs/skill-quality-standard.md`.

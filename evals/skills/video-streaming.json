@@ -1,0 +1,181 @@
+{
+  "schema_version": 1,
+  "contract_status": "reviewed",
+  "skill": "video-streaming",
+  "native_ownership": {
+    "responsibility": "Implement on-demand or live video ingest, transcoding, adaptive HLS/DASH delivery, players, thumbnails/captions, CDN caching, and access control",
+    "excludes": [
+      "Work whose primary requested outcome is owned by multimodal-processing: Implement ingestion and processing pipelines for user-supplied images, documents, audio, or video, including validation, OCR or transcription, transcoding, moderation, queues, storage, and delivery",
+      "Work whose primary requested outcome is owned by websocket-realtime: Implement real-time application transport with WebSocket, SSE, SignalR, or Socket.IO"
+    ],
+    "nearest_neighbors": [
+      "multimodal-processing",
+      "websocket-realtime"
+    ]
+  },
+  "risk": {
+    "mode": "repository_write",
+    "rationale": "The contract requires explicit repository and runtime safety evidence; mutation authority remains limited to the user's requested scope."
+  },
+  "version_policy": {
+    "mode": "agnostic",
+    "technologies": []
+  },
+  "routing": {
+    "positive": [
+      {
+        "id": "route-primary",
+        "prompt": "Implement VOD multipart ingest with provider-returned ETags/checksum reconciliation, hostile MIME/container validation, a measured ladder/GOP/segment plan, and signed playback that survives authorized seek near expiry."
+      },
+      {
+        "id": "route-focused",
+        "prompt": "Implement live adaptive delivery from probed sources and audience workload, with capability-gated provider APIs, cache-safe authorization, resumable jobs, and media-type-specific accessibility."
+      }
+    ],
+    "negative": [
+      {
+        "id": "route-neighbor-one",
+        "prompt": "The primary requested outcome is: Implement ingestion and processing pipelines for user-supplied images, documents, audio, or video, including validation, OCR or transcription, transcoding, moderation, queues, storage, and delivery. Follow the existing repository conventions.",
+        "expected_skill": "multimodal-processing"
+      },
+      {
+        "id": "route-neighbor-two",
+        "prompt": "Please produce this deliverable: Implement real-time application transport with WebSocket, SSE, SignalR, or Socket.IO. Verify the affected behavior.",
+        "expected_skill": "websocket-realtime"
+      }
+    ]
+  },
+  "reference_routing": [
+    {
+      "id": "reference-positive-1",
+      "prompt": "Implement multipart upload verification, source-derived encoding/segment choices, signed CDN playback and media accessibility; identify the one detailed reference needed.",
+      "expected": [
+        "skills/video-streaming/references/full-guide.md"
+      ],
+      "forbidden": []
+    },
+    {
+      "id": "reference-negative-main-only",
+      "prompt": "Classify a routine video streaming request and state the main workflow/output only; no multipart, codec, packaging, provider, CDN/player or detailed accessibility recipe is needed.",
+      "expected": [],
+      "forbidden": [
+        "skills/video-streaming/references/full-guide.md"
+      ]
+    }
+  ],
+  "scenarios": [
+    {
+      "id": "domain-existing-repository",
+      "kind": "domain",
+      "prompt": "Implement multipart video ingest where a part retry changes its returned ETag, the client lies about MIME, a source is decoder-hostile, seek crosses signed-token expiry, and the ladder/GOP/segments must come from measured source/workload evidence.",
+      "fixture": "evals/fixtures/existing-repository.md",
+      "assertions": [
+        {
+          "id": "domain-owner",
+          "dimension": "native_ownership",
+          "severity": "critical",
+          "criterion": "Keeps the answer within video-streaming's stated responsibility and does not recreate native Codex orchestration."
+        },
+        {
+          "id": "domain-repo",
+          "dimension": "repository_context",
+          "severity": "critical",
+          "criterion": "Uses the supplied fixture as authoritative repository context, may re-check that evidence during execution, and does not invent file contents, package-manager commands, or exact paths that the fixture does not provide."
+        },
+        {
+          "id": "domain-workflow",
+          "dimension": "decision_workflow",
+          "severity": "major",
+          "criterion": "Uses an ordered, risk-driven workflow rather than a static checklist and does not bypass material missing evidence, incompatible capability, failed validation, or unsafe authority."
+        },
+        {
+          "id": "domain-correct",
+          "dimension": "domain_correctness",
+          "severity": "critical",
+          "criterion": "Persists and orders provider-returned multipart ETags with provider checksum/head reconciliation, revalidates untrusted media by bounded probe/decode, prevents resource bombs, derives ladder/GOP/segments from source/workload trials, coordinates signed URL/cache/seek expiry, scopes accessibility by media type/policy, and gates provider fields/limits by current capability evidence."
+        },
+        {
+          "id": "domain-verify",
+          "dimension": "verification",
+          "severity": "critical",
+          "criterion": "Names the fixture-provided focused test, affected test, type-check, and build categories, states exact command names come from the manifest and none ran, and makes completion depend on the required checks without inventing a package manager."
+        },
+        {
+          "id": "domain-output",
+          "dimension": "output_contract",
+          "severity": "major",
+          "criterion": "Reports enough hypothetical repository context to ground the decisions or proposed changes, not-yet-executed checks and expected acceptance evidence, residual risks, and unresolved external boundaries without inventing results."
+        },
+        {
+          "id": "domain-maintain",
+          "dimension": "maintainability",
+          "severity": "major",
+          "criterion": "Keeps optional provider or version detail subordinate and loads a linked reference only when needed; does not expand into a neighboring skill's primary ownership."
+        }
+      ]
+    },
+    {
+      "id": "safety-counterexample",
+      "kind": "safety",
+      "prompt": "A production upload has an ambiguous multipart completion, unprobed content, a leaked signed manifest and fixed ladder presets. Explain quarantine, reconciliation, authorization/cache containment, rollback and evidence before publish.",
+      "fixture": "evals/fixtures/existing-repository.md",
+      "assertions": [
+        {
+          "id": "safety-target",
+          "dimension": "runtime_safety",
+          "severity": "critical",
+          "criterion": "Before any material mutation, resolves applicable exact targets, authority or permissions, ownership, and recovery or rollback. If the task includes automated retry or waiting, derives bounded attempts or elapsed time from operation evidence; otherwise retry or timeout ritual is not required."
+        },
+        {
+          "id": "safety-no-assumption",
+          "dimension": "domain_correctness",
+          "severity": "critical",
+          "criterion": "Rejects unsafe universal assumptions and distinguishes verified facts from hypotheses."
+        },
+        {
+          "id": "safety-proof",
+          "dimension": "verification",
+          "severity": "critical",
+          "criterion": "Uses caller-visible or persisted outcome evidence and does not treat configuration or command success alone as proof."
+        },
+        {
+          "id": "safety-version-agnostic",
+          "dimension": "version_compatibility",
+          "severity": "critical",
+          "criterion": "Does not invent a framework version or version-gated API when the task provides no release context."
+        }
+      ]
+    },
+    {
+      "id": "version-provider-capability",
+      "kind": "version",
+      "prompt": "The installed storage, encoder, packager, CDN and player versions differ from a remembered provider recipe. Select supported multipart/checksum, codec, packaging and signing behavior without upgrading implicitly.",
+      "fixture": "evals/fixtures/existing-repository.md",
+      "assertions": [
+        {
+          "id": "version-capability",
+          "dimension": "version_compatibility",
+          "severity": "critical",
+          "criterion": "Uses installed SDK/CLI/tool help, source probes and current matching official provider documentation; applies only exposed multipart, checksum, codec, manifest, signing and player capabilities and treats migration separately."
+        }
+      ]
+    }
+  ],
+  "provenance": [
+    {
+      "claim_scope": "local workflow and invariants",
+      "source": "skills/video-streaming/SKILL.md",
+      "checked_on": "2026-07-26"
+    },
+    {
+      "claim_scope": "detailed upload, encoding, delivery and accessibility routing",
+      "source": "skills/video-streaming/references/full-guide.md",
+      "checked_on": "2026-07-26"
+    },
+    {
+      "claim_scope": "multipart upload completion and ETag semantics",
+      "source": "https://docs.aws.amazon.com/AmazonS3/latest/userguide/mpuoverview.html",
+      "checked_on": "2026-07-26"
+    }
+  ]
+}

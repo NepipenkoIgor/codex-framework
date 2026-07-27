@@ -1,103 +1,23 @@
 ---
 name: incident-response
-description: Handle production incidents with rapid diagnosis, mitigation, and post-mortem
+description: Coordinate an active production incident through command, evidence, containment, recovery, verification and stakeholder communication. Use when a concrete incident requires response; not for speculative implementation or postmortem-only review.
 metadata:
-  version: 1.2
-  argument-hint: "incident description, severity (SEV1/2/3), affected service, symptoms observed"
+  owner: codex-framework
+  reviewed: "2026-07-27"
+  version: 2.0
+  argument-hint: "observed impact/timeline, exact environments/services, current commander/authority, recent changes and safe evidence sources"
 ---
 
-Handle $ARGUMENTS.
+Respond to $ARGUMENTS.
 
+Establish incident commander, operations lead, communications owner, scribe, decision authority and secure channel appropriate to the team's actual process. Record UTC timeline, observed user/business impact, affected scope, release/config/provider identities and evidence provenance. Severity follows impact and trajectory, not a universal label.
 
-## Example
+Preserve evidence while protecting secrets/PII. Separate facts, hypotheses and decisions. Correlation with a deploy is not root cause. Run the smallest read-only checks that discriminate hypotheses; do not grep huge sensitive logs, expose credentials, restart broadly or execute guessed commands against ambiguous targets.
 
-Deployment-caused API outage -- diagnosis and mitigation:
+Contain the demonstrated failure with the least irreversible action. Resolve exact environment/resource/tenant/region, permissions, blast radius and recovery before mutation. Rollback is not universally safest: verify old code can read current schema/data/events/config/secrets and external side effects. Consider traffic isolation, feature/config control, dependency protection or roll-forward when compatible.
 
-```
-Incident: 500 errors spiking on /api/orders after deploy at 14:32 UTC
+After partial/cancelled action, reconcile provider-visible state before retry. Verify caller-visible recovery, data integrity, queues/workers, dependencies, errors/latency/saturation and business invariants across affected slices; watch for recurrence. “Command succeeded” or health green is insufficient.
 
-1. Triage (14:35):
-   $ git log --oneline -5 --since="4 hours ago"
-   a1b2c3d feat: add inventory check to order service
-   → Deploy at 14:32 correlates with error onset.
+Communicate impact, scope, mitigations, evidence and next update time without speculative cause, secrets or unsupported ETA. After stabilization, preserve timeline/decisions, assign evidence-backed follow-ups and hand durable procedures to runbook-generation.
 
-2. Diagnose (14:38):
-   $ kubectl logs deploy/order-service --since=10m | grep ERROR | head -20
-   ERROR: column "inventory_status" does not exist
-   → New code references a column from a migration that hasn't run in production.
-
-3. Mitigate (14:40):
-   $ kubectl rollout undo deployment/order-service
-   deployment.apps/order-service rolled back
-
-4. Verify (14:42):
-   $ curl -s https://api.example.com/api/orders | jq '.status'
-   "ok"
-   → Error rate returned to baseline within 2 minutes.
-
-5. Follow-up:
-   - Run the pending migration, then redeploy.
-   - Add CI check: fail deploy if pending migrations exist.
-```
-
-Implementation workflow:
-
-1. Read the incident description and classify severity
-2. Identify the most likely incident pattern from symptoms
-3. Propose diagnosis steps to confirm root cause
-4. Recommend mitigation in priority order (rollback > flag > scale > hotfix > full fix)
-5. Provide specific commands and code changes for mitigation
-6. Define verification checks to confirm resolution
-7. Generate communication templates for stakeholders
-8. Create post-mortem template with timeline and action items
-9. Recommend monitoring improvements and runbook updates
-
-Output format:
-
-```
-Incident Response Plan
------------------------
-Severity: SEV-N
-Category: <deployment | database | infrastructure | traffic | data>
-Estimated blast radius: <affected services, users, regions>
-
-Diagnosis Steps:
-1. <check with specific command>
-2. <check with specific command>
-3. <check with specific command>
-
-Recommended Mitigation:
-Priority 1: <fastest safe fix with commands>
-Priority 2: <alternative if priority 1 fails>
-
-Verification:
-1. <metric to watch and expected behavior>
-2. <command to confirm resolution>
-
-Communication:
-<status update template filled in>
-
-Follow-up:
-- <action item 1>
-- <action item 2>
-```
-
-## Output Format
-
-Classify severity first. Recommend fastest safe mitigation, not most thorough fix. Provide specific, executable commands. Include rollback procedures. Define clear verification criteria.
-
-## Done Criteria
-
-- Root cause identified and documented
-- Mitigation applied and verified
-- Communication sent to stakeholders
-- Post-mortem scheduled (SEV1/2)
-- Runbook updated or created
-
-## Anti-patterns
-
-- Recommending overly complex multi-step fixes when rollback would resolve faster
-- Skipping verification steps before declaring resolution
-- Assuming cause without sufficient diagnosis
-- Post-mortem generation without clear action items
-- Ignoring monitoring gaps that allowed incident escalation
+Report current state/roles, evidence and hypotheses, exact actions/authority, rollback compatibility, verification, communications and unresolved risks. Do not claim root cause until substantiated.

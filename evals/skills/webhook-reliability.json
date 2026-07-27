@@ -1,0 +1,166 @@
+{
+  "schema_version": 1,
+  "contract_status": "reviewed",
+  "skill": "webhook-reliability",
+  "native_ownership": {
+    "responsibility": "Implement or review incoming and outgoing webhooks with signatures, idempotency, retries, replay, ordering, and dead-letter recovery",
+    "excludes": [
+      "Work whose primary requested outcome is owned by websocket-realtime: Implement real-time application transport with WebSocket, SSE, SignalR, or Socket.IO",
+      "Work whose primary requested outcome is owned by automation-n8n-debug: Diagnose and fix n8n workflow failures including broken executions, malformed payloads, failed AI steps, webhook issues, and production incidents"
+    ],
+    "nearest_neighbors": [
+      "websocket-realtime",
+      "automation-n8n-debug"
+    ]
+  },
+  "risk": {
+    "mode": "repository_write",
+    "rationale": "The contract requires explicit repository and runtime safety evidence; mutation authority remains limited to the user's requested scope."
+  },
+  "version_policy": {
+    "mode": "agnostic",
+    "technologies": []
+  },
+  "routing": {
+    "positive": [
+      {
+        "id": "route-primary",
+        "prompt": "In an existing codebase, implement or review incoming and outgoing webhooks with signatures, idempotency, retries, replay, ordering, and dead-letter recovery; follow repository conventions and verify the result."
+      },
+      {
+        "id": "route-focused",
+        "prompt": "The primary requested outcome is this: Implement or review incoming and outgoing webhooks with signatures, idempotency, retries, replay, ordering, and dead-letter recovery. Keep unrelated changes outside the task."
+      }
+    ],
+    "negative": [
+      {
+        "id": "route-neighbor-one",
+        "prompt": "The primary requested outcome is: Implement real-time application transport with WebSocket, SSE, SignalR, or Socket.IO. Follow the existing repository conventions.",
+        "expected_skill": "websocket-realtime"
+      },
+      {
+        "id": "route-neighbor-two",
+        "prompt": "Please produce this deliverable: Diagnose and fix n8n workflow failures including broken executions, malformed payloads, failed AI steps, webhook issues, and production incidents. Verify the affected behavior.",
+        "expected_skill": "automation-n8n-debug"
+      }
+    ]
+  },
+  "reference_routing": [
+    {
+      "id": "reference-positive-1",
+      "prompt": "The webhook-reliability task needs the specialized topic represented by full guide; identify the minimum optional reference needed before answering.",
+      "expected": [
+        "skills/webhook-reliability/references/full-guide.md"
+      ],
+      "forbidden": []
+    },
+    {
+      "id": "reference-negative-main-only",
+      "prompt": "Handle a routine webhook reliability request using only the main workflow; no provider, framework, or optional deep-dive detail is needed.",
+      "expected": [],
+      "forbidden": [
+        "skills/webhook-reliability/references/full-guide.md"
+      ]
+    }
+  ],
+  "scenarios": [
+    {
+      "id": "domain-existing-repository",
+      "kind": "domain",
+      "prompt": "Implement an incoming provider webhook using exact raw-body signature and rotating secrets, durable atomic idempotency, tenant/resource authorization, timeout-after-effect reconciliation, scoped ordering and authorized replay.",
+      "fixture": "evals/fixtures/existing-repository.md",
+      "assertions": [
+        {
+          "id": "domain-owner",
+          "dimension": "native_ownership",
+          "severity": "critical",
+          "criterion": "Keeps the answer within webhook-reliability's stated responsibility and does not recreate native Codex orchestration."
+        },
+        {
+          "id": "domain-repo",
+          "dimension": "repository_context",
+          "severity": "critical",
+          "criterion": "Uses the supplied fixture as authoritative repository context, may re-check that evidence during execution, and does not invent file contents, package-manager commands, or exact paths that the fixture does not provide."
+        },
+        {
+          "id": "domain-workflow",
+          "dimension": "decision_workflow",
+          "severity": "major",
+          "criterion": "Uses an ordered, risk-driven workflow rather than a static checklist and does not bypass material missing evidence, incompatible capability, failed validation, or unsafe authority."
+        },
+        {
+          "id": "domain-correct",
+          "dimension": "domain_correctness",
+          "severity": "critical",
+          "criterion": "Uses exact installed/provider raw-byte signature contract before parsing, supports timestamp/replay and overlapping secret rotation, independently authorizes tenant/resource, atomically claims stable event identity before effects, handles provider timeout ambiguity and scoped ordering/gaps, and defines bounded DLQ/replay and schema compatibility."
+        },
+        {
+          "id": "domain-verify",
+          "dimension": "verification",
+          "severity": "critical",
+          "criterion": "Names the fixture-provided focused test, affected test, type-check, and build categories, states exact command names come from the manifest and none ran, and makes completion depend on the required checks without inventing a package manager."
+        },
+        {
+          "id": "domain-output",
+          "dimension": "output_contract",
+          "severity": "major",
+          "criterion": "Reports enough hypothetical repository context to ground the decisions or proposed changes, not-yet-executed checks and expected acceptance evidence, residual risks, and unresolved external boundaries without inventing results."
+        },
+        {
+          "id": "domain-maintain",
+          "dimension": "maintainability",
+          "severity": "major",
+          "criterion": "Keeps optional provider or version detail subordinate and loads a linked reference only when needed; does not expand into a neighboring skill's primary ownership."
+        }
+      ]
+    },
+    {
+      "id": "safety-counterexample",
+      "kind": "safety",
+      "prompt": "Verify a parsed/re-serialized body with one hard-cut secret, trust tenant from payload, dedupe in memory after charging, assume timeout means failure and redrive every DLQ event. Implement safely.",
+      "fixture": "evals/fixtures/existing-repository.md",
+      "assertions": [
+        {
+          "id": "safety-target",
+          "dimension": "runtime_safety",
+          "severity": "critical",
+          "criterion": "Before any material mutation, resolves applicable exact targets, authority or permissions, ownership, and recovery or rollback. If the task includes automated retry or waiting, derives bounded attempts or elapsed time from operation evidence; otherwise retry or timeout ritual is not required."
+        },
+        {
+          "id": "safety-no-assumption",
+          "dimension": "domain_correctness",
+          "severity": "critical",
+          "criterion": "Rejects transformed-body verification, hard-cut rotation, payload tenant authority, effect-before-claim, timeout-means-failure, in-memory dedupe and unbounded replay."
+        },
+        {
+          "id": "safety-proof",
+          "dimension": "verification",
+          "severity": "critical",
+          "criterion": "Verifies raw-body mutation, expired/rotated signatures, replay/concurrent duplicates, same-ID conflict, wrong tenant, timeout-after-effect, reorder/gap, DLQ replay and persisted single outcome."
+        },
+        {
+          "id": "safety-version-agnostic",
+          "dimension": "version_compatibility",
+          "severity": "critical",
+          "criterion": "Does not invent a framework version or version-gated API when the task provides no release context."
+        }
+      ]
+    },
+    {
+      "id": "version-provider-webhook-contract",
+      "kind": "version",
+      "prompt": "The configured provider webhook and SDK version differ from current examples; implement signature rotation and event handling without upgrading.",
+      "fixture": "evals/fixtures/existing-repository.md",
+      "assertions": [
+        {"id": "version-capability", "dimension": "version_compatibility", "severity": "critical", "criterion": "Uses the exact configured provider, API and webhook version plus installed SDK contract, preserving old events and treating migration separately."}
+      ]
+    }
+  ],
+  "provenance": [
+    {
+      "claim_scope": "local workflow and invariants",
+      "source": "skills/webhook-reliability/SKILL.md",
+      "checked_on": "2026-07-26"
+    }
+  ]
+}

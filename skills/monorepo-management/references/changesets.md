@@ -1,80 +1,19 @@
-# Changesets Version Management
+# Package versioning and release notes
 
-## Independent Versioning
+Use the repository's installed release tool and configuration schema. Verify command and action syntax from local help/types and current official documentation; do not copy remembered action majors, runtime versions or runner labels.
 
-Each package has its own version -- versioned and released independently.
+## Version model
 
-When to use:
-- Packages are consumed by external projects (published to npm)
-- Packages have different release cadences
-- Team autonomy is important
+- Choose independent, fixed/locked-step or grouped versioning from consumer compatibility and release ownership. Coupled packages need an explicit compatibility rule; unrelated packages should not churn solely for visual consistency.
+- Require a reviewable change record for public behavior, with package scope, change class, consumer impact and migration notes. Generated changelog text is an artifact to review, not authority.
+- Pre-release channels need a defined audience, tag/channel, dependency-range behavior, promotion path and cleanup. Do not let a pre-release accidentally satisfy stable consumers.
 
-## Fixed Versioning
+## Release workflow
 
-All packages share a single version -- released together.
+1. Validate package graph, changed package set, public API/schema diff, generated artifacts and version policy.
+2. Produce the version/manifest/lock/changelog change with the installed tool in a reviewable branch or pull request.
+3. Run required package and consumer checks, build reproducible artifacts once, and bind provenance/signing/attestation as policy requires.
+4. Publish under least-privilege environment approval, then verify registry metadata, tags/channels, package contents and a clean consumer install.
+5. Define recovery before release: deprecate/yank where supported, publish a compatibility fix, move a mutable channel only with care, and communicate irreversible consumption.
 
-When to use:
-- Internal packages not published externally
-- Tight coupling between packages
-- Simpler mental model for the team
-
-## Changeset Workflow
-
-```bash
-# Developer adds a changeset describing their change
-pnpm changeset
-# Select affected packages, semver bump type, write description
-
-# CI: consume changesets, bump versions, update changelogs, publish
-pnpm changeset version   # bump package.json versions, update CHANGELOG.md
-pnpm changeset publish   # publish changed packages to npm
-```
-
-## Configuration
-
-```json
-// .changeset/config.json
-{
-  "$schema": "https://unpkg.com/@changesets/config@3.0.0/schema.json",
-  "changelog": "@changesets/changelog-github",
-  "commit": false,
-  "fixed": [],
-  "linked": [["@acme/ui", "@acme/shared-types"]],
-  "access": "restricted",
-  "baseBranch": "main",
-  "updateInternalDependencies": "patch",
-  "ignore": []
-}
-```
-
-## Release Workflow (GitHub Actions)
-
-```yaml
-# .github/workflows/release.yml
-name: Release
-on:
-  push:
-    branches: [main]
-
-jobs:
-  release:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: pnpm/action-setup@v2
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 20
-          cache: 'pnpm'
-      - run: pnpm install --frozen-lockfile
-      - name: Create Release PR or Publish
-        uses: changesets/action@v1
-        with:
-          publish: pnpm changeset publish
-          version: pnpm changeset version
-          commit: 'chore: version packages'
-          title: 'chore: version packages'
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
-```
+Verify no-change, one-package and coupled-package cases, prerelease promotion, failed partial publish, duplicate rerun, registry ambiguity, generated-file drift, old/new consumer compatibility and rollback/recovery.

@@ -1,36 +1,11 @@
-# Angular Animation Patterns
+# Angular Motion
 
-```typescript
-import { trigger, transition, style, animate, query, stagger } from '@angular/animations';
+Inspect the installed Angular compiler/core and existing providers before selecting an API.
 
-@Component({
-  animations: [
-    trigger('listAnimation', [
-      transition(':enter', [
-        query(':enter', [
-          style({ opacity: 0, transform: 'translateY(8px)' }),
-          stagger(50, [
-            animate('200ms ease-out', style({ opacity: 1, transform: 'translateY(0)' })),
-          ]),
-        ], { optional: true }),
-      ]),
-    ]),
-    trigger('fadeSlide', [
-      transition(':enter', [
-        style({ opacity: 0, transform: 'translateY(8px)' }),
-        animate('200ms ease-out', style({ opacity: 1, transform: 'translateY(0)' })),
-      ]),
-      transition(':leave', [
-        animate('150ms ease-in', style({ opacity: 0, transform: 'translateY(-8px)' })),
-      ]),
-    ]),
-  ],
-})
-```
+- Angular 20.2 deprecated `@angular/animations` and introduced `animate.enter` / `animate.leave`. On a capable installed line, prefer those compiler primitives with native CSS or typed JS callbacks. Follow the [official migration guide](https://angular.dev/guide/animations/migration).
+- Do not mix legacy triggers and `animate.enter`/`animate.leave` in one component, including incompatible content-projection boundaries. Keep a legacy pinned component intact until its migration is in scope.
+- Leave callbacks must signal completion through the documented installed API so Angular can remove the element. Reduced motion, cancellation and test environments must reach the same final DOM and cleanup state.
+- Keep class/keyframe names component-scoped where possible. Import third-party animation code as modules; do not use evaluated strings or weaken CSP.
+- Verify installed TestBed animation controls. Unit environments may not emit native animation events; use browser tests for lifecycle timing and visual behavior.
 
-## Guidelines
-
-- Use `@angular/animations` for component-level enter/leave and state transitions
-- Use Web Animations API (`element.animate()`) for imperative, dynamic animations
-- Keep animation trigger definitions in the component metadata -- colocate with the template that uses them
-- Prefer CSS transitions for simple hover/focus effects -- Angular animations add bundle weight
+Official sources: [enter/leave animations](https://angular.dev/guide/animations) and [migration from legacy animations](https://angular.dev/guide/animations/migration).

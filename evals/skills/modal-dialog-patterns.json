@@ -1,0 +1,181 @@
+{
+  "schema_version": 1,
+  "contract_status": "reviewed",
+  "skill": "modal-dialog-patterns",
+  "native_ownership": {
+    "responsibility": "Implement modal and nonmodal dialog interactions with appropriate semantics, focus and dismissal behavior, layering, unsaved-state protection, and idempotent consequential actions.",
+    "excludes": [
+      "Broad WCAG remediation is owned by accessibility-implement.",
+      "General frontend refactoring is owned by frontend-refactor.",
+      "General component/page implementation is owned by frontend-implement."
+    ],
+    "nearest_neighbors": [
+      "accessibility-implement",
+      "frontend-refactor",
+      "frontend-implement",
+      "design-system-implement"
+    ]
+  },
+  "risk": {
+    "mode": "repository_write",
+    "rationale": "modal-dialog-patterns changes repository code and browser/server behavior; mutations remain limited to the explicitly requested scope and require affected-path verification."
+  },
+  "version_policy": {
+    "mode": "dynamic",
+    "technologies": [
+      "angular",
+      "react"
+    ]
+  },
+  "routing": {
+    "positive": [
+      {
+        "id": "route-modal-focus",
+        "prompt": "Implement a modal editor launched from a virtualized row. It must choose safe initial focus, make the background inert, guard unsaved input, compose with a popover, and restore focus when the original row was deleted."
+      },
+      {
+        "id": "route-destructive-dialog",
+        "prompt": "Implement an accessible destructive confirmation whose request can time out after server commit. Define dismissal during submission, stable operation identity, server authorization/idempotency, conflict handling and persisted-outcome verification."
+      }
+    ],
+    "negative": [
+      {
+        "id": "route-accessibility",
+        "prompt": "Repair focus order, landmarks, live regions, accessible names, color contrast, keyboard support and screen-reader issues across the complete application.",
+        "expected_skill": "accessibility-implement"
+      },
+      {
+        "id": "route-refactor",
+        "prompt": "Refactor existing frontend components for stronger types, smaller responsibilities, reuse, framework idioms and maintainability without changing overlay behavior.",
+        "expected_skill": "frontend-refactor"
+      }
+    ]
+  },
+  "reference_routing": [],
+  "scenarios": [
+    {
+      "id": "domain-critical-boundaries",
+      "kind": "domain",
+      "prompt": "A custom overlay marks every drawer modal, always focuses the first control, closes on pointer-down anywhere outside, assumes its trigger still exists, and prevents duplicates only by disabling the confirm button. Repair the interaction.",
+      "fixture": "evals/fixtures/existing-repository.md",
+      "assertions": [
+        {
+          "id": "dialog-owner",
+          "dimension": "native_ownership",
+          "severity": "major",
+          "criterion": "Owns dialog/modal semantic choice, focus, dismissal, layering and dialog-contained mutation behavior while leaving broad accessibility and refactoring work to neighbors."
+        },
+        {
+          "id": "dialog-repo",
+          "dimension": "repository_context",
+          "severity": "critical",
+          "criterion": "Inspects installed dialog/design-system primitive, browser targets, layer/scroll manager, trigger lifecycle, mutation contract, authorization and tests from the fixture without inventing APIs."
+        },
+        {
+          "id": "dialog-workflow",
+          "dimension": "decision_workflow",
+          "severity": "critical",
+          "criterion": "Chooses modal versus nonmodal semantics and consequence-aware focus/dismissal first, verifies primitive capability, then defines layer, unsaved-state and mutation failure behavior."
+        },
+        {
+          "id": "dialog-correct",
+          "dimension": "domain_correctness",
+          "severity": "critical",
+          "criterion": "Does not label interactive-background surfaces modal, selects initial and return focus contextually, prevents unsafe pointer dismissal, handles missing invokers and uses server authorization plus stable idempotency for consequential actions."
+        },
+        {
+          "id": "dialog-verify",
+          "dimension": "verification",
+          "severity": "critical",
+          "criterion": "Tests keyboard/screen reader, background inertness or nonmodal access, nested layers, invoker removal, pointer drag/selection, rapid lifecycle, zoom/mobile/reduced motion and duplicate/timeout/conflict mutation outcomes."
+        },
+        {
+          "id": "dialog-output",
+          "dimension": "output_contract",
+          "severity": "major",
+          "criterion": "Reports interaction/dismissal semantics, focus/layer ownership, mutation/unsaved-state contract, installed capability, checks and residual browser/assistive-technology risk."
+        },
+        {
+          "id": "dialog-maintain",
+          "dimension": "maintainability",
+          "severity": "major",
+          "criterion": "Composes with the repository primitive and layer tokens, avoids global duplicate listeners and keeps semantics independent of visual shape or fixed z-index/timing values."
+        }
+      ]
+    },
+    {
+      "id": "safety-production-counterexample",
+      "kind": "safety",
+      "prompt": "A destructive account dialog currently closes on outside pointer-down while a request is pending; the user retries after a timeout and the trigger row disappears. Explain the safe mutation and focus behavior.",
+      "fixture": "evals/fixtures/existing-repository.md",
+      "assertions": [
+        {
+          "id": "dialog-safety",
+          "dimension": "runtime_safety",
+          "severity": "critical",
+          "criterion": "Resolves exact actor, tenant, target, consequence, operation identity, authorization, pending/unknown outcome, cancellation and recovery behavior before allowing retry or dismissal."
+        },
+        {
+          "id": "dialog-safety-correct",
+          "dimension": "domain_correctness",
+          "severity": "critical",
+          "criterion": "Uses server-side idempotency and authorization, does not discard state during ambiguous completion, reconciles outcome and restores focus to a meaningful surviving workflow target."
+        },
+        {
+          "id": "dialog-safety-proof",
+          "dimension": "verification",
+          "severity": "critical",
+          "criterion": "Requires persisted server and caller-visible outcome under double activation and timeout-after-commit plus keyboard/focus evidence; a disabled button or closed dialog is not proof."
+        }
+      ]
+    },
+    {
+      "id": "version-installed-capability",
+      "kind": "version",
+      "prompt": "The application pins a supported dialog primitive whose current documentation uses newer focus and outside-interaction callbacks. Native dialog support also varies across target browsers. No upgrade is authorized.",
+      "fixture": "evals/fixtures/existing-repository.md",
+      "assertions": [
+        {
+          "id": "dialog-version",
+          "dimension": "version_compatibility",
+          "severity": "critical",
+          "criterion": "Derives stack evidence from the lockfile, installed types, target-browser behavior and matching official documentation; applies only exposed callbacks and treats package migration separately, without requiring a particular helper command."
+        },
+        {
+          "id": "dialog-version-context",
+          "dimension": "repository_context",
+          "severity": "major",
+          "criterion": "Checks framework, primitive, portal/layer manager, browser targets and test environment as one compatibility unit."
+        },
+        {
+          "id": "dialog-version-maintain",
+          "dimension": "maintainability",
+          "severity": "major",
+          "criterion": "Anchors semantics in WAI-ARIA and HTML behavior while isolating volatile framework callback names and avoiding remembered support claims."
+        }
+      ]
+    }
+  ],
+  "provenance": [
+    {
+      "claim_scope": "modal dialog focus and inertness semantics",
+      "source": "https://www.w3.org/WAI/ARIA/apg/patterns/dialog-modal/",
+      "checked_on": "2026-07-26"
+    },
+    {
+      "claim_scope": "native dialog lifecycle and cancellation",
+      "source": "https://html.spec.whatwg.org/multipage/interactive-elements.html#the-dialog-element",
+      "checked_on": "2026-07-26"
+    },
+    {
+      "claim_scope": "dynamic framework release sources",
+      "source": "skills/version-sources.tsv",
+      "checked_on": "2026-07-26"
+    },
+    {
+      "claim_scope": "local implementation workflow",
+      "source": "skills/modal-dialog-patterns/SKILL.md",
+      "checked_on": "2026-07-26"
+    }
+  ]
+}

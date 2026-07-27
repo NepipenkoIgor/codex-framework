@@ -1,77 +1,94 @@
 ---
 name: ai-product-operations
-description: Operational layer for AI SaaS — usage metering, token billing, per-user quotas, model fallbacks, cost dashboards, latency SLOs
+description: Design and implement production AI controls including usage metering, quota and credit settlement, compatible fallback, evaluation-gated cohort rollout, version attribution, drift response, and in-flight rollback reconciliation. Use when model calls have entered production and need an operational control plane; do not use to design an evaluation study, forecast unit economics, or build general observability.
 metadata:
-  version: 1.0
+  owner: codex-framework
+  reviewed: "2026-07-26"
+  version: 2.0
   domain: ai-saas
-  agents: [builder-backend, architect, builder-frontend]
 ---
 
-# AI Product Operations Skill
+# AI Product Operations
 
-## Scope
+## Repository Discovery
 
-Use when building: usage-based billing, token metering, per-user AI quotas, model fallback chains, AI cost dashboards, latency SLOs, AI product analytics.
+Generate stack context, then inspect the exact core/provider SDK pins and matching official provider documentation, provider adapters, served models, request/idempotency identifiers, streaming lifecycle/protocol, usage fields and their exactness, current ledger/billing schema, organization/user authorization, retries/timeouts, context budgeting, fallback tool/modality compatibility, deployment-runtime constraints and existing telemetry as one capability chain. Reuse established monetary and event boundaries. Treat SDK/model migration as a separate rollout. Never render missing provider usage or cost as zero.
 
-## Usage Metering
+## Workflow
 
-- Capture token usage at the service layer — never in the LLM client wrapper
-- Store per request: `user_id, org_id, feature_id, model_id, input_tokens, output_tokens, latency_ms, cost_usd, timestamp, request_id`
-- Table: `ai_usage_events(id, user_id, org_id, feature, model, input_tokens, output_tokens, latency_ms, cost_usd, created_at)`
-- Always record the model that actually served the request (may differ from requested after fallback)
+1. Define the metered unit, authority, lifecycle, and reconciliation source for each feature.
+2. Separate admission limits from final billing: reserve capacity, execute once under an idempotency key, settle authoritative usage, then release or reconcile the reservation.
+3. Make request, token, concurrency, and credit policies explicit per organization, user, and feature.
+4. Define fallback compatibility before ordering models: supported modalities/tools/schema, context capacity, data region, latency, and user-visible attribution.
+5. Retain immutable raw provider usage with source/request provenance, then produce a versioned normalized record; instrument started/completed/failed/fallback/reconciled events with usage provenance and exactness. Later adapter changes must not rewrite historical raw evidence.
+6. Exercise timeout-after-provider-success, replay, missing usage, partial stream, quota race, fallback incompatibility, and delayed reconciliation.
+7. Define evaluation-gated rollout, cohort/canary exposure, model/prompt/tool version attribution, drift slices, deterministic disable/rollback, and reconciliation of in-flight work. Keep provider usage/fallback/rollout adapters versioned and keep thresholds, cohorts and gates in provenance-linked versioned product policy/configuration. Thresholds come from product harm, baseline and SLO evidence rather than universal numbers.
 
-## Token → Credit → Invoice
+## Usage and Ledger Contract
 
-- Define credit multipliers per model in config, not code
-- Store `credit_balance` on org/subscription record
-- Deduct credits atomically (DB transaction) BEFORE the AI call — reject if insufficient
-- Roll back deduction if call fails with non-quota error
-- Emit `usage.metered` event for billing webhook (Stripe usage records)
+Store immutable usage events keyed by provider request ID and internal idempotency key:
 
-## Per-User Quota Enforcement
+```text
+request_id, provider_request_id, org_id, user_id, feature_id,
+model_requested, model_served, input_units, output_units,
+usage_status(exact|estimated|missing), cost_status(exact|estimated|missing),
+cost_usd, latency_ms, time_to_first_token_ms, occurred_at
+```
 
-- Enforce at 3 levels: requests-per-minute, tokens-per-day, credits-per-billing-period
-- Use Redis for rpm/rpd counters with TTL = window size: `INCR ai:quota:{user_id}:{window}` + `EXPIRE`
-- Return HTTP 429 with `Retry-After` header and remaining quota in response body
-- Quota config in DB (overridable per plan/org) — never hardcoded
+Use an idempotent `reserve -> settle -> release/reconcile` ledger:
 
-## Model Fallback Chains
+- admission creates or reuses a bounded reservation under the request idempotency key;
+- provider completion settles once from authoritative usage when available;
+- ambiguous timeouts remain pending and reconcile by provider request ID instead of refunding blindly;
+- replayed completion/usage events are no-ops after the first settlement;
+- missing usage remains `missing` and produces a lower-bound cost view, never a fabricated zero.
 
-- Define fallback order in config using capability tiers, for example `[high-capability-model, fast-fallback-model, low-cost-fallback-model]`
-- Trigger on: HTTP 429, HTTP 503, timeout >30s, context length exceeded
-- Never fall back silently — emit `model.fallback` event with original model + reason
-- Log which model served each request for cost attribution
+Do not deduct and then “roll back on error”: a crash or timeout-after-success makes that sequence financially incorrect.
 
-## Latency SLOs
+## Quota and Concurrency Safety
 
-- Define P95 targets per feature: e.g. chat < 3s, background analysis < 30s
-- Track `latency_ms` on every usage event row
-- For streaming: track time-to-first-token separately from total latency
-- Alert when P95 exceeds SLO → error tracking + notification
+- Enforce atomic window limits with one Redis script/transaction or a database constraint; never separate `INCR` and `EXPIRE` operations.
+- Scope policies by organization, user, feature, and credential as required; authorization is checked independently of quota.
+- Return bounded retry information without exposing another tenant's usage.
+- Use request and token ceilings before the call, then settle actual consumption afterward.
+- Reconcile ledger, provider records, and invoice exports; alert on missing, duplicated, or stale pending entries.
 
-## Cost Dashboard
+## Fallback Policy
 
-- Per-user and per-org spend: daily/weekly/monthly views
-- Break down by model and feature
-- Show credit burn rate vs. plan limit — warn at 80% consumed
-- Flag top-spending users (fraud detection + upsell signals)
+Fallback is an explicit product decision, not a generic retry. Retry the same provider/model only when the operation is idempotent and the failure class is safe. Switch models only when the fallback satisfies the feature contract. Context-length failure first invokes the product's bounded-context strategy; silently choosing a model with a different context or tool/schema behavior is forbidden.
 
-## AI Product Analytics Events
+Emit the original model, served model, trigger, compatibility decision, and any user-visible degradation. Consequential or materially lower-quality fallback may require user confirmation instead of automatic execution.
 
-Emit on every AI interaction:
-- `ai.request.started` — feature, model_requested, user_id
-- `ai.request.completed` — + tokens_used, latency_ms, cost_usd, model_served
-- `ai.request.failed` — + error_code, retried (bool)
-- `ai.quota.exceeded` — user_id, quota_type, window, limit, current
-- `ai.model.fallback` — original_model, fallback_model, reason
+## SLO and Cost Views
 
-## Checklist
+- Define SLOs from product journeys and measured baselines, not universal example numbers.
+- Track time to first token and total completion separately for streams.
+- Attribute costs by actual served model and feature, with exact/estimated/missing coverage visible.
+- Show lower/upper or unresolved spend when usage is incomplete; alert on reconciliation lag and unexpected burn rate.
+- Keep analytics events free of prompts, secrets, and unnecessary personal data.
+- Correlate quality, refusal/abstention, safety, latency, usage exactness and cost by served model/prompt/tool version and product slice. A cost improvement cannot mask a quality or safety regression.
+- Roll back routing/configuration through a tested deterministic control while preserving auditable in-flight usage and side-effect reconciliation; do not assume a model rollback reverses completed actions.
 
-- [ ] Token usage stored per request with model attribution
-- [ ] Credit deduction atomic and pre-call
-- [ ] Quota enforced at rpm + daily + billing-period
-- [ ] Fallback chain configured, not hardcoded
-- [ ] Fallback events emitted (never silent)
-- [ ] Time-to-first-token tracked for streaming features
-- [ ] Cost dashboard shows per-user/per-org breakdown
-- [ ] All 5 analytics events wired up
+## Verification
+
+- Simulate provider success followed by client timeout and retry; prove one settlement.
+- Replay usage and billing events; prove ledger idempotency.
+- Race concurrent requests against the last available quota; prove the limit is not exceeded.
+- Return null provider usage; prove dashboards and margins do not display zero cost.
+- Interrupt a stream after partial provider output/usage; prove reservation settlement and reconciliation use authoritative provider evidence, do not double charge or treat the partial response as a complete success, and preserve the caller-visible failure state.
+- Trigger context overflow; prove bounded-context handling precedes only a contract-compatible fallback.
+- Reconcile a delayed provider record and prove invoice/export totals converge.
+- Canary a compatible model or prompt change on representative slices; prove evaluation and operational gates, drift detection, deterministic disable/rollback and caller-visible recovery without hardcoded global thresholds.
+
+## Output Contract
+
+Report the discovered request/billing boundaries, metering schema, reservation and settlement state machine, quota scopes, fallback compatibility matrix, SLOs, dashboards, reconciliation/alerts, executed failure cases, and residual assumptions about provider usage authority.
+
+## Done Criteria
+
+- Every provider operation has one stable idempotency key and usage provenance.
+- Reservations settle/release/reconcile without double charge or blind refund.
+- Missing usage/cost is represented as unknown, not zero.
+- Quotas are atomic and tenant-scoped.
+- Fallbacks preserve the declared feature contract and are attributable.
+- Failure/replay/reconciliation tests pass against the repository's authoritative stores.
