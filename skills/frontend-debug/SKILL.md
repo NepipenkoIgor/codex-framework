@@ -1,49 +1,41 @@
 ---
 name: frontend-debug
-description: Diagnose and fix frontend bugs — rendering errors, broken state, JS exceptions, CSS layout issues, and network failures
+description: Reproduce, localize, and fix a concrete frontend defect across rendering, state, hydration, browser, CSS, and network boundaries. Use when diagnosis plus a repository fix is requested; do not use for backend-only, mobile-native, greenfield, or review-only work.
 metadata:
-  version: 3.0
-  argument-hint: "bug description, framework (React/Vue/Angular), reproduction steps, browser/env affected"
+  owner: codex-framework
+  reviewed: "2026-07-27"
+  version: 3.1
+  argument-hint: "symptom and expected behavior, exact URL/build/browser/account/time, reproduction steps and affected framework"
 ---
 
-Debug $ARGUMENTS.
+# Frontend Debug
 
-## Tool Integration
+Debug and fix `$ARGUMENTS` within the authorized repository scope.
 
-- Start with browser reproduction when a local URL or runtime path is available.
-- Use diagnostics, code navigation, and structural search after you observe the symptom.
+## Reproduce and localize
 
-## Debugging Principles
+1. Capture exact expected versus observed behavior, URL/build/commit, browser/device, viewport, role/account, locale, timestamps, data/state, and reproduction sequence.
+2. Reproduce from a clean fresh load as well as navigation when initialization, cache, SSR, or hydration may differ. Do not rely on hot-reload state as evidence.
+3. Correlate browser console/network/performance evidence with server/provider logs when available. Redact secrets and PII.
+4. Trace ownership across rendered DOM/CSS, state and events, effects/watchers, router/cache, request/response, server/client serialization, hydration, and third-party boundaries. State hypotheses and falsifying observations.
+5. Establish root cause before changing code, then add a focused regression or reproducible baseline and make the smallest safe fix.
 
-- Diagnose the root cause before changing code.
-- Distinguish symptoms from causes.
-- Prefer the smallest safe fix.
-- Verify state ownership, reactive triggers, side effects, and async behavior before broad changes.
+## Capability and production boundaries
 
-## Bug Diagnosis Approach
+- Generate stack context and use installed manifests, lockfiles, runtime config, generated types, browser targets, and matching official documentation. Do not assume current framework APIs.
+- Source maps are evidence only when they match the exact deployed artifact/runtime and are access-controlled; stale/local maps can misattribute a production stack.
+- A local fix is not production proof. Distinguish local, preview, deployed, authenticated, browser/device, and provider paths.
+- If immediate production mitigation is required, first obtain explicit authority for the exact production target and action. Then bound the affected traffic/data, choose a reversible feature flag/rollback/config action with owner and stop condition, preserve evidence, and avoid destructive cache/data actions without explicit authority.
 
-1. Identify the symptom precisely and restate expected behavior.
-2. Reproduce it in the browser when possible.
-3. Trace state ownership, data flow, event handlers, effects, and async boundaries.
-4. Check for stale state, duplicated state, race conditions, hydration issues, or invalid validation assumptions.
-5. Apply the smallest safe fix.
+## Common failure classes
 
-## Framework Guidance
+- initialization order, stale closure/watch/effect, duplicated derived state, missed cleanup, race or stale response;
+- server/client ownership, non-serializable payload, hydration mismatch, browser-only API during server render;
+- focus/event propagation, native-control semantics, CSS containing block/stacking/overflow, responsive or font-loading differences;
+- authentication/authorization response, cache key/invalidation, timeout/retry ambiguity, provider or CORS boundary.
 
-- React / Next.js: inspect dependency arrays, stale closures, unstable references, and server/client boundaries.
-- Angular: inspect signal loops, effect misuse, and change-detection churn.
-- Vue / Nuxt: inspect refs, watchers, computed chains, and reactive object boundaries.
-- Svelte: inspect derived state and effect ordering.
+## Verification and output
 
-## Remediation Workflow
-
-1. Mitigate immediate user impact if needed.
-2. Fix the root cause.
-3. Add or update a regression check when justified.
-4. Verify the changed flow again.
-
-## Output Requirements
-
-- Explain the likely root cause.
-- Make the smallest correct fix.
-- State what was verified and what remains unverified.
+- Rerun the exact reproduction, focused regression, and affected repository checks. Test fresh load, failure/retry, and relevant browser/server boundaries.
+- For mutations verify caller-visible and persisted outcomes, including duplicate activation or timeout-after-commit where material.
+- Report reproduction, root-cause evidence, fix and why it is bounded, commands/results, deployed paths actually verified, mitigation/rollback state, and residual risk.

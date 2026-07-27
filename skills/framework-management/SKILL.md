@@ -1,90 +1,107 @@
 ---
 name: framework-management
-description: Manage the AI Codex Framework by auditing, creating, and maintaining native agents, skills, hooks, scripts, and validation.
+description: Audit and maintain this native Codex framework, including skills, profiles, hooks, setup, documentation, routing, and corpus governance. Use when changing or evaluating the framework itself; do not use for ordinary application implementation or repository setup.
 metadata:
-  version: 1.0
-  argument-hint: "task type (health-check/new-skill/validate/gap-analysis), scope (full/specific area)"
+  version: 2.0
+  argument-hint: "mode (audit/create/update/consolidate/validate), scope, acceptance criteria"
+  owner: framework-maintainers
+  reviewed: "2026-07-26"
 ---
 
-Manage the AI Codex Framework for $ARGUMENTS.
+# Framework Management
 
-## Framework Architecture
+Keep Codex native capabilities authoritative. The framework may add reusable domain knowledge, focused profiles, deterministic safety policy, and validation, but must not recreate planning, goals, model routing, agent lifecycle, browser control, GitHub workflows, or memory.
 
-The core file relationships in this repo are:
+## Architecture
 
 ```text
-AGENTS.md                <- native Codex operating contract
-`.codex/agents/*.toml`   <- native subagent profiles
-README.md                <- framework overview and usage
-skills/*/SKILL.md        <- reusable skill definitions
-scripts/*.sh             <- explicit framework checks and setup helpers
-templates/*.md           <- reusable task scaffolds
+AGENTS.md                 operating contract
+.codex/agents/*.toml      narrow native profiles
+skills/*/SKILL.md         task-selected procedural knowledge
+skills/core.txt           small universal default set
+skills/packs/*.txt        opt-in domain sets
+scripts/framework-*.sh    deterministic validation
+README.md                 public behavior and installation
 ```
-
-The consistency chain is:
-
-`AGENTS.md` delegation policy -> `.codex/agents/*.toml` behavior -> `skills/*/SKILL.md` quality -> executable checks and `README.md` usage documentation.
-
-## Use This Skill For
-
-- framework health checks
-- native agent profile creation or normalization
-- skill creation or cleanup
-- delegation and verification updates
-- structural consistency checks
 
 ## Workflow
 
-1. Read the current framework files before changing them.
-2. Check for duplicates before creating a new role or skill.
-3. Keep `AGENTS.md`, `README.md`, and affected native agent or skill aligned.
-4. Run `scripts/framework-health.sh` after meaningful framework edits.
+1. Read the relevant contract, files, maps, and checks before editing.
+2. Classify the request: audit, create, update, consolidate, deprecate, or validate.
+3. Check native capability ownership and semantic overlap before creating anything.
+4. Keep the parent responsible for contracts, shared writes, integration, and final reporting.
+5. Before a material mutation, resolve exact task-owned targets, write authority/permissions and ownership, then define a reversible diff or effect-appropriate recovery/rollback; preserve approval boundaries.
+6. Update affected skills, core/packs, maps, checks, and README together.
+7. Verify the actual diff and run the checks listed below.
 
-## Create Or Register
+## Skill Governance
 
-### New skill
+A maintained skill must have:
 
-1. Check for overlap with existing skills.
-2. Create `skills/<name>/SKILL.md` with frontmatter and practical instructions.
-3. Reference it from the relevant native agent instructions only when the skill is a stable baseline.
-4. Update `README.md` if the new skill affects public usage.
+- a unique task and routing boundary;
+- a description explaining what it does, when to use it, and important exclusions;
+- a self-contained core workflow, with optional detail in relative `references/` paths;
+- repository-context discovery before prescribing tools or architecture;
+- domain-specific constraints, verification, and output expectations;
+- an owner and review date in metadata for locally maintained skills;
+- no dependency on nonexistent profiles or hidden multi-skill chains.
 
-### New native agent profile
+A generated scaffold is inventory, not certification. Promote it to reviewed only after natural routing cases, domain and safety counterexamples, version/capability policy, provenance, and every scored dimension have evidence. Structural schema success alone cannot justify certification.
 
-1. Check if an existing native profile already covers the need.
-2. Create or update `.codex/agents/<name>.toml` with a narrow responsibility and sandbox mode.
-3. Add delegation guidance to `AGENTS.md` when needed.
-4. Update `README.md` if the framework surface changed.
+Prefer one universal baseline plus at most one platform specialization. Do not create a separate skill for every combination of framework and mode. Retire a skill when native Codex or an installed trusted plugin owns the capability.
 
-## Health Check
+## Audit Mode
 
-Validate:
+Score each dimension from 1 to 10 and cite concrete files or executable evidence:
 
-1. required top-level files exist
-2. native agent profiles are valid and purpose-specific
-3. skill files exist and have frontmatter
-4. native runtime configuration is parsed by Codex
-5. scripts needed by the framework are present
-6. docs match the actual repository structure
+1. Native ownership: no wrappers around native planning, goals, git, GitHub, browser, plugins, or agent lifecycle.
+2. Routing: descriptions are precise, mutually distinguishable, and tested with positive and negative prompts.
+3. Skill design: small core workflow, progressive disclosure, repo-first decisions, no textbook dumps.
+4. Coordination: bounded delegation, explicit ownership, parent-held contracts, isolated parallel writers.
+5. Verification: structural, semantic, safety, reference, profile, staleness, and routing checks.
+6. Runtime safety: exact targets, task-owned cleanup, approvals preserved, no broad destructive recipes.
+7. Maintainability: owner, review date, upstream provenance, deprecation and replacement paths.
+
+Report strengths, evidence-backed gaps, priorities, checks, and residual risk. A high structural score is not evidence of semantic quality.
+
+Also falsify native ownership and execution safety: reject shell or prompt wrappers that reimplement native planning, goals, model selection, browser/GitHub integration, memory, or agent lifecycle; reject parallel writers without isolated worktrees; and verify dynamic resolver sources against current official channels rather than a remembered release. Record whether each configured channel is stable/LTS or preview and never treat a preview channel as stable. Existing projects preserve their manifest/lockfile pins and use matching documentation; live stable/LTS resolution is for greenfield selection or an explicitly authorized migration.
+
+## Create or Consolidate
+
+Before adding a skill:
+
+1. Search names, descriptions, headings, and community/vendor sources.
+2. Decide whether the need belongs in AGENTS, an existing skill/reference, an opt-in pack, a plugin, or a new skill.
+3. Define positive and negative routing cases.
+4. Prefer a concise `SKILL.md`; move provider/version recipes to `references/`.
+5. Register it only in the narrowest appropriate core or pack.
+
+For consolidation, preserve unique invariants, remove repeated boilerplate, update references and maps, and record replacements in the governance documentation.
 
 ## Verification
 
-- Run `scripts/framework-eval.sh` for native-agent, hook, or skill changes.
-- Run `scripts/framework-drift-check.sh` after policy, role, or source-of-truth changes.
-- Run `scripts/framework-health.sh` before close-out.
-- For corpus changes, run `scripts/framework-skill-corpus-audit.sh` and inspect the lowest-scoring skills.
+Run after meaningful corpus changes:
 
-## Constraints
+For install/update collision handling, execute a task-owned fixture that attempts to collide with an existing user skill and prove the existing file remains byte-identical and the operation performs no write.
 
-- Only modify framework files in this repo.
-- Do not introduce duplicates without a clear reason.
-- Prefer direct, verifiable improvements over speculative redesign.
-- Do not make docs-only claims that are not backed by scripts, native profiles, skills, or runtime checks.
-- Do not weaken permission, git, or PR safeguards to make checks pass.
+```bash
+bash scripts/framework-skill-governance.sh
+bash scripts/framework-version-drift-check.sh
+bash scripts/framework-skill-corpus-audit.sh
+bash scripts/framework-eval.sh
+bash scripts/framework-drift-check.sh
+bash scripts/surface-parity-check.sh
+bash scripts/framework-health.sh
+```
+
+Use `scripts/framework-live-eval.sh` when routing, profiles, or agent ownership changes and live Codex usage is acceptable.
+Use `scripts/framework-skill-routing-live-eval.sh` after skill descriptions, core/packs, consolidation, or retirement mappings change.
+Use `${CODEX_HOME:-$HOME/.codex}/bin/codex-framework-stack-context project <path>` before applying version-sensitive guidance to an existing project (or the repository script while developing this framework). Use `scripts/framework-version-drift-check.sh --live` after resolver or release-source changes; it exercises live channels without persisting a snapshot.
 
 ## Output Contract
 
-- Changed:
-- Checks:
-- Remaining gaps:
-- Follow-up:
+- Changed: files and decisions
+- Consolidated or retired: old skill to replacement mapping
+- Checks: exact commands and results
+- Remaining gaps: evidence and risk
+- Follow-up: only work that is genuinely optional or externally blocked

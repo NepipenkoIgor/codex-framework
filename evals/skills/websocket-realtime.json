@@ -1,0 +1,342 @@
+{
+  "schema_version": 1,
+  "contract_status": "reviewed",
+  "skill": "websocket-realtime",
+  "native_ownership": {
+    "responsibility": "Implement real-time application transport with WebSocket, SSE, SignalR, or Socket.IO",
+    "excludes": [
+      "Work whose primary requested outcome is owned by webhook-reliability: Implement or review incoming and outgoing webhooks with signatures, idempotency, retries, replay, ordering, and dead-letter recovery",
+      "Work whose primary requested outcome is owned by data-pipeline-engineering: Design and implement batch or streaming data pipelines with schemas, checkpoints, idempotent replay, quality controls, lineage, backfills, and late-data handling"
+    ],
+    "nearest_neighbors": [
+      "webhook-reliability",
+      "data-pipeline-engineering"
+    ]
+  },
+  "risk": {
+    "mode": "repository_write",
+    "rationale": "The contract requires explicit repository and runtime safety evidence; mutation authority remains limited to the user's requested scope."
+  },
+  "version_policy": {
+    "mode": "dynamic",
+    "technologies": [
+      "angular",
+      "nextjs",
+      "nodejs",
+      "nuxt",
+      "react",
+      "typescript",
+      "vue"
+    ]
+  },
+  "routing": {
+    "positive": [
+      {
+        "id": "route-primary",
+        "prompt": "Implement pinned real-time transport with connection and per-message authorization, tenant/resource rooms, explicit delivery/order/resume, bounded backpressure, revocation, reconnect and scale-out semantics."
+      },
+      {
+        "id": "route-focused",
+        "prompt": "Implement reconnect and resume for a multi-instance realtime client, including cursor retention expiry, gap recovery, stale queued commands, token revocation, slow consumers and graceful drain."
+      }
+    ],
+    "negative": [
+      {
+        "id": "route-neighbor-one",
+        "prompt": "The primary requested outcome is: Implement or review incoming and outgoing webhooks with signatures, idempotency, retries, replay, ordering, and dead-letter recovery. Follow the existing repository conventions.",
+        "expected_skill": "webhook-reliability"
+      },
+      {
+        "id": "route-neighbor-two",
+        "prompt": "Please produce this deliverable: Design and implement batch or streaming data pipelines with schemas, checkpoints, idempotent replay, quality controls, lineage, backfills, and late-data handling. Verify the affected behavior.",
+        "expected_skill": "data-pipeline-engineering"
+      }
+    ]
+  },
+  "reference_routing": [
+    {
+      "id": "reference-positive-1",
+      "prompt": "The websocket-realtime task needs the specialized topic represented by binary protocols; identify the minimum optional reference needed before answering.",
+      "expected": [
+        "skills/websocket-realtime/references/binary-protocols.md"
+      ],
+      "forbidden": [
+        "skills/websocket-realtime/references/collaborative-editing.md",
+        "skills/websocket-realtime/references/frontend-integration.md",
+        "skills/websocket-realtime/references/nodejs-ws.md",
+        "skills/websocket-realtime/references/signalr.md",
+        "skills/websocket-realtime/references/socketio.md",
+        "skills/websocket-realtime/references/sse.md"
+      ]
+    },
+    {
+      "id": "reference-positive-2",
+      "prompt": "The websocket-realtime task needs the specialized topic represented by collaborative editing; identify the minimum optional reference needed before answering.",
+      "expected": [
+        "skills/websocket-realtime/references/collaborative-editing.md"
+      ],
+      "forbidden": [
+        "skills/websocket-realtime/references/binary-protocols.md",
+        "skills/websocket-realtime/references/frontend-integration.md",
+        "skills/websocket-realtime/references/nodejs-ws.md",
+        "skills/websocket-realtime/references/signalr.md",
+        "skills/websocket-realtime/references/socketio.md",
+        "skills/websocket-realtime/references/sse.md"
+      ]
+    },
+    {
+      "id": "reference-positive-3",
+      "prompt": "The websocket-realtime task needs the specialized topic represented by frontend integration; identify the minimum optional reference needed before answering.",
+      "expected": [
+        "skills/websocket-realtime/references/frontend-integration.md"
+      ],
+      "forbidden": [
+        "skills/websocket-realtime/references/binary-protocols.md",
+        "skills/websocket-realtime/references/collaborative-editing.md",
+        "skills/websocket-realtime/references/nodejs-ws.md",
+        "skills/websocket-realtime/references/signalr.md",
+        "skills/websocket-realtime/references/socketio.md",
+        "skills/websocket-realtime/references/sse.md"
+      ]
+    },
+    {
+      "id": "reference-positive-4",
+      "prompt": "The websocket-realtime task needs the specialized topic represented by nodejs ws; identify the minimum optional reference needed before answering.",
+      "expected": [
+        "skills/websocket-realtime/references/nodejs-ws.md"
+      ],
+      "forbidden": [
+        "skills/websocket-realtime/references/binary-protocols.md",
+        "skills/websocket-realtime/references/collaborative-editing.md",
+        "skills/websocket-realtime/references/frontend-integration.md",
+        "skills/websocket-realtime/references/signalr.md",
+        "skills/websocket-realtime/references/socketio.md",
+        "skills/websocket-realtime/references/sse.md"
+      ]
+    },
+    {
+      "id": "reference-positive-5",
+      "prompt": "The websocket-realtime task needs the specialized topic represented by signalr; identify the minimum optional reference needed before answering.",
+      "expected": [
+        "skills/websocket-realtime/references/signalr.md"
+      ],
+      "forbidden": [
+        "skills/websocket-realtime/references/binary-protocols.md",
+        "skills/websocket-realtime/references/collaborative-editing.md",
+        "skills/websocket-realtime/references/frontend-integration.md",
+        "skills/websocket-realtime/references/nodejs-ws.md",
+        "skills/websocket-realtime/references/socketio.md",
+        "skills/websocket-realtime/references/sse.md"
+      ]
+    },
+    {
+      "id": "reference-positive-6",
+      "prompt": "The websocket-realtime task needs the specialized topic represented by socketio; identify the minimum optional reference needed before answering.",
+      "expected": [
+        "skills/websocket-realtime/references/socketio.md"
+      ],
+      "forbidden": [
+        "skills/websocket-realtime/references/binary-protocols.md",
+        "skills/websocket-realtime/references/collaborative-editing.md",
+        "skills/websocket-realtime/references/frontend-integration.md",
+        "skills/websocket-realtime/references/nodejs-ws.md",
+        "skills/websocket-realtime/references/signalr.md",
+        "skills/websocket-realtime/references/sse.md"
+      ]
+    },
+    {
+      "id": "reference-positive-7",
+      "prompt": "The websocket-realtime task needs the specialized topic represented by sse; identify the minimum optional reference needed before answering.",
+      "expected": [
+        "skills/websocket-realtime/references/sse.md"
+      ],
+      "forbidden": [
+        "skills/websocket-realtime/references/binary-protocols.md",
+        "skills/websocket-realtime/references/collaborative-editing.md",
+        "skills/websocket-realtime/references/frontend-integration.md",
+        "skills/websocket-realtime/references/nodejs-ws.md",
+        "skills/websocket-realtime/references/signalr.md",
+        "skills/websocket-realtime/references/socketio.md"
+      ]
+    },
+    {
+      "id": "reference-negative-main-only",
+      "prompt": "Handle a routine websocket realtime request using only the main workflow; no provider, framework, or optional deep-dive detail is needed.",
+      "expected": [],
+      "forbidden": [
+        "skills/websocket-realtime/references/binary-protocols.md",
+        "skills/websocket-realtime/references/collaborative-editing.md",
+        "skills/websocket-realtime/references/frontend-integration.md",
+        "skills/websocket-realtime/references/nodejs-ws.md",
+        "skills/websocket-realtime/references/signalr.md",
+        "skills/websocket-realtime/references/socketio.md",
+        "skills/websocket-realtime/references/sse.md"
+      ]
+    }
+  ],
+  "scenarios": [
+    {
+      "id": "domain-existing-repository",
+      "kind": "domain",
+      "prompt": "Implement tenant-scoped realtime rooms. The server authenticates only on connect, trusts client room IDs and message user IDs, promises exactly once, orders by timestamps, buffers without limits, and resumes with any lastSeq after reconnect.",
+      "fixture": "evals/fixtures/existing-repository.md",
+      "assertions": [
+        {
+          "id": "domain-owner",
+          "dimension": "native_ownership",
+          "severity": "critical",
+          "criterion": "Keeps the answer within websocket-realtime's stated responsibility and does not recreate native Codex orchestration."
+        },
+        {
+          "id": "domain-repo",
+          "dimension": "repository_context",
+          "severity": "critical",
+          "criterion": "Uses the supplied fixture as authoritative repository context, may re-check that evidence during execution, and does not invent file contents, package-manager commands, or exact paths that the fixture does not provide."
+        },
+        {
+          "id": "domain-workflow",
+          "dimension": "decision_workflow",
+          "severity": "major",
+          "criterion": "Uses an ordered, risk-driven workflow rather than a static checklist and does not bypass material missing evidence, incompatible capability, failed validation, or unsafe authority."
+        },
+        {
+          "id": "domain-correct",
+          "dimension": "domain_correctness",
+          "severity": "critical",
+          "criterion": "Authenticates connection and authorizes every message/join against current actor, tenant and resource; namespaces rooms; defines at-most/at-least-once without exactly-once promises; scopes ordering, cursor retention and snapshot recovery; bounds backpressure; and handles reconnect reauthorization, token revocation and stale queued commands."
+        },
+        {
+          "id": "domain-verify",
+          "dimension": "verification",
+          "severity": "critical",
+          "criterion": "Names the fixture-provided focused test, affected test, type-check, and build categories, states exact command names come from the manifest and none ran, and makes completion depend on the required checks without inventing a package manager."
+        },
+        {
+          "id": "domain-output",
+          "dimension": "output_contract",
+          "severity": "major",
+          "criterion": "Reports enough hypothetical repository context to ground the decisions or proposed changes, not-yet-executed checks and expected acceptance evidence, residual risks, and unresolved external boundaries without inventing results."
+        },
+        {
+          "id": "domain-maintain",
+          "dimension": "maintainability",
+          "severity": "major",
+          "criterion": "Keeps optional provider or version detail subordinate and loads a linked reference only when needed; does not expand into a neighboring skill's primary ownership."
+        }
+      ]
+    },
+    {
+      "id": "safety-counterexample",
+      "kind": "safety",
+      "prompt": "A realtime purchase command is queued offline, the user's tenant permission is revoked, the cursor expires, and reconnect flushes the stale command twice while a slow consumer has an unbounded buffer. Implement the safe boundary.",
+      "fixture": "evals/fixtures/existing-repository.md",
+      "assertions": [
+        {
+          "id": "safety-target",
+          "dimension": "runtime_safety",
+          "severity": "critical",
+          "criterion": "Before any material mutation, resolves applicable exact targets, authority or permissions, ownership, and recovery or rollback. If the task includes automated retry or waiting, derives bounded attempts or elapsed time from operation evidence; otherwise retry or timeout ritual is not required."
+        },
+        {
+          "id": "safety-no-assumption",
+          "dimension": "domain_correctness",
+          "severity": "critical",
+          "criterion": "Rejects connection-auth-only, client ownership, exactly-once, timestamp-total-order, infinite replay and unbounded queue assumptions; distinguishes ephemeral delivery from durable mutation effects."
+        },
+        {
+          "id": "safety-proof",
+          "dimension": "verification",
+          "severity": "critical",
+          "criterion": "Verifies revocation and reauthorization, wrong-tenant joins, duplicate and out-of-order delivery, resume inside/outside retention, persisted mutation dedupe, slow-consumer shedding and multi-instance fan-out."
+        },
+        {
+          "id": "safety-version-agnostic",
+          "dimension": "version_compatibility",
+          "severity": "critical",
+          "criterion": "Does not invent a framework version or version-gated API when the task provides no release context."
+        }
+      ]
+    },
+    {
+      "id": "version-project-pin",
+      "kind": "version",
+      "prompt": "Use websocket-realtime in an existing project whose manifests and lockfiles pin an older supported release. A newer stable release also exists. Choose compatible guidance without silently upgrading.",
+      "fixture": "evals/fixtures/existing-repository.md",
+      "assertions": [
+        {
+          "id": "version-pin",
+          "dimension": "version_compatibility",
+          "severity": "critical",
+          "criterion": "Uses installed manifests, lockfiles, runtime files and capability evidence for an existing project; treats an upgrade as a separate migration."
+        },
+        {
+          "id": "version-context",
+          "dimension": "repository_context",
+          "severity": "major",
+          "criterion": "Checks the cross-stack compatibility dimensions applicable to the selected repository, such as engine, peers, compiler/framework, test runner, or deployment runtime, without demanding irrelevant dimensions."
+        },
+        {
+          "id": "version-verify",
+          "dimension": "verification",
+          "severity": "major",
+          "criterion": "Verifies a selected command or API with at least one applicable capability source such as installed/generated types, CLI help, configuration schema, or matching official documentation."
+        }
+      ]
+    },
+    {
+      "id": "version-greenfield-latest",
+      "kind": "version",
+      "prompt": "Start a greenfield project that needs websocket-realtime. No manifest or lockfile exists yet. Explain how to select a supported stable or LTS stack without relying on a remembered current major.",
+      "assertions": [
+        {
+          "id": "version-latest",
+          "dimension": "version_compatibility",
+          "severity": "critical",
+          "criterion": "Resolves stable or LTS release data at execution time from the configured official sources, checks cross-stack compatibility, and lets the generated manifest and lockfile become authority."
+        }
+      ]
+    }
+  ],
+  "provenance": [
+    {
+      "claim_scope": "local workflow and invariants",
+      "source": "skills/websocket-realtime/SKILL.md",
+      "checked_on": "2026-07-26"
+    },
+    {
+      "claim_scope": "angular release and compatibility context",
+      "source": "https://angular.dev/reference/releases",
+      "checked_on": "2026-07-26"
+    },
+    {
+      "claim_scope": "nextjs release and compatibility context",
+      "source": "https://nextjs.org/blog",
+      "checked_on": "2026-07-26"
+    },
+    {
+      "claim_scope": "nodejs release and compatibility context",
+      "source": "https://nodejs.org/en/about/previous-releases",
+      "checked_on": "2026-07-26"
+    },
+    {
+      "claim_scope": "nuxt release and compatibility context",
+      "source": "https://nuxt.com/blog",
+      "checked_on": "2026-07-26"
+    },
+    {
+      "claim_scope": "react release and compatibility context",
+      "source": "https://react.dev/versions",
+      "checked_on": "2026-07-26"
+    },
+    {
+      "claim_scope": "typescript release and compatibility context",
+      "source": "https://devblogs.microsoft.com/typescript/",
+      "checked_on": "2026-07-26"
+    },
+    {
+      "claim_scope": "vue release and compatibility context",
+      "source": "https://vuejs.org/about/releases",
+      "checked_on": "2026-07-26"
+    }
+  ]
+}

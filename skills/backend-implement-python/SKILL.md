@@ -1,81 +1,33 @@
 ---
 name: backend-implement-python
-description: Python 3.12+ backend patterns — FastAPI, Django REST, SQLAlchemy 2.x, Pydantic v2, Alembic
+description: Implement Python backend behavior using the repository's pinned interpreter, FastAPI/Django or other framework, validation, sync/async, persistence, auth, logging, and test conventions. Use when Python-specific server behavior dominates; do not use for non-Python or testing-only work.
 metadata:
-  version: 1.0
+  owner: codex-framework
+  reviewed: "2026-07-27"
+  version: 1.1
   domain: backend
-  keywords: [python, fastapi, django, sqlalchemy, pydantic, alembic, rest api, async, celery, pytest, uvicorn]
+  keywords: [python, fastapi, django, sqlalchemy, pydantic, alembic, async]
 ---
 
-# Backend Implement — Python
+# Backend Implement - Python
 
-Pair with `backend-implement` for universal rules.
+## Establish capability
 
-## Async Patterns
+1. Read instructions, interpreter/runtime files, dependency manifest/lock, framework/config, ASGI/WSGI deployment, validation/serialization, ORM/migrations, auth, jobs, logging and nearby tests.
+2. Generate stack context. Preserve the pinned interpreter and installed FastAPI/Django/Pydantic/SQLAlchemy/async-driver compatibility. Verify APIs from installed objects/types/CLI and matching official docs; runtime, Pydantic, ORM, package-manager or sync/async migration is separate.
+3. Preserve the repository's framework, package manager, typing strictness, settings, error and response contracts. Do not mandate uv, pytest, Pydantic, SQLAlchemy, `response_model`, JSON logging, or one auth library when the project uses another supported contract.
 
-- FastAPI: always `async def` for route handlers that perform I/O — never `def` (blocks the event loop)
-- Use `asyncio.gather()` for parallel independent async calls — never sequential `await` when parallelism is possible
-- Never mix sync and async DB drivers — pick asyncpg/aiomysql for async or psycopg2/mysqlclient for sync WSGI
-- Use `anyio.to_thread.run_sync()` to run blocking code from async context — never `asyncio.run()` inside a coroutine
+## Implementation invariants
 
-## Validation — FastAPI + Pydantic v2
+- Validate untrusted request/event/provider data at the boundary and preserve public serialization/error schemas. Static annotations are not runtime validation.
+- Match sync/async handlers to actual dependencies. Do not block an event loop, create nested loops, share sessions across requests, or parallelize operations whose transaction/order/connection semantics require sequencing.
+- Authenticate and authorize actor, tenant and target resource server-side; claims and route dependencies do not alone prove current ownership.
+- Reject interpolated/string-built SQL and use bound ORM/query parameters with explicit transaction/concurrency boundaries. Make consequential retries idempotent, derive attempt and elapsed-time bounds from operation evidence, and reconcile timeout-after-commit/effect.
+- Use the installed migration path for schema changes; do not replace it with metadata creation or an incidental ORM migration.
+- Bound provider calls, cancellation and retries; redact structured logs and responses.
 
-- Always Pydantic v2 models for request bodies, response models, and settings — never plain `dict` inputs
-- Always set `response_model=` on every route — never return raw dicts from FastAPI endpoints
-- Use `model_config = ConfigDict(str_strip_whitespace=True, strict=True)` on models
-- Never `.dict()` on Pydantic models — always `.model_dump()` (v2 API)
-- Validate env config with `pydantic-settings` `BaseSettings` — never raw `os.environ` in application code
+## Verification
 
-## Validation — Django REST Framework
+Run focused and affected repository checks for typing/lint/tests/migrations/build or packaging. Cover invalid input, unauthenticated, forbidden resource/tenant, sync/async cancellation, duplicate/concurrent mutation, conflict, timeout-after-effect and transaction rollback. Use isolated test dependencies; no real production database/provider.
 
-- Always DRF serializers or `django-ninja` schemas for request validation — never raw `request.data` access
-- Always `serializer.is_valid(raise_exception=True)` — never manually check `.errors` and return yourself
-- Never bypass serializer validation with direct model `.save()` from request data
-
-## ORM / Database
-
-- SQLAlchemy 2.x: always use `select()` / `insert()` / `update()` Core-style statements — never legacy `Query` API (`.query(Model)`)
-- Always use Alembic for schema migrations — never `Base.metadata.create_all()` in production
-- Use `async with AsyncSession() as session:` scoped per request — never reuse sessions across requests
-- Django ORM: always `select_related()` / `prefetch_related()` for related objects — never trigger N+1 in views
-- Always use `F()` expressions for atomic numeric field updates — never read-modify-write patterns
-
-## Error Handling
-
-- FastAPI: always `raise HTTPException(status_code=..., detail={...})` — never raise plain Python exceptions from routes
-- Register custom exception handlers with `@app.exception_handler(MyException)` for domain exceptions
-- Django: use DRF `EXCEPTION_HANDLER` setting for custom handling — never `try/except` in every view function
-- Use `structlog` or stdlib `logging` with JSON formatter — never bare `print()` in production code
-- Never expose Python tracebacks in API responses — log them, return only structured error to client
-
-## Security
-
-- Always `python-jose[cryptography]` or `PyJWT` for JWT — validate `exp`, `iss`, `aud` — never trust unvalidated tokens
-- Always hash passwords with `passlib[bcrypt]` or Django's built-in hasher — never `hashlib.md5/sha1`
-- Never put secrets in code or `.env` committed to git — always `pydantic-settings` sourced from environment
-- Always ORM or `text()` with bound parameters for SQL — never f-string or `%`-formatted SQL
-
-## Type Hints
-
-- Always type-annotate all function signatures — never untyped functions in new code
-- Use `from __future__ import annotations` for forward references in Python < 3.12
-- Run `pyright` (preferred) or `mypy` in strict mode as part of CI
-
-## Hard Rules
-
-- Never `def` route handlers in FastAPI doing I/O — `async def` always
-- Never `os.environ` in application code — `pydantic-settings` always
-- Never `Base.metadata.create_all()` — Alembic migrations always
-- Never f-string SQL or `%`-formatted SQL — ORM / bound params always
-- Never `print()` in production — structured logger always
-- Never return raw `dict` from FastAPI routes — `response_model` always
-
-## Done Criteria
-
-- All FastAPI routes have `response_model` set
-- All env config via `pydantic-settings` BaseSettings — no `os.environ`
-- No `Base.metadata.create_all()` in production code paths
-- No f-string or string-format SQL anywhere
-- All function signatures type-annotated
-- Structured logging used — no `print()` calls
-- `pyright`/`mypy` reports zero errors
+Report pins/capability, contracts changed, async/transaction/auth/idempotency decisions, commands/results, and residual deployment/provider risk.

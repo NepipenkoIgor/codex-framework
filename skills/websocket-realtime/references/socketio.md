@@ -1,66 +1,12 @@
-# Socket.IO (Node.js)
+# Socket.IO runtime
 
-```typescript
-import { Server } from 'socket.io';
-import { createAdapter } from '@socket.io/redis-adapter';
-import Redis from 'ioredis';
+Use only installed Socket.IO server/client and adapter APIs. Confirm namespace middleware, recovery, acknowledgement, transport and adapter behavior from pinned types and matching official documentation.
 
-const io = new Server(httpServer, {
-  cors: { origin: ALLOWED_ORIGINS },
-  pingInterval: 25000,
-  pingTimeout: 10000,
-  maxHttpBufferSize: 1e6, // 1MB max message size
-});
+- Install authentication on the exact namespace that accepts connections. Store only verified actor context; authorize every event, room join/leave and publish against current tenant/resource permissions.
+- Validate versioned event envelopes and bound payload size, event rate, acknowledgements and inflight operations. Do not spread untrusted objects into server events.
+- Derive opaque room names on the server. Client-provided room/tenant IDs are lookup claims, never authorization.
+- An acknowledgement confirms only the defined handler boundary; it does not prove exactly-once delivery or persisted business effect. Use stable operation identity, idempotent processing and authoritative status for consequential commands.
+- Reconnect/recovery must reauthenticate, restore authorized subscriptions, detect gaps and use bounded replay or snapshot. Timestamps alone are not ordering.
+- Add a Redis or other adapter only for verified multi-instance needs and test tenant isolation, outage, duplicate fan-out and deployment compatibility.
 
-// Redis adapter for multi-server
-const pubClient = new Redis(REDIS_URL);
-const subClient = pubClient.duplicate();
-io.adapter(createAdapter(pubClient, subClient));
-
-// Auth middleware
-io.use(async (socket, next) => {
-  try {
-    const token = socket.handshake.auth.token;
-    const user = await validateToken(token);
-    socket.data.user = user;
-    next();
-  } catch {
-    next(new Error('Authentication failed'));
-  }
-});
-
-// Namespace for chat
-const chat = io.of('/chat');
-chat.on('connection', (socket) => {
-  const user = socket.data.user;
-
-  socket.on('join-room', async (roomId: string) => {
-    if (await canJoinRoom(user.id, roomId)) {
-      socket.join(roomId);
-      socket.to(roomId).emit('user-joined', { userId: user.id });
-    }
-  });
-
-  // Acknowledgment for reliable delivery
-  socket.on('message', (data, ack) => {
-    const msg = { ...data, userId: user.id, timestamp: Date.now() };
-    saveMessage(msg).then(() => {
-      socket.to(data.roomId).emit('message', msg);
-      ack({ status: 'ok', id: msg.id });
-    });
-  });
-
-  socket.on('disconnect', () => {
-    presenceManager.setOffline(user.id);
-  });
-});
-```
-
-## Key Socket.IO Features
-
-- Namespaces for feature isolation (`/chat`, `/notifications`)
-- Rooms for group messaging (`socket.join('room-123')`)
-- Acknowledgments for reliable delivery (`socket.emit('msg', data, ack)`)
-- Automatic reconnection with configurable backoff
-- Binary support via Buffer/ArrayBuffer
-- Redis adapter for multi-server: `@socket.io/redis-adapter`
+Verify namespace auth, wrong-room/tenant events, revocation, invalid/flood payloads, duplicate/ambiguous commands, disconnect during effect, and reconnect inside/outside retention. When a multi-instance adapter is selected, also verify adapter outage, duplicate fan-out, tenant isolation, and deployment compatibility.

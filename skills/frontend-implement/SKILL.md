@@ -1,108 +1,43 @@
 ---
 name: frontend-implement
-description: Implement new frontend features — components, pages, forms, routing, data fetching, and interactions
+description: Implement frontend features while preserving repository language, installed stack, server/client contracts, accessibility, and mutation safety. Use when no sharper framework or full-stack specialization owns the task; route React, Vue, Angular, or Next.js-dominant work to the matching specialization.
 metadata:
-  version: 3.0
-  argument-hint: "feature/component name, framework (React/Vue/Angular), page or module context"
+  owner: codex-framework
+  reviewed: "2026-07-27"
+  version: 4.1
+  argument-hint: "feature and acceptance criteria, affected routes/components, framework, data and mutation boundaries"
 ---
 
-Implement $ARGUMENTS.
+# Frontend Implement
 
-## Tool Integration
+Implement `$ARGUMENTS` in the existing repository. This is the generic fallback, not a substitute for a matching specialization.
 
-- Use the available TypeScript or framework diagnostics tools after meaningful code changes.
-- Use the available docs lookup tool when framework or library syntax is uncertain.
-- Use browser automation when runtime behavior or visual state matters.
+## Route first
 
-## Core Principles
+- React-dominant component work: `frontend-implement-react`.
+- Vue/Nuxt-dominant component work: `frontend-implement-vue`.
+- Angular-dominant component work: `frontend-implement-angular`.
+- Next.js full-stack work involving Server Components, Server Actions, Route Handlers, caching, or server auth/data access: `nextjs-development`.
+- Use this skill when the stack has no sharper installed specialization or the work is genuinely framework-neutral. Do not blend conflicting recipes.
 
-- Follow existing conventions, file structure, naming, and architecture.
-- Prefer consistency with the current codebase over introducing new patterns.
-- Keep components focused; separate UI, state, schemas, types, and data-access concerns.
-- Reuse the existing design system, UI kit, primitives, tokens, and component variants before adding new UI surface.
-- Prefer project utility classes, variant helpers, and shared class composition helpers over inline styles or arbitrary values.
-- Do not add inline styles for standard styling. Use inline styles only for values that must be computed at runtime, and prefer CSS variables or data attributes when they keep CSP compatibility intact.
-- Avoid hardcoded visual values when tokens, theme variables, or shared variants exist.
-- TypeScript-first; derive types from schemas to avoid duplication.
-- Build async flows with loading, error, empty, and success states.
-- Prefer explicit, predictable data flow.
-- Keep implementation simple: solve the current product problem without speculative abstraction.
+## Workflow
 
-## Dependencies and Imports
+1. Read instructions, manifests/lockfiles, target routes/components, shared primitives, API/schema/auth contracts, nearby tests, and authoritative commands.
+2. Generate stack context before version-sensitive work. Preserve repository language and pins; use installed types/config/CLI capability and matching official docs. Do not introduce TypeScript, a framework upgrade, a state library, or a validation library incidentally.
+3. Define caller-visible acceptance across success, loading, empty, error, retry, responsive, keyboard/focus, and fresh-load/navigation states that matter.
+4. Resolve exact task-owned mutation targets, write authority/permissions, ownership of data loading, state, validation, mutation, cache invalidation and server/client serialization, plus effect-appropriate rollback/recovery before editing.
+5. Implement the smallest cohesive change using existing primitives and conventions; inspect the actual diff.
 
-- Prefer existing project dependencies.
-- Prefer framework-native solutions before third-party packages.
-- Keep imports explicit and remove unused ones.
+## Safety and correctness
 
-## State, Async, and Performance
+- Prefer native semantics, accessible names, keyboard operation, perceivable focus, and existing design tokens/primitives.
+- Treat all client input as untrusted. Client validation improves UX but does not replace server schema validation, authentication, tenant/resource authorization, or output encoding.
+- For consequential mutations, define stable operation identity and server-side idempotency/concurrency semantics where retries or duplicate activation are possible. Disabling a button is not a correctness boundary.
+- Make pending, unknown-after-timeout, conflict, partial failure, retry, and persisted success distinguishable. Never claim success solely because the UI closed or a request returned.
+- Avoid exposing secrets, privileged data, or server-only modules across the client bundle/serialization boundary.
 
-- Keep state close to usage; prefer derived values over synchronized copies.
-- Avoid duplicate requests and race conditions.
-- Separate request DTOs, API types, UI view models, and form models when responsibilities differ.
-- Prefer architecture and state fixes before memoization.
-- Avoid render waterfalls, unstable keys, and unnecessary re-renders; measure before adding complex performance optimizations.
+## Verification and output
 
-## UI Consistency
-
-- Inspect nearby components and shared UI primitives before creating new elements.
-- Match existing spacing, typography, radius, shadow, icon, and focus patterns.
-- Use design tokens or semantic utility classes for colors and spacing.
-- Keep UI compatible with strict CSP: avoid `style` attributes, inline `<style>`, and inline event handlers unless the deployment explicitly supports nonces/hashes.
-- Do not introduce a parallel UI kit or one-off styling system.
-- Keep interactive states complete: default, hover, focus-visible, active, disabled, loading, and error.
-- Design for responsive behavior with existing breakpoints and layout primitives.
-
-## Forms
-
-- Keep validation close to form behavior.
-- Prevent duplicate submissions.
-- Handle loading and error states explicitly.
-
-## TypeScript
-
-- Strong static typing; avoid `any`.
-- Keep non-trivial shared types in dedicated colocated files.
-- Use advanced type features for safety, not cleverness.
-
-## Validation and Schemas
-
-- Zod is the default for new TS/JS projects.
-- In established Angular projects, follow the team's existing validation approach unless a change is justified.
-
-## Framework Guidance
-
-### React / Next.js
-
-- Function components + hooks only.
-- Prefer derived state over synchronized copies.
-- Avoid business logic in `useEffect`.
-- Respect server/client boundaries in Next.js.
-
-### Angular
-
-- Prefer signal-based state and standalone components where the repo supports them.
-- Prefer `@if`, `@for`, and `@switch` in modern Angular code.
-- Prefer `inject()` and modern reactive patterns over constructor-heavy code.
-
-### Vue / Nuxt
-
-- Prefer Composition API with explicit reactive state.
-- Use `computed` for derived state and keep watchers narrow.
-
-### Svelte
-
-- Keep reactive state simple and explicit.
-- Avoid effect chains that hide ownership or ordering.
-
-## Verification
-
-1. Run the relevant diagnostics or type checks.
-2. Run targeted tests when the repo has them.
-3. Verify the changed user flow in the browser when practical.
-
-## Output Requirements
-
-- Produce production-ready code in the repository's existing style.
-- Keep the implementation narrow.
-- State assumptions when context is missing.
-- Mention any design-system, token, or UI consistency assumption that could not be verified.
+- Run the repository's focused test and affected type/lint/build/component/browser checks. Verify a fresh load when initialization, SSR, hydration, or cache behavior is involved.
+- Verify rendered behavior plus server/persisted outcome for mutations, including unauthorized and duplicate/retry paths when relevant.
+- Report files and behavior changed, installed capability used, commands/results, and untested provider/browser/deployment risk.

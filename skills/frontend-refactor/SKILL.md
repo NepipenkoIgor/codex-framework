@@ -1,104 +1,43 @@
 ---
 name: frontend-refactor
-description: Refactor existing frontend code for maintainability, strong typing, performance, and idiomatic framework patterns
+description: Refactor existing frontend code while preserving characterized behavior, repository language, framework boundaries, and public contracts. Use when maintainability or structure changes are explicitly requested; do not use for feature work, diagnosis-only, or an unrequested migration.
 metadata:
-  version: 2.4
-  argument-hint: "target file/component, refactor goal (performance/readability/patterns), framework"
+  owner: codex-framework
+  reviewed: "2026-07-27"
+  version: 2.5
+  argument-hint: "target and refactor goal, behavior to preserve, framework and verification scope"
 ---
 
-Refactor $ARGUMENTS.
+# Frontend Refactor
 
+Refactor `$ARGUMENTS` within the authorized repository scope.
 
-## Tool Integration
+## Preserve before improving
 
-- **Type diagnostics** — verify type-safety after refactoring
-- **ast-grep** — use for structural code pattern search (find component signatures, hook usages, import patterns) — faster and more accurate than Grep for code structure
-- **browser automation** — capture screenshots for visual verification and regression testing
+1. Read instructions, manifests and lockfiles, target code, callers, public exports, styles, data/auth boundaries, nearby tests, and authoritative commands.
+Generate project stack context for version-sensitive choices. Existing pins remain authority; for explicitly authorized greenfield creation only, resolve stable/LTS releases from official sources, verify cross-stack compatibility, generate manifest/lockfile and make them authoritative.
+2. Characterize current caller-visible behavior before editing: inputs/outputs, rendered states, accessibility semantics, navigation, persistence/network effects, errors, loading, focus, responsive behavior, SSR/hydration, and performance where relevant.
+3. Identify the concrete maintenance defect and the smallest boundary that removes it. Establish an executable regression or explicit manual baseline when existing coverage is insufficient.
+4. Before editing, confirm the exact mutation boundary and repository authority, plus a recovery path that restores the characterized behavior (normally reverting the scoped diff and prior generated artifacts). Stop when the baseline is uncertain, required capability is incompatible, authority is insufficient, or rollback cannot preserve a consequential contract.
+5. Apply incremental changes and inspect the actual diff for accidental behavior or dependency changes.
 
-Core refactoring principles:
+## Refactoring constraints
 
-- Preserve existing business behavior unless the user explicitly requests functional changes
-- Prefer safe, incremental refactoring over large rewrites
-- Follow existing project conventions unless they are clearly harmful
-- Reduce duplication, complexity, and accidental coupling
-- Improve readability, maintainability, and long-term extensibility
-- Keep components focused; separate UI, state, schemas, types, and data-access concerns
-- Avoid over-engineering; prefer small composable units over monolithic components
-- TypeScript-first with strong typing; derive types from Zod schemas to avoid duplication
-- Eliminate unnecessary rendering work, repeated computations, and wasteful UI patterns
+- Preserve repository language, installed framework/API capability, validation approach, file conventions, and build/test harness unless migration is explicitly in scope.
+- Do not turn JavaScript into TypeScript, adopt Zod, change framework generation, replace state management, or upgrade dependencies as an incidental "cleanup". Propose migrations separately with compatibility and rollback plans.
+- Preserve public component props/events/slots, routes, serialization, CSS/layout contracts, server/client ownership, accessible names/roles/focus, and mutation semantics unless the request authorizes a contract change.
+- Extract code when cohesion, reuse, testability, or ownership improves. Do not require arbitrary size/duplication thresholds or build generic abstractions for hypothetical reuse.
+- Prefer existing dependencies and native framework capabilities. Performance changes require a measured or strongly evidenced problem and comparison at the affected boundary.
+- Client validation, disabled buttons, and request deduplication do not replace server validation, authorization, concurrency control, or idempotency.
 
-Refactoring priorities:
+## Version boundary
 
-- duplicated logic, oversized components, weak typing
-- noisy or brittle templates, unnecessary re-renders, unstable state placement
-- repeated API calls, fragile async flows, poor schema/type separation
-- styling duplication, misuse of framework APIs, legacy patterns
+Generate stack context before using version-sensitive recipes. For an existing project, manifests, lockfiles, runtime config, installed types, and target deployment are authoritative. Check the applicable engine, peer dependency, compiler/framework, test-runner and deployment-runtime constraints as one compatible set; do not force irrelevant dimensions. Preserve supported pins and apply an API only when installed capability exposes it. A language/framework/toolchain upgrade is a separately authorized migration.
 
-Dependencies and imports:
+## Verification
 
-- Prefer existing project dependencies; avoid new libraries unless clearly needed
-- Prefer framework-native solutions before third-party packages
-- Keep imports clean, minimal, explicit (named over wildcard), and tree-shakable
-- Remove unused imports and dead dependencies
-
-Component, state, and async refactoring:
-
-- Reduce component responsibility; extract smaller units when it improves clarity
-- Prefer semantic HTML; improve accessibility safely without behavior changes
-- Keep state close to usage; eliminate duplicated/redundant derived state
-- Prefer computed/derived values over manually synchronized copies; no unnecessary global state
-- Eliminate duplicate requests, waterfalls, stale responses, and race conditions
-- Handle loading, error, retry, and empty states explicitly
-- Separate API types, DTOs, view models, and form models when responsibilities differ
-
-Rendering and performance:
-
-- Eliminate unnecessary re-renders and expensive work in render paths
-- Prefer architecture/state improvements before memoization
-- Memoize only for measured or strongly indicated performance problems
-- Use pagination, lazy loading, virtualization, debounce, or throttle where appropriate
-
-Forms and interactions:
-
-- Refactor toward clearer state ownership and validation structure
-- Handle submit, loading, validation, and error states explicitly; prevent duplicate submissions
-- Replace ad-hoc validation with cleaner schema-driven validation
-
-Anti-patterns to avoid:
-
-- Large rewrites when targeted refactoring suffices
-- New abstractions that do not clearly reduce complexity
-- Changing behavior while claiming "just refactoring"
-- God components, duplicated state across layers, mixing UI with data fetching
-- Clever abstractions that reduce readability
-
-TypeScript:
-
-- Strong static typing; avoid any and loosely typed literals
-- Keep shared types, DTOs, schema-derived types, view models in dedicated colocated type files
-- Use generics, mapped/conditional types, discriminated unions, satisfies, infer when justified
-- Derive types from schemas and contracts; prefer readonly and narrow literal inference
-- Reusable generic table, form, API, and state types for repeated project patterns
-
-Validation and schemas:
-
-- Zod as default validation for new TS/JS projects. For established Angular projects, use the existing validation approach (Angular validators, class-validator) unless the team has adopted Zod
-- Derive TypeScript types from Zod schemas when using Zod; keep schemas separate from UI when shared/non-trivial
-- Refactor toward schema-driven validation when existing validation is fragmented or duplicated
-
-Angular:
-
-- Signal-based state and component design; standalone components; clean templates
-- Prefer signals, computed, effects over RxJS for component state
-- Modern APIs: `input()`, `output()`, `model()` over decorators
-- Modern control flow: `@if`, `@for`, `@switch` over `*ngIf`, `*ngFor`, `*ngSwitch`
-- Functional guards and interceptors over class-based
-- `inject()` function over constructor injection
-- Refactor away from legacy Angular patterns when safe and localized
-
-Angular non-negotiable rules:
-
-## Extended Patterns
-For complex scenarios, self-load additional patterns:
-Read `skills/frontend-refactor/SKILL.detail.md`
-Load only when task involves: large-scale component migrations, design system token replacements, or cross-framework rewrites
+- When the repository exposes authoritative focused-test, affected-test, type-check and build commands, run all four; add lint, unit/component and browser checks applicable to the change.
+- Compare fresh-load behavior, not only hot-reload or client navigation, when initialization, SSR, caching, or hydration is affected.
+- Verify caller-visible outcomes and relevant failure states; command success alone is not proof.
+- Any required check failure blocks completion: correct the scoped change, rerun the focused check, then rerun affected checks invalidated by the correction.
+- Report the behavior baseline, structural change, compatibility decisions, commands/results, and residual unverified risk.

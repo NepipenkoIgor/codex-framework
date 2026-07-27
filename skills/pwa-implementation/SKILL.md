@@ -1,281 +1,50 @@
 ---
 name: pwa-implementation
-description: PWA features — service workers, caching strategies, manifest, install prompts, offline shell, background sync, push notifications with VAPID keys, and Workbox integration
+description: Implement installable web applications, service-worker lifecycle, owned caching, offline reads and mutation replay, update UX, and push boundaries. Use when offline/install/update behavior is the primary outcome; do not use for generic performance tuning or notification delivery alone.
 metadata:
-  version: 1.8
-  argument-hint: "framework (Next.js/React/Vue), offline requirements, push notification needs, caching strategy"
+  owner: codex-framework
+  reviewed: "2026-07-26"
+  version: 2.0
+  argument-hint: "installed framework, offline data classes, cache ownership, mutation semantics, update policy, push scope"
 ---
 
-Implement $ARGUMENTS.
+# PWA Implementation
 
-## Tool Integration
+For an existing repository, run `python3 scripts/framework-stack-context.py project <path>` and treat manifests, lockfiles, installed types, browser targets, deployment headers, and current service-worker behavior as authority. For greenfield work, resolve the selected framework and production runtime with `python3 scripts/framework-stack-context.py latest <technologies...>`. Do not silently migrate packages. Confirm service-worker, Background Sync, install-prompt, and framework-plugin capabilities in current official documentation and provide fallbacks where browsers differ.
 
-- **browser automation** — capture screenshots for visual verification and regression testing
+## Invariants
 
-## Web App Manifest
-
-```json
-{
-  "name": "My Application", "short_name": "MyApp",
-  "start_url": "/", "display": "standalone",
-  "background_color": "#ffffff", "theme_color": "#2563eb",
-  "icons": [
-    { "src": "/icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
-    { "src": "/icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
-    { "src": "/icons/icon-maskable-192.png", "sizes": "192x192", "type": "image/png", "purpose": "maskable" },
-    { "src": "/icons/icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
-  ]
-}
-```
-
-Rules: `name` max 45 chars, `short_name` max 12 chars. Provide `any` + `maskable` at 192px and 512px. Maskable safe zone is center 80%. Include `shortcuts` + `screenshots` for richer install UI.
-
-HTML: `<link rel="manifest">`, `<meta name="theme-color">`, `<meta name="apple-mobile-web-app-capable" content="yes">`, `<link rel="apple-touch-icon">`.
-
-## Service Worker Lifecycle
-
-```typescript
-if ('serviceWorker' in navigator) {
-  window.addEventListener('load', () => navigator.serviceWorker.register('/sw.js', { scope: '/' }));
-}
-```
-
-```typescript
-const CACHE_NAME = 'app-cache-v1';
-const PRECACHE_URLS = ['/', '/offline.html', '/styles/main.css', '/scripts/main.js'];
-
-self.addEventListener('install', (event) => {
-  event.waitUntil(caches.open(CACHE_NAME).then((c) => c.addAll(PRECACHE_URLS)));
-  self.skipWaiting();
-});
-
-self.addEventListener('activate', (event) => {
-  event.waitUntil(
-    caches.keys().then((keys) =>
-      Promise.all(keys.filter((k) => k !== CACHE_NAME).map((k) => caches.delete(k)))
-    )
-  );
-  self.clients.claim();
-});
-```
-
-Always call `skipWaiting()` + `clients.claim()`. Version cache names. Precache only critical assets.
-
-## Caching Strategies
-
-| Resource Type | Strategy | Cache Duration |
-|---------------|----------|---------------|
-| App shell HTML | Network-first, offline fallback | Until new SW |
-| Hashed assets (*.abc123.js) | Cache-first | Indefinite |
-| Unhashed static assets | Stale-while-revalidate | 24 hours |
-| API data (lists) | Network-first, 3s timeout | 5-30 min |
-| Images (CDN) | Cache-first | 30 days |
-| Fonts | Cache-first | 1 year |
-
-## Workbox Integration
-
-```typescript
-import { precacheAndRoute, cleanupOutdatedCaches } from 'workbox-precaching';
-import { registerRoute, NavigationRoute, createHandlerBoundToURL } from 'workbox-routing';
-import { NetworkFirst, CacheFirst, StaleWhileRevalidate } from 'workbox-strategies';
-import { ExpirationPlugin } from 'workbox-expiration';
-
-precacheAndRoute(self.__WB_MANIFEST);
-cleanupOutdatedCaches();
-
-registerRoute(new NavigationRoute(createHandlerBoundToURL('/index.html'), {
-  denylist: [/^\/api\//, /^\/auth\//],
-}));
-
-registerRoute(
-  ({ url }) => url.pathname.startsWith('/api/'),
-  new NetworkFirst({ cacheName: 'api', networkTimeoutSeconds: 3,
-    plugins: [new ExpirationPlugin({ maxEntries: 50, maxAgeSeconds: 300 })] })
-);
-
-registerRoute(
-  ({ request }) => request.destination === 'image',
-  new CacheFirst({ cacheName: 'images',
-    plugins: [new ExpirationPlugin({ maxEntries: 100, maxAgeSeconds: 30 * 24 * 60 * 60 })] })
-);
-```
-
-## Install Prompt
-
-```typescript
-let deferredPrompt: BeforeInstallPromptEvent | null = null;
-
-window.addEventListener('beforeinstallprompt', (e) => {
-  e.preventDefault(); deferredPrompt = e; showInstallButton();
-});
-
-async function handleInstallClick() {
-  if (!deferredPrompt) return;
-  deferredPrompt.prompt();
-  await deferredPrompt.userChoice;
-  deferredPrompt = null; hideInstallButton();
-}
-```
-
-Never prompt on first visit — wait for engagement. Respect dismiss for 30 days. On iOS: show manual "Add to Home Screen" instructions.
-
-## Offline Experience
-
-- Precache the app shell; serve for all navigation requests (SPA)
-- Show offline indicator banner (`role="alert"`, non-blocking)
-- Disable network-dependent actions with clear messaging
-- Queue offline actions for background sync; show cached data with "last updated" timestamp
-
-```tsx
-function useOnlineStatus() {
-  // Note: navigator.onLine is unreliable (returns true for captive portals).
-  // For production, supplement with a fetch probe to a known endpoint.
-  const [isOnline, setIsOnline] = useState(navigator.onLine);
-  useEffect(() => {
-    const on = () => setIsOnline(true), off = () => setIsOnline(false);
-    window.addEventListener('online', on); window.addEventListener('offline', off);
-    return () => { window.removeEventListener('online', on); window.removeEventListener('offline', off); };
-  }, []);
-  return isOnline;
-}
-```
-
-## Background Sync
-
-```typescript
-// In app: queue action and register sync
-await db.add('actions', { type: 'create-task', payload, timestamp: Date.now() });
-const reg = await navigator.serviceWorker.ready;
-await reg.sync.register('sync-actions');
-
-// In SW: process queue
-self.addEventListener('sync', (event) => {
-  if (event.tag === 'sync-actions') event.waitUntil(processQueuedActions());
-});
-```
-
-## Push Notifications
-
-1. Generate VAPID keys: `npx web-push generate-vapid-keys`
-2. Subscribe: `registration.pushManager.subscribe({ userVisibleNotification: true, applicationServerKey })`
-3. Send subscription to server for storage
-4. SW handles `push` event: `self.registration.showNotification(title, options)`
-5. SW handles `notificationclick`: focus existing tab or open new window
-
-Never request permission on first visit. Handle `pushsubscriptionchange` for token rotation.
-
-## Update Flow
-
-```typescript
-registration.addEventListener('updatefound', () => {
-  const newWorker = registration.installing;
-  newWorker?.addEventListener('statechange', () => {
-    if (newWorker.state === 'installed' && navigator.serviceWorker.controller)
-      showUpdateNotification();
-  });
-});
-
-// Apply on user action
-function applyUpdate() {
-  navigator.serviceWorker.getRegistration().then((r) => r?.waiting?.postMessage({ type: 'SKIP_WAITING' }));
-}
-navigator.serviceWorker.addEventListener('controllerchange', () => window.location.reload());
-
-// In SW
-self.addEventListener('message', (e) => { if (e.data?.type === 'SKIP_WAITING') self.skipWaiting(); });
-```
-
-Never force-reload without consent. Auto-check every 60 min. Clear stale caches in activate.
-
-## Framework-Specific Setup
-
-### Next.js PWA
-
-Use `@ducanh2912/next-pwa` — the maintained fork (`next-pwa` is abandoned and App Router-incompatible). Consider `@serwist/next` as a more actively maintained alternative with better Workbox integration.
-
-```typescript
-// next.config.ts
-import withPWAInit from '@ducanh2912/next-pwa';
-const withPWA = withPWAInit({
-  dest: 'public', disable: process.env.NODE_ENV === 'development',
-  register: true, skipWaiting: true,
-  runtimeCaching: [
-    { urlPattern: /^https:\/\/api\./, handler: 'NetworkFirst',
-      options: { cacheName: 'api-cache', networkTimeoutSeconds: 3, expiration: { maxEntries: 50, maxAgeSeconds: 300 } } },
-    { urlPattern: /\.(?:png|jpg|jpeg|svg|gif|webp|avif)$/, handler: 'CacheFirst',
-      options: { cacheName: 'image-cache', expiration: { maxEntries: 100, maxAgeSeconds: 30 * 24 * 60 * 60 } } },
-  ],
-});
-export default withPWA({ /* next.js config */ });
-```
-
-App Router dynamic manifest via `app/manifest.ts` (`MetadataRoute.Manifest`). Update prompt via `workbox-window` Workbox class listening for `waiting` event → `wb.messageSkipWaiting()`. Install prompt: client-only component loaded with `dynamic(..., { ssr: false })`.
-
-### React (Vite) PWA
-
-```typescript
-// vite.config.ts
-VitePWA({
-  registerType: 'autoUpdate',
-  manifest: { name: 'My React App', short_name: 'ReactApp', /* icons, theme_color */ },
-  workbox: {
-    globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2}'],
-    runtimeCaching: [
-      { urlPattern: /^https:\/\/api\./, handler: 'NetworkFirst',
-        options: { cacheName: 'api-cache', networkTimeoutSeconds: 3, expiration: { maxEntries: 50, maxAgeSeconds: 300 } } },
-    ],
-  },
-})
-```
-
-`generateSW` (default) generates full SW; `injectManifest` mode injects precache manifest into your custom SW — use when you need background sync or custom fetch strategies.
-
-Update badge via `virtual:pwa-register/react`:
-```typescript
-const { needRefresh: [needRefresh, setNeedRefresh], updateServiceWorker } = useRegisterSW({
-  onRegisteredSW(swUrl, registration) { if (registration) setInterval(() => registration.update(), 60 * 60 * 1000); },
-});
-```
-
-Icon generation: `@vite-pwa/assets-generator` with `minimal2023Preset`.
-
-### Angular
-
-`ng add @angular/service-worker` — generates `ngsw-config.json`. Configure `assetGroups` (prefetch/lazy) and `dataGroups` (freshness/performance strategy). Update prompt via `SwUpdate.versionUpdates` pipe filtered to `VERSION_READY`.
-
-### Blazor PWA (.NET 8+)
-
-`dotnet new blazorwasm --pwa` — generates `service-worker.js`, `service-worker.published.js`, `manifest.webmanifest`.
-
-Customize `onFetch` in `service-worker.published.js` for API network-first; leave `_framework/` cache-first (assemblies). Cache version: `blazor-cache-v${self.assetsManifest.version}` — auto-incremented on each `dotnet publish`. Dev SW is a no-op (no caching). JS interop update flow: `DotNet.invokeMethodAsync('MyApp', 'OnServiceWorkerUpdateAvailable')` → Blazor component shows update banner.
-
-### Vue / Nuxt PWA
-
-**Nuxt 3**: `@vite-pwa/nuxt` module (NOT `@nuxtjs/pwa` — Nuxt 2 only, unmaintained). Configure in `nuxt.config.ts` under `pwa:`. Use `useRegisterSW()` composable from `@vite-pwa/nuxt` for update prompts.
-
-**Vue (Vite)**: `vite-plugin-pwa` with `virtual:pwa-register/vue` → `useRegisterSW()` composable.
-
-### SvelteKit PWA
-
-**Option 1**: `@vite-pwa/sveltekit` Vite plugin — Workbox-powered automatic precaching.
-
-**Option 2**: Custom SW using `$service-worker` module — `build` (hashed `_app/` assets), `files` (static dir), `version` (build hash). Use `browser` from `$app/environment` before registering. Static manifest in `static/` or dynamic via `src/routes/manifest.webmanifest/+server.ts`.
-
-## Anti-Patterns
-
-- Caching authenticated API responses in shared SW cache — responses leak across sessions or users
-- Force-reloading on SW update without user consent — destroys unsaved form state and in-progress work
-- No cache expiration or size limits — storage grows unbounded; browsers start evicting caches silently
-- Caching POST/PUT/DELETE responses — mutations must never be served stale from cache
+- Namespace caches by application, deployment/channel, schema, and data partition. During activation delete only cache names owned by this application and explicitly retired by its migration policy; never delete another feature's or origin tenant's caches.
+- A waiting worker may coexist with pages running the previous bundle. Keep network/storage contracts compatible across that overlap, or require safe page closure/reload before activation. `skipWaiting()` and `clients.claim()` are choices, not defaults.
+- Do not put secrets, authorization responses, personalized HTML, or tenant/user-bound data in a shared cache. If offline private data is required, define partitioning, expiry, encryption/threat model, logout/account-switch purge, and server reauthorization.
+- Cache only methods and responses whose semantics permit replay. Mutation queues are durable state machines, not cached requests.
+- Service-worker code is an origin-wide trust boundary. Constrain routes, request destinations, redirects, credentials, opaque responses, cacheability headers, and storage growth.
 
 ## Workflow
 
-1. Configure manifest with icons, start_url, display mode
-2. Choose framework plugin or custom SW; set up precache
-3. Define runtime caching strategies per resource type
-4. Implement offline fallback and connectivity indicator
-5. Add install prompt (post-engagement, not first visit)
-6. Build update detection + notification flow
-7. Configure push notifications if needed
+1. Inventory scope, existing registrations, route ownership, browser matrix, manifest, cache prefixes, storage schemas, authentication/tenant boundaries, update behavior, and nearby tests.
+2. Classify each resource: immutable public asset, navigation shell, public API read, private read, mutation, or never-cache. Define offline freshness and invalidation from product requirements rather than generic durations.
+3. Define the worker lifecycle and rollback: install failure, waiting-version compatibility, activation, controlled cleanup, multi-tab update consent, unsaved work, and a kill switch.
+4. Implement the smallest compatible primitive: native service worker, installed framework integration, or current plugin verified against the installed framework line. Do not copy package names or configuration from memory.
+5. For offline mutations, persist an operation ID, authenticated subject/tenant, ordering key, dependency, payload schema/version, creation time, retry state, and visible status. Reauthorize on replay; use server-side idempotency; preserve required order; bound retries; surface permanent rejection and conflicts for user resolution. Logout or account switch must cancel/quarantine and purge subject-bound work.
+6. Treat Background Sync as an enhancement. Replay on foreground/resume when it is absent, denied, or delayed. Do not promise a delivery deadline.
+7. Add install/update UI only when the browser exposes the capability. Never infer installability from one non-standard event.
+8. Add push only with contextual permission, server-side subscription ownership and revocation, payload minimization, and safe notification navigation.
 
-Done: ✓ manifest configured with correct icons, start_url, display mode ✓ SW registers and controls page on second visit ✓ critical assets precached; API cached with appropriate strategy ✓ offline fallback served when network unavailable ✓ install prompt after engagement ✓ update notification shown; user controls when to update ✓ Lighthouse PWA audit passes ✓ cache sizes bounded ✓ tested on Chrome, Safari, Firefox
+## Verification
+
+- Install, first control, update while old tabs remain open, activation failure, rollback/kill switch, unsaved form, and multi-tab convergence.
+- Offline public/private reads; tenant switch and logout; revoked access; cache-control changes; storage pressure and eviction; foreign cache survival after activation.
+- Mutation replay under duplicate delivery, timeout after server commit, dependency ordering, conflict, permanent authorization failure, schema change, and partial queue progress. Prove the persisted server outcome, not merely queue removal.
+- Supported browsers with capability absence and foreground fallback; manifest/install UI; accessible offline and update announcements.
+- Focused repository tests, production build, browser network/cache inspection, and deployment header/scope verification. Lighthouse can supplement but not prove correctness.
+
+## Output Contract
+
+- Resource/data classification and cache ownership
+- Lifecycle, update compatibility, offline replay, auth/tenant, and logout contracts
+- Installed capability and official-documentation evidence
+- Tests and observed browser outcomes
+- Residual unsupported-browser, eviction, deployment, and external-delivery risks
+
+Official foundations: [Service Worker specification](https://w3c.github.io/ServiceWorker/), [MDN CacheStorage](https://developer.mozilla.org/en-US/docs/Web/API/CacheStorage), and [MDN Background Synchronization](https://developer.mozilla.org/en-US/docs/Web/API/Background_Synchronization_API).

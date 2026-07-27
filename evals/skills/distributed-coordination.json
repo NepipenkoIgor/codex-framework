@@ -1,0 +1,70 @@
+{
+  "schema_version": 1,
+  "contract_status": "reviewed",
+  "skill": "distributed-coordination",
+  "native_ownership": {
+    "responsibility": "Implement cross-process ownership through leases, fencing, leader epochs, singleton scheduling, and protected-write recovery when contenders share one resource.",
+    "excludes": [
+      "In-process mutexes and single-database transactions that fully protect the invariant do not require distributed coordination.",
+      "Background job enqueue, retries, shutdown, and dead-letter replay are owned by background-jobs.",
+      "Broker delivery ownership is owned by message-queue-patterns."
+    ],
+    "nearest_neighbors": ["background-jobs", "message-queue-patterns", "workflow-engine-design", "database-migration"]
+  },
+  "risk": {"mode": "repository_write", "rationale": "Incorrect lease or leader assumptions permit overlapping owners and duplicated protected writes or external side effects during pauses, partitions, failover, and crashes."},
+  "version_policy": {"mode": "agnostic", "technologies": []},
+  "routing": {
+    "positive": [
+      {"id": "route-fenced-lease", "prompt": "Implement a singleton settlement process across replicas. A process may pause beyond the lease TTL and resume after another owner wins, so every protected write must reject stale ownership and renewal loss."},
+      {"id": "route-leader-failover", "prompt": "Implement leader election for a scheduler with monotonic epochs, safe failover during network partitions, compare-owner release, bounded shutdown, and fault tests for overlapping old and new leaders."}
+    ],
+    "negative": [
+      {"id": "route-background-worker", "prompt": "Implement deferred report jobs with atomic enqueue, retry classification, worker shutdown, poison quarantine, and authorized replay; one database-backed worker system already owns claim exclusivity.", "expected_skill": "background-jobs"},
+      {"id": "route-database-schema-change", "prompt": "Add a unique constraint and transactional migration so one active membership row can exist per organization and user, including backfill, concurrent-write validation, rollback, and deployment sequencing.", "expected_skill": "database-migration"}
+    ]
+  },
+  "reference_routing": [],
+  "scenarios": [
+    {
+      "id": "domain-ttl-pause-stale-write",
+      "kind": "domain",
+      "prompt": "Worker A acquires a TTL lock and starts updating a protected account. It pauses longer than TTL, worker B acquires and writes, then A resumes. Design acquisition, renewal, fencing, release, and proof under store failover.",
+      "fixture": "evals/fixtures/existing-repository.md",
+      "assertions": [
+        {"id": "coordination-boundary", "dimension": "native_ownership", "severity": "major", "criterion": "Owns cross-process ownership and fencing only after checking whether an existing database transaction or uniqueness invariant can serialize the operation more simply."},
+        {"id": "coordination-evidence", "dimension": "repository_context", "severity": "critical", "criterion": "Uses the fixture to inspect contenders, protected writes, coordination store/version and guarantees, clocks, transactions, topology, failover, shutdown, tests and telemetry without inventing store capabilities."},
+        {"id": "invariant-first-workflow", "dimension": "decision_workflow", "severity": "critical", "criterion": "Defines protected invariant, key, acquisition linearization, lease, renewal-loss behavior, monotonic fencing enforcement, compare-owner release, failover and recovery before selecting an API."},
+        {"id": "fencing-correctness", "dimension": "domain_correctness", "severity": "critical", "criterion": "Treats TTL as liveness rather than safety, requires the authoritative resource to reject A's stale token after B acquires, stops work on ambiguous renewal, and does not release another owner's lease."},
+        {"id": "coordination-fault-proof", "dimension": "verification", "severity": "critical", "criterion": "Tests pause beyond TTL, stale writes, renewal ambiguity, partition and store failover, concurrent acquire, release-after-reacquire, process death, shutdown, and recovery with observable invariant evidence."},
+        {"id": "coordination-output", "dimension": "output_contract", "severity": "major", "criterion": "Reports invariant, exact key/store guarantees, acquire-renew-release linearization, fencing point, failover policy, fault results, and residual availability risk."},
+        {"id": "coordination-maintenance", "dimension": "maintainability", "severity": "major", "criterion": "Derives TTL, renewal margin, quorum/consistency mode and APIs from installed store capability and measured critical-section behavior, not a copied lock recipe."}
+      ]
+    },
+    {
+      "id": "safety-charge-renewal-failure",
+      "kind": "safety",
+      "prompt": "A lease-protected worker calls a payment provider. The charge succeeds, the worker crashes before local completion, and lease renewal was already failing. A replacement owner plans to reacquire and rerun the entire critical section.",
+      "assertions": [
+        {"id": "no-blind-repeat", "dimension": "runtime_safety", "severity": "critical", "criterion": "Stops protected writes when renewal is lost and prevents the replacement from repeating an ambiguous external charge without durable business-operation identity and provider reconciliation."},
+        {"id": "lock-not-transaction", "dimension": "domain_correctness", "severity": "critical", "criterion": "Explains that a lease cannot roll back or deduplicate the provider side effect and separates fencing of local state from idempotent charge settlement/recovery."},
+        {"id": "charge-recovery-proof", "dimension": "verification", "severity": "critical", "criterion": "Requires an executable renewal-failure and post-provider-success crash injection that checks provider charge count/status, stale-token rejection, local reconciliation and the replacement-owner outcome; withheld execution results remain unavailable rather than invented."},
+        {"id": "ambiguity-report", "dimension": "output_contract", "severity": "major", "criterion": "Reports ambiguous provider state and pending reconciliation explicitly instead of claiming that lock reacquisition completed the business operation."}
+      ]
+    },
+    {
+      "id": "version-coordination-store",
+      "kind": "version",
+      "prompt": "The deployed coordination store and client are pinned to an older supported line. New documentation shows a different lease or transactional-lock API and stronger guarantees. The change does not include migration.",
+      "assertions": [
+        {"id": "store-pin-authority", "dimension": "version_compatibility", "severity": "critical", "criterion": "Uses deployed store/client versions, configured consistency mode, protocol/API schema and matching official guarantees as authority; preserves pins and treats stronger behavior as migration scope."},
+        {"id": "coordination-capability-unit", "dimension": "repository_context", "severity": "major", "criterion": "Checks lease semantics, transaction/compare support, token monotonicity, failover behavior, client renewal/cancellation, deployment topology and tests together."},
+        {"id": "store-provenance", "dimension": "maintainability", "severity": "major", "criterion": "Records exact guarantee and source for the deployed line and avoids advertising a latest-version lease API or consistency promise as evergreen."}
+      ]
+    }
+  ],
+  "provenance": [
+    {"claim_scope": "etcd ordering, consistency and lease guarantees", "source": "https://etcd.io/docs/v3.5/learning/api_guarantees/", "checked_on": "2026-07-26"},
+    {"claim_scope": "etcd lock ownership and lease behavior", "source": "https://etcd.io/docs/v3.5/dev-guide/api_concurrency_reference_v3/", "checked_on": "2026-07-26"},
+    {"claim_scope": "local fencing and side-effect recovery workflow", "source": "skills/distributed-coordination/SKILL.md", "checked_on": "2026-07-26"}
+  ]
+}

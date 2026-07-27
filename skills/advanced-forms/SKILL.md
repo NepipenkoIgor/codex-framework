@@ -1,186 +1,52 @@
 ---
 name: advanced-forms
-description: Implement advanced form patterns including multi-step wizards, async validation, cross-field validation, progressive validation, conditional fields, and form state persistence
+description: Implement complex forms with schema-driven state, conditional fields, drafts, uploads, accessible errors, and safe server submission. Use when multi-step or high-consequence form behavior is primary; do not use for API validation architecture alone.
 metadata:
-  version: 1.5
-  argument-hint: "form type (multi-step/async validation/cross-field/conditional), framework (React/Vue/Angular), validation library (Zod/Yup/Valibot), persistence requirement (session/local storage)"
+  owner: codex-framework
+  reviewed: "2026-07-26"
+  version: 2.0
+  argument-hint: "form workflow, data sensitivity, server contract, draft policy, upload types, mutation consequences"
 ---
 
-Implement $ARGUMENTS.
+# Advanced Forms
 
-## Documentation
+Generate repository stack context with `python3 scripts/framework-stack-context.py project <path>`, then inspect the framework, TypeScript/compiler, form and schema libraries/adapters, runtime versions, server validation and field/form error contract, authorization model, storage policy, design system, and tests as one compatibility unit before choosing APIs. Existing pins are authority; verify matching official documentation and installed declarations, and treat an upgrade as separate scope. For greenfield work use `python3 scripts/framework-stack-context.py latest <technologies...>`, then verify generated manifests, resolved lockfiles, installed types, and official documentation.
 
-> Use available docs lookup tools or official docs for current react-hook-form, Zod, Angular Reactive Forms, and framework-specific form docs. Do not rely on training data for library API syntax.
+This skill owns the form workflow and its direct server integration. Organization-wide validation architecture and generic upload/storage platform capabilities remain with their dedicated owners unless the request explicitly expands scope.
 
-## Multi-Step Wizard Pattern
+## Invariants
 
-Model wizard state explicitly — never rely on step index alone.
+- The client improves feedback but is never the authorization or integrity boundary. The server revalidates canonical input, normalizes deliberately, authorizes the actor against the target, derives protected fields, and makes consequential submission idempotent.
+- Do not store sensitive, regulated, credential, payment, health, identity, or tenant-confidential drafts in generic Web Storage. Define an approved server draft or protected device-storage design with encryption/threat model, partitioning, retention, revocation, logout purge, and cross-tab behavior.
+- Fail-open submission is allowed only when the business rule explicitly permits accepting data the client could not validate and the server remains authoritative. Financial, permission, compliance, destructive, and irreversible flows fail closed.
+- Hidden, disabled, stale-step, and client-computed fields are untrusted input. Conditional schemas must strip or reject data that is no longer applicable.
+- File extension, MIME, image dimensions, and browser previews are hints. The server enforces size/type, scans or sandboxes according to threat model, generates storage names, prevents traversal/overwrite, isolates untrusted content, and controls download disposition.
 
-```typescript
-interface WizardState {
-  currentStep: number;
-  totalSteps: number;
-  completedSteps: Set<number>;
-  stepData: Record<number, Record<string, unknown>>;
-  direction: 'forward' | 'backward';
-  status: 'idle' | 'validating' | 'submitting' | 'error' | 'complete';
-}
-```
+## Workflow
 
-Rules:
-- Each step has its own validation schema — validate only the current step on "Next"
-- Validate all steps on final submission
-- Allow backward navigation without validation
-- Persist step data independently so going back does not lose later step data
-- Show a progress indicator with step labels, not just dots
+1. Map steps, state transitions, canonical schema, server errors, permissions, side effects, retry/idempotency semantics, accessibility requirements, sensitive fields, draft retention, uploads, and abandonment.
+2. Keep one typed form state and an explicit transformation to the API payload. Model conditional branches and cross-field rules in the schema; avoid duplicated component-level validation.
+3. Choose validation timing by cost and consequence. Preserve user input across recoverable errors; focus and summarize errors accessibly without moving focus on every keystroke.
+4. Make async validation cancellable and race-safe. Derive any debounce from measured interaction/provider behavior and product policy, not a reusable constant. A successful availability check is not a reservation; the server checks again transactionally on submit.
+5. Autosave only to an approved product/data-policy draft boundary. Debounce is a UX optimization, not correctness: version drafts, reject/merge stale writes, expose saved/pending/error state, and prevent another user or tenant from reading them. Prove logout/account-switch purge removes the draft from every store that the former identity could access.
+6. Upload through an authorized intent tied to actor, tenant, object, constraints, and expiry. Finalize only after the server verifies the stored object; clean abandoned objects with a bounded policy.
+7. On submit, disable accidental duplicates while preserving an operation identity across ambiguous retries. Handle field, form, authorization, conflict, rate-limit, and unknown-outcome responses distinctly.
 
-### React: react-hook-form + Zod
+## Verification
 
-Use per-step `zodResolver`. Call `methods.trigger()` before advancing. Use `FormProvider` for nested step components. Use `methods.getValues()` to accumulate data across steps.
+- A passing consequential-form verification set must bypass client-side validation, hidden-step and workflow controls and prove the authoritative server rejects the invalid or unauthorized payload; ordinary happy-path server tests are insufficient.
+- Keyboard and screen-reader navigation, error summary/focus, conditional add/remove, step resume, localization, autofill, back/refresh, and reduced connectivity.
+- Client bypass, overposting, tenant/object substitution, concurrent submit, timeout after commit, duplicate retry, conflict, and partial side effects. Explicitly revoke or change authorization after draft/upload intent creation but before final submission and prove the server rejects stale authority.
+- Draft cross-tab race, stale version, account switch/logout, retention expiry, sensitive-field exclusion, unavailable storage, and server-draft authorization.
+- Upload renamed/polyglot/malformed/oversized content, metadata stripping where required, scan failure, direct-object substitution, abandoned upload, and safe serving.
+- Repository tests plus server integration evidence and caller-visible persisted outcome; do not report UI success as proof of the mutation.
 
-### Angular / Vue / Svelte
+## Output Contract
 
-Same state-machine approach: per-step schema, validate before advancing, share data via parent ref or store. Angular: signal-based `currentStep`, per-step `FormGroup` array. Call `markAllAsTouched()` before advancing.
+- Form state/schema and server mutation contract
+- Draft sensitivity, retention, concurrency, and purge decisions
+- Upload trust boundary and lifecycle
+- Accessibility and failure behavior
+- Verification evidence and residual external-storage/scanner risk
 
-## Form State Persistence
-
-Save draft to `sessionStorage` (sensitive forms) or `localStorage` (long-lived drafts).
-
-Rules:
-- Never persist passwords or credit card numbers
-- Clear draft on successful submission
-- Show "resume draft" prompt when returning to a form with stored data
-- Include "discard draft" action
-
-> Use available docs lookup tools or official docs to fetch current react-hook-form `watch` subscription docs for the persistence pattern.
-
-## Async Validation
-
-Debounce 300-500ms. Cancel previous requests on input change (AbortController / switchMap).
-
-Rules:
-- Show a loading indicator on the field during validation
-- Validate only after sync schema passes — do not fire async checks on empty/malformed input
-- Handle network errors gracefully — do not block form submission if the check fails
-- React: use `setError`/`clearErrors` from react-hook-form with a debounced callback
-- Angular: `AsyncValidatorFn` with `timer(500).pipe(switchMap(...), catchError(() => of(null)))` and `updateOn: 'blur'`
-
-## Cross-Field Validation
-
-```typescript
-// Zod: cross-field with .refine() or .superRefine()
-const passwordSchema = z.object({
-  password: z.string().min(8),
-  confirmPassword: z.string(),
-}).refine(data => data.password === data.confirmPassword, {
-  message: 'Passwords do not match',
-  path: ['confirmPassword'],
-});
-
-// Conditional required via discriminated union
-const accountSchema = z.discriminatedUnion('accountType', [
-  z.object({ accountType: z.literal('personal'), name: z.string().min(2) }),
-  z.object({ accountType: z.literal('business'), name: z.string().min(2), companyName: z.string().min(1) }),
-]);
-```
-
-Angular: apply a `ValidatorFn` to the `FormGroup` level.
-
-## Progressive Validation
-
-Validate on blur first. After a field has an error, switch to validating on change for immediate feedback.
-
-- React: `mode: 'onTouched'` in react-hook-form — validates on blur, then on change after first error
-- Angular: `updateOn: 'blur'` per control; `updateOn: 'submit'` on group for submit-only
-
-Never show errors on untouched fields. On submit, validate all fields and focus the first error.
-
-## Conditional Fields
-
-Rules:
-- Remove hidden fields from validation — do not validate invisible fields
-- Clear or preserve hidden field values based on UX intent
-- Keep form schema in sync with visible fields — use Zod discriminated unions or dynamic schemas
-- Angular: call `setValidators()` + `updateValueAndValidity()` when conditional fields toggle
-
-## File Upload Within Forms
-
-Rules:
-- Validate file type and size on client before uploading
-- Show preview for images, filename + icon for documents
-- Store the uploaded file URL in a hidden field — form submits the URL, not the file
-- Handle upload failure with retry option
-- Disable form submission while files are uploading
-
-## Array / Repeatable Fields
-
-Rules:
-- Always key repeatable items by a stable ID (`field.id` from `useFieldArray`)
-- Enforce min/max count with clear messaging
-- Validate each item independently and show errors per item
-- Support reorder via drag-and-drop or move up/down buttons
-
-> Use available docs lookup tools or official docs to fetch current react-hook-form `useFieldArray` docs.
-
-## Form Error Recovery
-
-Rules:
-- Never clear form fields on server error
-- Map server validation errors to specific form fields when possible
-- Show a general error banner for non-field errors
-- Disable submit button during submission to prevent duplicates
-- Re-enable and focus the first errored field on failure
-
-## Schema-Driven Forms
-
-Use `z.describe()` to store labels and hints in the schema. Derive TypeScript types with `z.infer<typeof schema>` — never duplicate. Keep schemas in dedicated files when shared between form and API validation. Use discriminated unions for forms with conditional sections.
-
-## Accessibility
-
-- Every input has a visible `<label>` or `aria-label`
-- Error messages associated via `aria-describedby`
-- Invalid fields marked with `aria-invalid="true"`
-- Required fields have `aria-required="true"`
-- Related fields grouped with `<fieldset>` + `<legend>`
-- On submit with errors, focus the first field with an error
-- On step change in a wizard, focus the first field of the new step
-- Announce step changes to screen readers with `aria-live`
-
-## Performance
-
-- react-hook-form: uncontrolled inputs by default — do not switch to controlled unless required
-- Watch only specific fields, not the entire form
-- Angular: use `updateOn: 'blur'` for expensive validation; avoid method calls in templates
-
-## Anti-Patterns
-
-- Validating on every keystroke without debounce
-- Showing errors on untouched fields
-- Clearing form data on submission error
-- Hidden fields still being validated
-- No loading state during async validation or submission
-- Wizard that cannot go backward
-- Formik in new projects — prefer react-hook-form
-
-## Implementation Workflow
-
-1. Detect framework and existing form patterns
-2. Define the form schema with Zod (or framework-native validators for Angular)
-3. Identify field types: simple, conditional, async-validated, array/repeatable, file upload
-4. Choose form library; implement progressive validation
-5. Add async validation with debounce
-6. Add cross-field and conditional field handling
-7. Add form state persistence if long or multi-step
-8. Handle submission with error recovery and server error mapping
-9. Verify accessibility: labels, aria-describedby, focus management, announcements
-
-## Done Criteria
-
-- All fields validate with clear error messages using progressive validation
-- Async validation debounced and cancellable with loading indicator
-- Cross-field validation shows errors on the correct dependent field
-- Conditional fields remove hidden field validation
-- File uploads validated, previewed, and submitted as URL
-- Array fields keyed by stable ID with per-item validation
-- Submission guards against duplicates; server errors mapped to fields
-- Accessibility: labels, aria-invalid, aria-describedby, focus management
+Official security references: [OWASP Input Validation](https://cheatsheetseries.owasp.org/cheatsheets/Input_Validation_Cheat_Sheet.html), [OWASP File Upload](https://cheatsheetseries.owasp.org/cheatsheets/File_Upload_Cheat_Sheet.html), and [OWASP HTML5 Security](https://cheatsheetseries.owasp.org/cheatsheets/HTML5_Security_Cheat_Sheet.html).

@@ -1,128 +1,19 @@
-# CI Optimization for Monorepos (GitHub Actions)
+# Monorepo CI on GitHub Actions
 
-## Affected-Only Builds with Nx
+Treat the repository's workflows, runner policy, package manager, task graph and GitHub's current schemas as authority. Resolve action revisions and runner labels at implementation time; do not copy remembered action majors or mutable runner examples.
 
-```yaml
-jobs:
-  build:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0  # needed for affected detection
-      - uses: pnpm/action-setup@v2
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 20
-          cache: 'pnpm'
-      - run: pnpm install --frozen-lockfile
+## Job design
 
-      # Set base for affected comparison
-      - uses: nrwl/nx-set-shas@v4
+- Establish a trusted base/head pair for affected-project calculation. Pull requests from forks, merge queues, rebases and shallow clones need explicit handling; a missing base must fall back to a safe broader check rather than silently skipping work.
+- Restore dependencies in the repository-authoritative locked mode. Cache only content-addressed, non-secret artifacts with keys derived from OS/runtime/package-manager/lockfile and relevant configuration.
+- Separate required correctness gates from optional telemetry. Ensure skipped/empty matrices produce the branch-protection conclusion intended by policy.
+- Derive matrix width and task concurrency from actual runner capacity, memory, service dependencies and CI throughput. Avoid fixed core counts or global concurrency constants.
+- Upload only necessary artifacts with bounded retention and no secrets, tokens or unnecessary user data.
 
-      # Run only affected tasks
-      - run: npx nx affected --target=lint --parallel=3
-      - run: npx nx affected --target=test --parallel=3
-      - run: npx nx affected --target=build --parallel=3
-```
+## Security and reproducibility
 
-## Dependency Caching
+- Pin third-party actions according to the repository supply-chain policy, using immutable revisions when required, and record update provenance.
+- Give each job the minimum token permissions. Untrusted code must not run with write tokens, deployment credentials, registry secrets or mutable-cache authority.
+- Protect release/deploy jobs with environments, approvals and exact artifact provenance. Build once and promote the verified artifact where the platform supports it.
 
-```yaml
-# pnpm cache
-- uses: actions/cache@v4
-  with:
-    path: |
-      ~/.pnpm-store
-      node_modules/.cache
-    key: ${{ runner.os }}-pnpm-${{ hashFiles('**/pnpm-lock.yaml') }}
-    restore-keys: |
-      ${{ runner.os }}-pnpm-
-
-# Nx cache (local, complements remote cache)
-- uses: actions/cache@v4
-  with:
-    path: .nx/cache
-    key: ${{ runner.os }}-nx-${{ hashFiles('**/pnpm-lock.yaml') }}-${{ github.sha }}
-    restore-keys: |
-      ${{ runner.os }}-nx-${{ hashFiles('**/pnpm-lock.yaml') }}-
-      ${{ runner.os }}-nx-
-```
-
-## Parallelism and Concurrency
-
-```bash
-# Nx -- parallel execution with concurrency limit
-nx run-many --target=build --all --parallel=5
-
-# Turborepo -- parallel execution
-turbo run build --concurrency=5
-
-# CI: match concurrency to runner CPU cores
-# GitHub Actions ubuntu-latest: 2 cores -> concurrency 2-3
-# Self-hosted runner: match to available cores
-```
-
-## Change Detection for Deployment
-
-### Affected Projects for Deployment
-
-```bash
-# Nx -- list affected apps
-nx affected --target=build --type=app --plain
-
-# Turborepo -- filter affected
-turbo run build --filter=...[HEAD~1] --dry-run=json | jq '.tasks[].package'
-
-# Git-based detection (fallback)
-git diff --name-only HEAD~1 | grep "^apps/web/" && echo "deploy web"
-git diff --name-only HEAD~1 | grep "^apps/api/" && echo "deploy api"
-git diff --name-only HEAD~1 | grep "^packages/" && echo "deploy all apps"  # shared package changed
-```
-
-### GitHub Actions with Change Detection
-
-```yaml
-jobs:
-  detect-changes:
-    runs-on: ubuntu-latest
-    outputs:
-      web: ${{ steps.changes.outputs.web }}
-      api: ${{ steps.changes.outputs.api }}
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-      - uses: dorny/paths-filter@v2
-        id: changes
-        with:
-          filters: |
-            web:
-              - 'apps/web/**'
-              - 'packages/ui/**'
-              - 'packages/shared-types/**'
-            api:
-              - 'apps/api/**'
-              - 'packages/shared-types/**'
-
-  deploy-web:
-    needs: [detect-changes, build]
-    if: needs.detect-changes.outputs.web == 'true'
-    runs-on: ubuntu-latest
-    steps:
-      - run: echo "Deploying web app"
-
-  deploy-api:
-    needs: [detect-changes, build]
-    if: needs.detect-changes.outputs.api == 'true'
-    runs-on: ubuntu-latest
-    steps:
-      - run: echo "Deploying API"
-```
-
-## Deployment Rules
-
-- If a shared package changed, deploy all apps that depend on it
-- If only an app changed, deploy only that app
-- Build dependency graph to determine transitive dependencies
-- Tag deployments with the git SHA and affected packages
+Verify changed/unchanged packages, dependency graph changes, fork PRs, merge queue, empty affected set, cache poisoning boundary, cancellation, flaky retry policy, required-check aggregation and rollback to the prior workflow revision.

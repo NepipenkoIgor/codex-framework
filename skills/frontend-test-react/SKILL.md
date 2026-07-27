@@ -1,68 +1,53 @@
 ---
 name: frontend-test-react
-description: React testing with RTL, vitest/jest, msw — behavior-driven, no implementation details
+description: Test React components, hooks, routes, server boundaries, and hydration behavior with the repository's installed runner and harness. Use when executable React-specific test coverage is requested; do not use for Vue, Angular, generic browser E2E, or feature implementation without a testing deliverable.
 metadata:
-  version: 1.0
+  owner: codex-framework
+  reviewed: "2026-07-27"
+  version: 1.1
   domain: frontend
-  keywords: [react, testing, rtl, react testing library, vitest, jest, msw, userEvent, act, renderHook]
+  keywords: [react, testing, rtl, react testing library, vitest, jest, userEvent, fireEvent, hydration, server components]
 ---
 
-# Frontend Test — React
+# Frontend Test - React
 
-Pair with `frontend-test` for universal testing principles.
+Write the smallest executable tests that prove caller-visible React behavior while preserving the repository's installed runner, environment, utilities, and conventions.
 
-## Setup
+## Establish the boundary
 
-- Use `@testing-library/react` + `@testing-library/user-event` — never Enzyme, never shallow rendering
-- Use `vitest` (preferred) or `jest` as test runner — configure `jsdom` environment
-- Use `msw` (Mock Service Worker) for API mocking — never mock fetch/axios directly
-- Use `@testing-library/jest-dom` matchers — always import in setup file, never per-test
+1. Read applicable instructions, manifests and lockfiles, runner config, setup files, nearby tests, and the target implementation. Before mutation, resolve exact task-owned test/fixture targets when repository evidence identifies them, package ownership and write authority, plus a reversible diff and isolated cleanup path; otherwise block execution pending discovery.
+2. Resolve the installed React/framework, runner, DOM environment, Testing Library, router, and request-mocking capabilities. Do not silently add or migrate a harness.
+3. Classify each behavior before choosing a test:
+   - pure state or hook logic: unit test when isolation is faithful;
+   - client component behavior: component test with the production providers needed by the path;
+   - Server Component, Server Action, route, SSR, or hydration contract: use the repository's framework-aware integration harness;
+   - browser-only layout, focus, navigation, streaming, or hydration behavior that the DOM emulator cannot reproduce: use browser/E2E coverage.
+4. Characterize success, loading, empty, error, retry, authorization, and duplicate-action outcomes that are relevant to the change.
 
-## Querying
+## Interaction and queries
 
-- Query priority (highest to lowest): `getByRole` → `getByLabelText` → `getByPlaceholderText` → `getByText` → `getByTestId`
-- Never use `getByTestId` when a semantic query works — it tests implementation not behavior
-- Never query by class name or element tag — fragile and implementation-coupled
-- Use `findBy*` for async elements (returns promise), `queryBy*` only for asserting absence
+- Prefer accessible-name and semantic queries because they reflect the user contract. Use test IDs only when no stable user-facing selector exists.
+- Prefer `userEvent` for realistic multi-event user interactions. `fireEvent` is valid for a low-level event or browser condition that `userEvent` does not model; do not ban it mechanically.
+- Await asynchronous interaction and UI settlement. Use `findBy*` for appearance and `waitFor` only around an assertion that genuinely retries.
+- Use manual `act` only for updates outside the harness's automatic wrapping, such as direct timer or external-store advancement.
+- Do not assert private state, hook implementation, framework internals, or incidental class names unless those are the public contract.
 
-## User Interactions
+## Boundary control
 
-- Always use `userEvent` from `@testing-library/user-event` — never `fireEvent` for user actions
-- Always `await userEvent.setup()` at test start, then call methods on the instance
-- Never simulate events directly on DOM nodes — go through userEvent
+- Tests must not call real external networks. Reuse the installed request interception, dependency adapter, framework stub, or local test server at the narrowest truthful boundary.
+- MSW is one valid interception mechanism, not a universal requirement. A direct dependency stub can be more accurate for an injected client; a route integration test may exercise a local handler.
+- Preserve production provider composition where it affects behavior. Reset mutable handlers, timers, globals, modules, and stores according to the installed harness.
+- Do not force a Server Component into a client DOM harness or claim hydration coverage from static markup. Prove serialization, server/client ownership, and fresh hydration at the boundary where they execute.
 
-## Async Testing
+## Verification
 
-- Use `findBy*` queries for elements that appear asynchronously — never `waitFor` + `getBy`
-- Use `waitFor` only for non-element async assertions (e.g. mock call count)
-- Never use `act()` manually when using `userEvent` or RTL async utilities — they wrap automatically
+- Run the repository-authoritative focused test command, then the affected suite or required type/lint checks.
+- A passing mock assertion is insufficient for a mutation: verify the rendered result or persisted/local-handler outcome, including error and duplicate activation where material.
+- Treat console errors, hydration warnings, unhandled requests, leaked timers, and `act` warnings as failures unless the repository explicitly documents an exception.
 
-## Hooks Testing
+## Output
 
-- Use `renderHook()` from `@testing-library/react` for isolated hook tests
-- Always wrap state updates in `act()` when testing hooks directly with `renderHook`
-- Test hook behavior through component rendering when possible — renderHook for complex isolated logic only
-
-## MSW
-
-- Define handlers in `src/mocks/handlers.ts`, server in `src/mocks/server.ts`
-- Use `server.use()` in individual tests to override handlers for error/edge cases
-- Always call `server.resetHandlers()` in `afterEach` — never leave overrides leaking
-
-## Hard Rules
-
-- Never test implementation details (internal state, private methods, component internals)
-- Never use `shallow` rendering — always full render
-- Never mock React hooks directly — test behavior through rendered output
-- Never `fireEvent` when `userEvent` applies
-- Never `getByTestId` when semantic query exists
-- Always `await` async queries — never ignore returned promises
-
-## Done Criteria
-
-- All user interactions use `userEvent`
-- All API calls mocked via MSW, not fetch stubs
-- No `getByTestId` where semantic query works
-- No `fireEvent` calls
-- All async assertions use `findBy*` or `waitFor`
-- Tests pass without console errors or act() warnings
+- Tests changed and behavior covered
+- Installed runner/harness and selected boundary
+- Commands run and observed results
+- Browser/server/hydration paths not exercised and residual risk

@@ -1,64 +1,27 @@
 ---
 name: backend-test-dotnet
-description: ASP.NET Core testing with xUnit, WebApplicationFactory, EF Core in-memory vs real DB, FluentAssertions
+description: Add .NET and ASP.NET Core unit, HTTP, persistence, auth, job, provider, and concurrency tests with the repository's installed runner and application harness. Use when .NET-specific executable coverage is requested; do not migrate xUnit, NUnit, MSTest, assertion, mocking, or database tooling.
 metadata:
-  version: 1.0
+  owner: codex-framework
+  reviewed: "2026-07-27"
+  version: 1.1
   domain: backend
-  keywords: [dotnet, .net, csharp, c#, xunit, nunit, webapplicationfactory, integration test, ef core test, fluent assertions]
+  keywords: [dotnet, aspnet core, xunit, nunit, mstest, webapplicationfactory, ef core, integration test]
 ---
 
-# Backend Test — .NET
+# Backend Test - .NET
 
-Pair with `backend-test` for universal testing principles.
+1. Read instructions, solution/projects/TFMs, central package/lock config, runner and test host, application bootstrap, persistence/migrations, auth/providers, nearby tests and authoritative commands.
+2. Generate stack context and preserve installed runner, assertion/mock libraries, host factory and database/container tooling. For greenfield work, generate/restore the chosen manifest and lock/package graph and make them authoritative. Route implementation to `backend-implement-dotnet`.
+3. Before material setup or cleanup, resolve exact mutable targets, authority/permissions, ownership and rollback/recovery; use only task-owned isolated state.
+4. Choose direct unit, service/provider integration, WebApplicationFactory or repository host, schema-compatible persistence, job/event, or concurrency test by the behavior boundary.
 
-## Setup
+## Test invariants
 
-- Use `xUnit` for all new projects — never MSTest for new code
-- Use `WebApplicationFactory<TProgram>` for integration tests — boots real ASP.NET Core pipeline
-- Use `FluentAssertions` for readable assertions — never bare `Assert.Equal` for complex objects
-- Use a real test database (PostgreSQL/SQL Server via Docker or Testcontainers) — never `UseInMemoryDatabase` for integration tests (doesn't enforce constraints or transactions)
-- Use `Testcontainers.MsSqlServer` or `Testcontainers.PostgreSql` for hermetic DB in CI
+- Use direct construction and mocks/fakes for pure services. Use the real application pipeline when filters/middleware, auth, serialization, DI lifetimes or error mapping matter.
+- Use an isolated database with the semantics required by the assertion. EF InMemory/SQLite may be suitable for behavior that does not depend on relational constraints, transactions or provider SQL; use the matching provider/container for migrations, constraints, locking and concurrency. No universal Testcontainers requirement.
+- Never call production databases or real external providers. Override endpoints/clients through repository seams, fail unhandled calls and isolate test credentials/config.
+- Preserve xUnit/NUnit/MSTest and existing assertions; bare framework asserts are not defects. Share factories/HttpClient only according to documented thread safety and test isolation, not blanket rules.
+- Seed actor, tenant and resource ownership. Cover unauthenticated, forbidden resource/tenant, invalid input, duplicate/concurrent mutation, concurrency-token conflict, rollback, cancellation and timeout-after-effect where relevant. Verify persisted outcome and idempotency, not only response status.
 
-## WebApplicationFactory Pattern
-
-- Create a custom `CustomWebApplicationFactory<TProgram>` that overrides `ConfigureWebHost`
-- Override DB connection string in `ConfigureWebHost` to point to test DB
-- Use `IClassFixture<CustomWebApplicationFactory<TProgram>>` — one factory instance per test class
-- Use `CreateClient()` for HTTP calls — always test at HTTP boundary, not handler level
-
-## Database
-
-- Run migrations in test fixture setup: `dbContext.Database.Migrate()`
-- Seed required data in constructor or `InitializeAsync` — never depend on pre-existing data
-- Wrap each test in a transaction rolled back in `Dispose`/`DisposeAsync` — or truncate tables in `afterEach`
-- Never `EnsureCreated()` in tests — migrations validate the real schema
-
-## HTTP Testing
-
-- Always assert both status code and response body: `response.StatusCode.Should().Be(HttpStatusCode.Created)`
-- Deserialize response with `System.Text.Json` — never assert on raw string
-- Test auth: always verify endpoint returns `401` without bearer token
-- Test validation: always verify endpoint returns `400`/`422` with invalid request body
-
-## Unit Testing Services
-
-- Instantiate service under test directly with mocked dependencies — never `WebApplicationFactory` for pure unit tests
-- Use `NSubstitute` or `Moq` for mocking interfaces — never mock concrete classes
-- Never mock `DbContext` — use real EF Core with in-memory provider only for pure domain logic tests with no SQL constraints needed; for anything involving migrations or constraints use real DB
-
-## Hard Rules
-
-- Never `UseInMemoryDatabase` for integration tests — real DB or Testcontainers always
-- Never mock `DbContext` for integration tests
-- Always test auth enforcement (401/403) on every protected endpoint
-- Always `FluentAssertions` — no bare `Assert.Equal` for response body comparisons
-- Never share `HttpClient` instances across parallel tests — create per test class
-
-## Done Criteria
-
-- All API endpoints have integration tests via `WebApplicationFactory` + `HttpClient`
-- Auth enforcement tested (401 without token)
-- Validation rejection tested (400/422 with invalid body)
-- Real DB (or Testcontainers) used — no `UseInMemoryDatabase` for integration tests
-- Test DB seeded and cleaned between tests
-- `FluentAssertions` used throughout
+Run focused and affected `dotnet` restore/build/test/analyzer/migration-contract commands from the repository. Report tests, installed harness/provider boundary, commands/results, cleanup and unverified deployment/provider risk.

@@ -1,0 +1,70 @@
+{
+  "schema_version": 1,
+  "contract_status": "reviewed",
+  "skill": "resilience-patterns",
+  "native_ownership": {
+    "responsibility": "Implement resilience on a concrete dependency call path through deadline, retry, limiting, circuit, bulkhead, fallback, and hedging semantics tied to side-effect and resource ownership.",
+    "excludes": [
+      "Broker redelivery and acknowledgement semantics are owned by message-queue-patterns.",
+      "Distributed lease and leader ownership are owned by distributed-coordination.",
+      "Broad service-boundary architecture without a concrete call-path change is outside this implementation skill."
+    ],
+    "nearest_neighbors": ["message-queue-patterns", "distributed-coordination", "microservice-communication", "rate-limiting"]
+  },
+  "risk": {"mode": "repository_write", "rationale": "Misapplied retries, timeouts, breakers, bulkheads, fallback, or health checks can duplicate side effects, overload dependencies, leak stale authorization, or amplify outages."},
+  "version_policy": {"mode": "agnostic", "technologies": []},
+  "routing": {
+    "positive": [
+      {"id": "route-http-retry-after", "prompt": "Harden a provider call whose 429 and 503 responses may include Retry-After as seconds or an HTTP date. Bound retries by the caller deadline, parse with a controlled clock, and prevent replay of ambiguous writes."},
+      {"id": "route-breaker-bulkhead-health", "prompt": "Implement circuit breaking and concurrency isolation for two dependencies with different pools and tenants. Define ownership, measured sizing, half-open probes, composition, and readiness behavior so one optional outage does not evict healthy instances."}
+    ],
+    "negative": [
+      {"id": "route-broker-redelivery", "prompt": "Implement a RabbitMQ consumer with publisher confirms, manual acknowledgements, redelivery-safe provider effects, poison quarantine, prefetch tuning, and replay after a channel reconnect.", "expected_skill": "message-queue-patterns"},
+      {"id": "route-distributed-lease", "prompt": "Implement a cross-replica singleton scheduler with lease renewal, fencing tokens, stale-owner write rejection, compare-owner release, partition handling, and leader failover.", "expected_skill": "distributed-coordination"}
+    ]
+  },
+  "reference_routing": [],
+  "scenarios": [
+    {
+      "id": "domain-retry-after-non-idempotent",
+      "kind": "domain",
+      "prompt": "A service POSTs a charge to a provider. Timeouts are ambiguous, 429/503 may return Retry-After as either seconds or an HTTP date, and three service hops already retry. Implement a safe end-to-end resilience policy.",
+      "fixture": "evals/fixtures/existing-repository.md",
+      "assertions": [
+        {"id": "resilience-boundary", "dimension": "native_ownership", "severity": "major", "criterion": "Implements concrete call-path resilience composition without implementing or claiming ownership of broker redelivery, distributed lease ownership or payment-domain settlement policy."},
+        {"id": "call-path-evidence", "dimension": "repository_context", "severity": "critical", "criterion": "Uses the fixture to inspect installed client/library pins, full retry call graph, operation/provider semantics, deadlines/cancellation, pools, quotas, health, telemetry and tests without inventing commands or defaults."},
+        {"id": "semantics-first-resilience", "dimension": "decision_workflow", "severity": "critical", "criterion": "Classifies repeatability and ambiguous outcomes, assigns one deadline and one retry owner, then selects error predicates, Retry-After parsing/caps, breaker observation, resource limiting, fallback and verification."},
+        {"id": "retry-after-correctness", "dimension": "domain_correctness", "severity": "critical", "criterion": "Does not retry an ambiguous charge without durable operation identity and reconciliation, parses both RFC Retry-After forms with controlled time/clock-skew handling, rejects malformed values safely, and prevents multiplicative retries across hops."},
+        {"id": "resilience-fault-proof", "dimension": "verification", "severity": "critical", "criterion": "Injects provider success followed by timeout, seconds/date/malformed Retry-After, deadline exhaustion, nested retry amplification, cancellation, and reconciliation, proving bounded attempts and one intended monetary outcome."},
+        {"id": "resilience-output", "dimension": "output_contract", "severity": "major", "criterion": "Reports installed capability, repeatability and ambiguity, deadline/attempt budget, predicates/provider guidance, ownership/composition, exact fault results, and unresolved provider-production risk."},
+        {"id": "resilience-policy-maintenance", "dimension": "maintainability", "severity": "major", "criterion": "Derives library APIs/order and retry/timeout/threshold values from pinned capability, provider contract and measured behavior rather than universal constants or status lists."}
+      ]
+    },
+    {
+      "id": "safety-breaker-bulkhead-health",
+      "kind": "safety",
+      "prompt": "A proposal creates one global circuit breaker for all tenants and dependencies, one bulkhead per request, retries inside and outside both layers, and makes readiness fail whenever an optional analytics dependency is open. Explain the safe ownership and health model.",
+      "assertions": [
+        {"id": "bounded-resource-ownership", "dimension": "runtime_safety", "severity": "critical", "criterion": "Rejects meaningless per-request bulkheads, unrelated global breaker coupling and retry multiplication; scopes shared controls to the dependency/resource/tenant fairness model and bounds queues, attempts and deadlines."},
+        {"id": "breaker-health-correctness", "dimension": "domain_correctness", "severity": "critical", "criterion": "Defines whether breaker observes attempts or whole calls, safe half-open probes, scarce-resource bulkhead ownership, and readiness based on required instance capability rather than every optional dependency."},
+        {"id": "isolation-health-proof", "dimension": "verification", "severity": "critical", "criterion": "Faults each dependency and tenant, saturates pools, exercises half-open concurrency and nested attempts, and verifies unrelated traffic fairness, readiness/liveness, fallback authorization and recovery."},
+        {"id": "ownership-report", "dimension": "output_contract", "severity": "major", "criterion": "Reports each breaker, limiter, queue, attempt and health owner plus rejected coupling and unverified load assumptions, rather than listing middleware as proof."}
+      ]
+    },
+    {
+      "id": "version-pinned-resilience-library",
+      "kind": "version",
+      "prompt": "A repository pins an older supported HTTP resilience library. Current documentation shows a different default handler order, retry predicate, unsafe-method behavior, breaker options, and timeout API. Migration is not requested.",
+      "assertions": [
+        {"id": "resilience-pin-authority", "dimension": "version_compatibility", "severity": "critical", "criterion": "Uses lockfile, installed types/config, runtime and matching official library documentation as authority, preserves pins, and treats adopting newer handlers/defaults as migration."},
+        {"id": "resilience-compatibility-unit", "dimension": "repository_context", "severity": "major", "criterion": "Checks client runtime, pipeline order, retry predicates, unsafe-method controls, timeout/cancellation, breaker/limiter options, dependency behavior and tests together."},
+        {"id": "resilience-version-provenance", "dimension": "maintainability", "severity": "major", "criterion": "Records the exact verified library capability/source and does not promote current defaults, order, thresholds, retryable statuses or concurrency values to evergreen rules."}
+      ]
+    }
+  ],
+  "provenance": [
+    {"claim_scope": "HTTP Retry-After date and delay-seconds forms", "source": "https://www.rfc-editor.org/rfc/rfc9110#section-10.2.3", "checked_on": "2026-07-26"},
+    {"claim_scope": ".NET HTTP resilience behavior and unsafe-method retry guidance", "source": "https://learn.microsoft.com/en-us/dotnet/core/resilience/http-resilience", "checked_on": "2026-07-26"},
+    {"claim_scope": "local call-path ownership and fault workflow", "source": "skills/resilience-patterns/SKILL.md", "checked_on": "2026-07-26"}
+  ]
+}

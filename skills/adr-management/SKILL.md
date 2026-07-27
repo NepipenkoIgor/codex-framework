@@ -1,72 +1,29 @@
 ---
 name: adr-management
-description: Manage architecture decision records with lightweight templates, status tracking, and links to implementation changes.
+description: Create, review, amend, supersede, or reject architecture decision records with repository evidence and implementation traceability. Use when an architectural decision record is the requested deliverable; not for inventing a decision or documenting routine code.
 metadata:
-  version: 2.0
-  argument-hint: "decision topic, status, alternatives, impacted systems, implementation links"
+  owner: codex-framework
+  reviewed: "2026-07-27"
+  version: 3.0
+  argument-hint: "decision or open question, decision authority/status, alternatives, evidence, affected systems and links"
 ---
 
-# ADR Management
+Manage the ADR requested in $ARGUMENTS.
 
-Use this skill when the task requires creating, updating, or reviewing architecture decision records.
+## Establish the decision record
 
-## When To Use
+Read repository instructions, ADR index/templates/numbering, related ADRs, current code/configuration, issues/specs and available implementation evidence. Identify whether a decision has actually been made, by whom, and with what status. If authority or outcome is absent, create a proposed record or decision draft; never invent consensus, acceptance, dates, owners, alternatives, evidence or implementation results.
 
-- A decision changes architecture, data model, API contracts, security posture, deployment, or operational ownership.
-- Multiple viable options exist and future maintainers need the reasoning.
-- A previous decision is being superseded, amended, or rejected.
-- A design review needs traceability from discussion to implementation.
+Use an ADR when a durable architectural, data, API, security, deployment or ownership choice has meaningful alternatives and consequences. Keep routine implementation detail in code/docs. Preserve repository format and location rather than imposing a universal template.
 
-Do not create ADRs for routine implementation details that are obvious from code.
+## Content and lifecycle
 
-## Workflow
+Record the problem and forces, evidence/assumptions, considered options, decision or unresolved choice, consequences and tradeoffs, migration/rollback, operational ownership, verification and links. Separate observed current state from proposals and future work.
 
-1. Capture the decision, context, options, and consequences.
-2. Link the ADR to the code, issue, or spec it governs.
-3. Prefer short records that explain why the decision exists.
-4. Update superseded ADRs instead of leaving conflicting guidance around.
-5. Record status clearly: proposed, accepted, superseded, deprecated, or rejected.
-6. Add follow-up actions when the decision requires implementation, migration, or cleanup.
+Treat accepted ADRs as immutable historical decisions except for minor corrections and added traceability. A changed decision gets a new ADR that explicitly supersedes the old one; update both records and the index so only the replacement is current. Rejected/deprecated records remain discoverable with reasons. An implementation drifting from an ADR is evidence to reconcile—not permission to silently rewrite history.
 
-## ADR Shape
+For version-sensitive choices, preserve installed project pins and cite matching local or official capability evidence. A “latest” release remembered by the author is not durable evidence; record the constraint or resolution method, and treat upgrades as migrations.
 
-- Title: concise and decision-oriented
-- Status: proposed | accepted | superseded | rejected | deprecated
-- Context: problem, constraints, forces, and current state
-- Options considered: include the rejected options, not only the winner
-- Decision: the chosen approach
-- Consequences: benefits, costs, tradeoffs, migration impact, operational impact
-- Links: issues, PRs, specs, diagrams, related ADRs
+## Verification and output
 
-## Quality Bar
-
-- Keep the ADR factual, short, and durable.
-- Explain why, not only what.
-- Prefer explicit tradeoffs over consensus-sounding prose.
-- Link implementation and verification so the record can be audited later.
-- Keep ADRs aligned with current code; stale ADRs should be superseded, not silently contradicted.
-
-## Anti-Patterns
-
-- Writing an ADR after the fact that hides real alternatives.
-- Leaving two accepted ADRs that conflict.
-- Using ADRs as broad documentation dumps.
-- Recording reversible code details as permanent architecture.
-- Omitting consequences, owner, or follow-up work.
-
-## Verification
-
-- Check existing ADRs for conflicts or prior decisions.
-- Confirm the implementation plan matches the accepted decision.
-- Verify links to issues, PRs, specs, or code paths.
-- Ensure superseded records point to the replacement ADR.
-
-## Output Contract
-
-Status: done | partial | blocked
-Decision: [one sentence]
-ADR: [path or proposed path]
-Status value: [proposed/accepted/superseded/rejected/deprecated]
-Links: [issues, PRs, specs, related ADRs]
-Verification: [conflict check and alignment check]
-Notes: [tradeoffs or unresolved decisions]
+Check identifier uniqueness, status vocabulary, links, conflicting accepted records, supersession in both directions, and alignment among decision, planned migration and actual code. Always include the repository's documentation/lint checks in verification when present; if their commands or results are unavailable, report that explicitly rather than silently omitting them. Report the ADR path/status, evidence used, decisions not yet authorized, superseded links, implementation/verification state and unresolved consequences.

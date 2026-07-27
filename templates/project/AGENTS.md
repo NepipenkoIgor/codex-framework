@@ -8,4 +8,6 @@ After implementation and ordinary verification, use one independent read-only `r
 
 Use native plugins and MCP servers when a task needs their external data or actions. Prefer the in-app Browser for UI verification; use DOM, console, and network evidence before screenshots. Keep Desktop and CLI behavior identical: no surface-specific branches, prompt injection, local handoff engines, or conversational-memory scripts.
 
+Before version-sensitive work, run `${CODEX_HOME:-$HOME/.codex}/bin/codex-framework-stack-context project . --format markdown`. For a new stack, use its `latest <technologies>` or `action <technology>` command. Preserve existing pins unless migration is explicitly requested, and use an API recipe only when installed types, generated structure, CLI/schema output, or matching official docs expose that capability.
+
 Add project-specific conventions below.

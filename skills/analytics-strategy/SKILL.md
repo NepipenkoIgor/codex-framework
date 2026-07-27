@@ -1,64 +1,34 @@
 ---
 name: analytics-strategy
-description: Design event taxonomies, KPI coverage, and measurement plans before implementation.
+description: Design product questions, KPI definitions, event/identity schemas, privacy rules, decision ownership, and a measurement QA plan before instrumentation. Use for a read-only measurement plan; route implementation to analytics-implementation and causal experiment design to ab-testing.
 metadata:
-  version: 2.0
-  argument-hint: "product area, business questions, funnel, analytics tools, privacy constraints"
+  owner: codex-framework
+  reviewed: "2026-07-26"
+  version: 2.1
+  argument-hint: "product decisions/questions, subjects and identity, funnels/cohorts, privacy policy, consumers"
 ---
 
 # Analytics Strategy
 
-Use this skill when the user needs a tracking plan rather than raw analytics instrumentation.
-
-## When To Use
-
-- Product questions, KPI definitions, funnel or retention analysis
-- Event taxonomy design before implementation
-- Analytics review for noisy, missing, or inconsistent events
-- Experiment measurement planning
-- Privacy-sensitive tracking decisions
+Produce a measurement contract, not SDK code, provider recipes or repository changes.
 
 ## Workflow
 
-1. Define product questions and KPIs first.
-2. Map events to funnels, retention, activation, or revenue goals.
-3. Keep event naming stable and explicit.
-4. Separate must-have product events from optional diagnostics noise.
-5. Define event properties, identity rules, source of truth, and expected cardinality.
-6. Specify where events fire and how duplicate firing is prevented.
-7. Add privacy constraints: PII, consent, retention, and regional restrictions.
-8. Define validation: QA checklist, dashboard checks, and backfill expectations.
+1. Identify the product/business decision, accountable decision owner, decision cadence, affected population and action they will take. Reject metrics with no owner or decision.
+2. Define questions and metrics with grain, numerator/denominator, inclusion/exclusion, source-of-truth domain state, time/calendar basis, attribution/window, dimensions, correction/backfill and quality thresholds.
+3. Define a minimal versioned event schema: semantic trigger, authoritative producer, immutable event ID, subject/tenant, occurrence time, properties/types/classification and retention. Naming style and event count follow the existing taxonomy and product needs, not universal rules.
+4. Define identity lifecycle: anonymous, authenticated, account/tenant switch, logout, merge/link and deletion. State which historical association is permitted and how deduplication works across client/server producers.
+5. Apply approved legal/privacy policy: purpose/lawful basis or consent decision, minimization, region, retention, access/deletion and destination restrictions. PII and free-form properties are excluded by default unless a documented decision, necessity and control justify them.
+6. Separate instrumentation notes from strategy. Specify recommended firing authority and QA evidence, then hand implementation to `analytics-implementation`; do not prescribe framework hooks or provider APIs here.
+7. For a causal experiment, power/sample allocation, assignment, guardrails and inference belong to `ab-testing`. This skill may define the decision metric but must not claim observational funnel changes prove causality.
 
-## Quality Bar
+## Required Review Cases
 
-- Track decisions users make and outcomes the product cares about, not every click.
-- Prefer stable event names and typed property schemas.
-- Keep client and server events consistent; use server events for billing, auth, and irreversible actions.
-- Avoid high-cardinality properties unless explicitly needed.
-- Tie every must-have event to a decision, KPI, or operational alert.
+- A requested property contains email, support text or arbitrary URL: classify necessity and risk; prefer bounded derived categories and accountable privacy approval.
+- Client and server can emit the same irreversible outcome: select one authority or define one shared immutable event ID/dedupe contract.
+- A metric has no action or owner: remove it or name the decision contract before adding telemetry.
+- Stakeholder asks whether a change caused conversion lift: route experiment design/inference to `ab-testing` and label observational evidence accordingly.
 
-## Anti-Patterns
+## Output
 
-- Adding events without a product question.
-- Tracking PII or free-form user content by default.
-- Using inconsistent names for the same concept.
-- Firing events from both client and server without deduplication.
-- Treating analytics as a substitute for audit logging.
-
-## Verification
-
-- Review the plan against the product questions and KPIs.
-- Check event names and property schemas for consistency.
-- Confirm privacy and consent handling.
-- Define QA steps to verify events in the analytics destination.
-- Identify dashboards or alerts that prove the plan is useful.
-
-## Output Contract
-
-Status: done | partial | blocked
-Questions/KPIs: [what we need to answer]
-Event taxonomy: [events and properties]
-Implementation notes: [client/server firing points and dedupe]
-Privacy: [PII, consent, retention]
-Verification: [QA and dashboard checks]
-Notes: [tradeoffs or open questions]
+Return decisions/owners, questions/KPIs, metric definitions, event/property schema, identity/dedupe model, privacy/legal decisions and approvers, instrumentation handoff notes, QA/destination evidence plan, gaps and assumptions. No implementation claims.

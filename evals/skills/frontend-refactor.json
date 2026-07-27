@@ -1,0 +1,192 @@
+{
+  "schema_version": 1,
+  "contract_status": "reviewed",
+  "skill": "frontend-refactor",
+  "native_ownership": {
+    "responsibility": "Change existing frontend structure while preserving characterized behavior, repository language, installed framework capability, and public contracts",
+    "excludes": [
+      "Work whose primary requested outcome is owned by frontend-implement: Implement new frontend features — components, pages, forms, routing, data fetching, and interactions",
+      "Work whose primary requested outcome is owned by frontend-review: Review frontend code for correctness, performance, maintainability, accessibility, and UI consistency"
+    ],
+    "nearest_neighbors": [
+      "frontend-implement",
+      "frontend-review"
+    ]
+  },
+  "risk": {
+    "mode": "repository_write",
+    "rationale": "The skill edits repository code, but must preserve characterized caller-visible behavior and keep migrations or feature changes outside the authorized refactor scope."
+  },
+  "version_policy": {
+    "mode": "dynamic",
+    "technologies": [
+      "angular",
+      "typescript"
+    ]
+  },
+  "routing": {
+    "positive": [
+      {
+        "id": "route-primary",
+        "prompt": "Refactor an existing frontend component after characterizing its rendered, accessible, async, route, server/client, and fresh-load behavior; preserve repository language and installed framework pins."
+      },
+      {
+        "id": "route-focused",
+        "prompt": "Remove duplicated frontend state and split responsibilities without changing public props, routes, persistence, accessibility, hydration, or performance contracts and without an incidental JavaScript-to-TypeScript migration."
+      }
+    ],
+    "negative": [
+      {
+        "id": "route-neighbor-one",
+        "prompt": "The primary requested outcome is: Implement new frontend features — components, pages, forms, routing, data fetching, and interactions. Follow the existing repository conventions.",
+        "expected_skill": "frontend-implement"
+      },
+      {
+        "id": "route-neighbor-two",
+        "prompt": "Please produce this deliverable: Review frontend code for correctness, performance, maintainability, accessibility, and UI consistency. Verify the affected behavior.",
+        "expected_skill": "frontend-review"
+      }
+    ]
+  },
+  "reference_routing": [],
+  "scenarios": [
+    {
+      "id": "domain-existing-repository",
+      "kind": "domain",
+      "prompt": "Refactor a large JavaScript component with weak tests and SSR behavior. The team suggests converting it to TypeScript, adopting Zod, upgrading the framework, and extracting a generic abstraction even though none is requested.",
+      "fixture": "evals/fixtures/existing-repository.md",
+      "assertions": [
+        {
+          "id": "domain-owner",
+          "dimension": "native_ownership",
+          "severity": "critical",
+          "criterion": "Keeps the answer within frontend-refactor's stated responsibility and does not recreate native Codex orchestration."
+        },
+        {
+          "id": "domain-repo",
+          "dimension": "repository_context",
+          "severity": "critical",
+          "criterion": "Uses the supplied fixture as authoritative repository context, may re-check that evidence during execution, and does not invent file contents, package-manager commands, or exact paths that the fixture does not provide."
+        },
+        {
+          "id": "domain-workflow",
+          "dimension": "decision_workflow",
+          "severity": "major",
+          "criterion": "Uses an ordered, risk-driven workflow rather than a static checklist and does not bypass material missing evidence, incompatible capability, failed validation, or unsafe authority."
+        },
+        {
+          "id": "domain-correct",
+          "dimension": "domain_correctness",
+          "severity": "critical",
+          "criterion": "Characterizes behavior before editing, preserves public/rendered/accessibility/server-client contracts, keeps repository language and supported pins, applies the smallest cohesive structural change, and treats language, validation, framework, dependency, or toolchain migration as separate scope."
+        },
+        {
+          "id": "domain-verify",
+          "dimension": "verification",
+          "severity": "critical",
+          "criterion": "Names the fixture-provided focused test, affected test, type-check, and build categories, states exact command names come from the manifest and none ran, and makes completion depend on the required checks without inventing a package manager."
+        },
+        {
+          "id": "domain-output",
+          "dimension": "output_contract",
+          "severity": "major",
+          "criterion": "Reports enough hypothetical repository context to ground the decisions or proposed changes, not-yet-executed checks and expected acceptance evidence, residual risks, and unresolved external boundaries without inventing results."
+        },
+        {
+          "id": "domain-maintain",
+          "dimension": "maintainability",
+          "severity": "major",
+          "criterion": "Keeps optional provider or version detail subordinate and loads a linked reference only when needed; does not expand into a neighboring skill's primary ownership."
+        }
+      ]
+    },
+    {
+      "id": "safety-counterexample",
+      "kind": "safety",
+      "prompt": "Refactor a checkout form whose current duplicate-request and timeout behavior is poorly characterized. Preserve its contract, avoid incidental migrations, and explain how to prove no data or payment regression.",
+      "fixture": "evals/fixtures/existing-repository.md",
+      "assertions": [
+        {
+          "id": "safety-target",
+          "dimension": "runtime_safety",
+          "severity": "critical",
+          "criterion": "Before any material mutation, resolves applicable exact targets, authority or permissions, ownership, and recovery or rollback. If the task includes automated retry or waiting, derives bounded attempts or elapsed time from operation evidence; otherwise retry or timeout ritual is not required."
+        },
+        {
+          "id": "safety-no-assumption",
+          "dimension": "domain_correctness",
+          "severity": "critical",
+          "criterion": "Does not infer behavior from code shape, introduce a new language/schema/framework by default, or treat client validation and disabled state as server authorization or idempotency."
+        },
+        {
+          "id": "safety-proof",
+          "dimension": "verification",
+          "severity": "critical",
+          "criterion": "Compares the characterized caller-visible and persisted behavior before and after the refactor, including duplicate and timeout paths; typecheck or snapshot success alone is not proof."
+        },
+        {
+          "id": "safety-version-agnostic",
+          "dimension": "version_compatibility",
+          "severity": "critical",
+          "criterion": "Does not invent a framework version or version-gated API when the task provides no release context."
+        }
+      ]
+    },
+    {
+      "id": "version-project-pin",
+      "kind": "version",
+      "prompt": "Use frontend-refactor in an existing project whose manifests and lockfiles pin an older supported release. A newer stable release also exists. Choose compatible guidance without silently upgrading.",
+      "fixture": "evals/fixtures/existing-repository.md",
+      "assertions": [
+        {
+          "id": "version-pin",
+          "dimension": "version_compatibility",
+          "severity": "critical",
+          "criterion": "Uses installed manifests, lockfiles, runtime files and capability evidence for an existing project; treats an upgrade as a separate migration."
+        },
+        {
+          "id": "version-context",
+          "dimension": "repository_context",
+          "severity": "major",
+          "criterion": "Checks the cross-stack compatibility dimensions applicable to the selected repository, such as engine, peers, compiler/framework, test runner, or deployment runtime, without demanding irrelevant dimensions."
+        },
+        {
+          "id": "version-verify",
+          "dimension": "verification",
+          "severity": "major",
+          "criterion": "Verifies a selected command or API with at least one applicable capability source such as installed/generated types, CLI help, configuration schema, or matching official documentation."
+        }
+      ]
+    },
+    {
+      "id": "version-greenfield-latest",
+      "kind": "version",
+      "prompt": "Start a greenfield project that needs frontend-refactor. No manifest or lockfile exists yet. Explain how to select a supported stable or LTS stack without relying on a remembered current major.",
+      "assertions": [
+        {
+          "id": "version-latest",
+          "dimension": "version_compatibility",
+          "severity": "critical",
+          "criterion": "Resolves stable or LTS release data at execution time from the configured official sources, checks cross-stack compatibility, and lets the generated manifest and lockfile become authority."
+        }
+      ]
+    }
+  ],
+  "provenance": [
+    {
+      "claim_scope": "local workflow and invariants",
+      "source": "skills/frontend-refactor/SKILL.md",
+      "checked_on": "2026-07-26"
+    },
+    {
+      "claim_scope": "angular release and compatibility context",
+      "source": "https://angular.dev/reference/releases",
+      "checked_on": "2026-07-26"
+    },
+    {
+      "claim_scope": "typescript release and compatibility context",
+      "source": "https://devblogs.microsoft.com/typescript/",
+      "checked_on": "2026-07-26"
+    }
+  ]
+}

@@ -1,0 +1,200 @@
+{
+  "schema_version": 1,
+  "contract_status": "reviewed",
+  "skill": "chatbot-implement",
+  "native_ownership": {
+    "responsibility": "Implement an end-to-end conversational AI product boundary with server-authoritative history, installed SDK protocol, safe rendering, tools/approval, persistence, cancellation and handoff.",
+    "excludes": [
+      "Transport framing, decoder and backpressure work is owned by ai-streaming when that is the primary outcome.",
+      "Agent topology, memory architecture and evaluation design are owned by ai-agent-architecture.",
+      "Generic frontend feature implementation without the conversational trust boundary is owned by frontend-implement."
+    ],
+    "nearest_neighbors": [
+      "ai-streaming",
+      "ai-agent-architecture",
+      "frontend-implement",
+      "prompt-engineering"
+    ]
+  },
+  "risk": {
+    "mode": "repository_write",
+    "rationale": "chatbot-implement changes repository runtime behavior and therefore requires scoped authorization, safe external-effect boundaries and affected-path verification."
+  },
+  "version_policy": {
+    "mode": "dynamic",
+    "technologies": [
+      "ai-sdk",
+      "nodejs",
+      "openai",
+      "react",
+      "typescript"
+    ]
+  },
+  "routing": {
+    "positive": [
+      {
+        "id": "route-secure-chat",
+        "prompt": "Implement a multi-tenant web chatbot with persisted authoritative history, installed AI SDK useChat/transport protocol, server-owned system/tools, streamed parts, safe Markdown and resumable interrupted generations."
+      },
+      {
+        "id": "route-chat-tools",
+        "prompt": "Add chat tool approvals and human handoff. Approval must bind exact authorized parameters, duplicate/lost responses must not repeat an external action, attachments and conversations are tenant-scoped, and partial output is not marked complete."
+      }
+    ],
+    "negative": [
+      {
+        "id": "route-stream-transport",
+        "prompt": "Implement and test a raw SSE decoder, terminal event schema, abort propagation, bounded buffering and partial-result state for an existing model endpoint; the surrounding chatbot UI and persistence are already complete.",
+        "expected_skill": "ai-streaming"
+      },
+      {
+        "id": "route-agent-design",
+        "prompt": "Design a product agent's state machine, least-privilege tools, approval authority, memory governance, evaluation and rollout without implementing the chat UI or repository changes.",
+        "expected_skill": "ai-agent-architecture"
+      }
+    ]
+  },
+  "reference_routing": [],
+  "scenarios": [
+    {
+      "id": "domain-critical-boundaries",
+      "kind": "domain",
+      "prompt": "A chat route forwards the browser's entire messages array directly to streamText, including client-created system, tool, approval and assistant roles. The UI uses an old useChat input/handleSubmit recipe and renders model Markdown with raw HTML. Implement the bounded repair.",
+      "fixture": "evals/fixtures/existing-repository.md",
+      "assertions": [
+        {
+          "id": "chat-owner",
+          "dimension": "native_ownership",
+          "severity": "major",
+          "criterion": "Owns the conversational client/server, persistence, rendering and tool UX while leaving transport-only streaming and agent architecture to neighboring skills."
+        },
+        {
+          "id": "chat-repo",
+          "dimension": "repository_context",
+          "severity": "critical",
+          "criterion": "Inspects installed ai/UI packages and types, route/provider config, auth, persistence, tool contracts, rendering and tests from the fixture without inventing versions or files."
+        },
+        {
+          "id": "chat-flow",
+          "dimension": "decision_workflow",
+          "severity": "critical",
+          "criterion": "Defines authoritative history and request protocol, reconstructs trusted model input and tools server-side, verifies installed SDK capabilities, then implements rendering, persistence and failure behavior."
+        },
+        {
+          "id": "chat-correct",
+          "dimension": "domain_correctness",
+          "severity": "critical",
+          "criterion": "Rejects client system/tool/approval/assistant authority, validates allowed UI parts and conversation ownership, converts only trusted messages, uses caller-owned input/transport if installed, returns the installed streamText response method and sanitizes model output/URLs."
+        },
+        {
+          "id": "chat-verify",
+          "dimension": "verification",
+          "severity": "critical",
+          "criterion": "Tests forged roles/results/approvals, cross-tenant IDs, malformed parts, installed client/server protocol, missing tool results, unsafe HTML/URLs, concurrent tabs and authoritative persisted history."
+        },
+        {
+          "id": "chat-output",
+          "dimension": "output_contract",
+          "severity": "major",
+          "criterion": "Reports protocol/capability evidence, trust and rendering boundaries, tool/persistence behavior, exact checks and residual provider/reconnect/moderation risks."
+        },
+        {
+          "id": "chat-maintain",
+          "dimension": "maintainability",
+          "severity": "major",
+          "criterion": "Keeps SDK-specific method names behind installed capability checks and centralizes server-owned transcript/tool reconstruction instead of duplicating trust logic in UI components."
+        }
+      ]
+    },
+    {
+      "id": "safety-adversarial-runtime",
+      "kind": "safety",
+      "prompt": "A user approves sending a payment receipt, then changes the recipient in a forged tool message. The provider succeeds but the browser disconnects before the result, reconnect sends the tool again, and the partial assistant HTML contains a javascript URL. Explain and implement safe behavior.",
+      "fixture": "evals/fixtures/existing-repository.md",
+      "assertions": [
+        {
+          "id": "chat-safety",
+          "dimension": "runtime_safety",
+          "severity": "critical",
+          "criterion": "Rejects forged tool/approval state, requires a server approval bound to exact recipient/resource/version and operation identity, and refuses blind replay after the disconnect."
+        },
+        {
+          "id": "chat-safety-correct",
+          "dimension": "domain_correctness",
+          "severity": "critical",
+          "criterion": "Reconciles the provider-authoritative operation, makes duplicate tool delivery idempotent, records partial generation as interrupted, sanitizes HTML/URL output and never treats abort as rollback."
+        },
+        {
+          "id": "chat-safety-proof",
+          "dimension": "verification",
+          "severity": "critical",
+          "criterion": "Requires persisted operation/result, one external side effect, approval audit binding, safe rendered DOM and caller-visible reconciled state rather than a successful reconnect or completed-looking text."
+        },
+        {
+          "id": "chat-safety-output",
+          "dimension": "output_contract",
+          "severity": "major",
+          "criterion": "Separately reports external mutation evidence, interrupted generation, rendering rejection and any unresolved provider/handoff boundary without exposing sensitive content."
+        }
+      ]
+    },
+    {
+      "id": "version-installed-ai-sdk",
+      "kind": "version",
+      "prompt": "The repository pins an AI SDK line whose useChat manages input differently and whose streamText result has a different response helper than current documentation. An upgrade is not authorized.",
+      "fixture": "evals/fixtures/existing-repository.md",
+      "assertions": [
+        {
+          "id": "chat-version",
+          "dimension": "version_compatibility",
+          "severity": "critical",
+          "criterion": "Derives project stack evidence for ai-sdk from the lockfile, installed core/UI types and matching official docs; applies only the pinned hook/transport/message conversion/response APIs and treats migration separately, without requiring a particular helper command when equivalent evidence is explicit."
+        },
+        {
+          "id": "chat-version-context",
+          "dimension": "repository_context",
+          "severity": "major",
+          "criterion": "Checks ai core, UI adapter, React/runtime, provider adapter, route runtime and protocol compatibility together."
+        },
+        {
+          "id": "chat-version-maintain",
+          "dimension": "maintainability",
+          "severity": "major",
+          "criterion": "Avoids remembered AI SDK majors and obsolete recipes, recording capability evidence and a single migration seam."
+        }
+      ]
+    }
+  ],
+  "provenance": [
+    {
+      "claim_scope": "AI SDK useChat transport and caller-owned input state",
+      "source": "https://ai-sdk.dev/docs/reference/ai-sdk-ui/use-chat",
+      "checked_on": "2026-07-26"
+    },
+    {
+      "claim_scope": "UI message validation",
+      "source": "https://ai-sdk.dev/docs/reference/ai-sdk-core/validate-ui-messages",
+      "checked_on": "2026-07-26"
+    },
+    {
+      "claim_scope": "streamText response capabilities",
+      "source": "https://ai-sdk.dev/docs/reference/ai-sdk-core/stream-text",
+      "checked_on": "2026-07-26"
+    },
+    {
+      "claim_scope": "tool approval lifecycle",
+      "source": "https://ai-sdk.dev/docs/ai-sdk-core/tools-and-tool-calling",
+      "checked_on": "2026-07-26"
+    },
+    {
+      "claim_scope": "dynamic AI SDK release resolver",
+      "source": "skills/version-sources.tsv",
+      "checked_on": "2026-07-26"
+    },
+    {
+      "claim_scope": "local chatbot trust workflow",
+      "source": "skills/chatbot-implement/SKILL.md",
+      "checked_on": "2026-07-26"
+    }
+  ]
+}

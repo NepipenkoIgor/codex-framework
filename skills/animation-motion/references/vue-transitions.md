@@ -1,32 +1,11 @@
-# Vue Transition Patterns
+# Vue Transitions
 
-```vue
-<template>
-  <Transition name="fade-slide" mode="out-in">
-    <component :is="currentView" :key="currentView" />
-  </Transition>
+Verify the installed Vue/Nuxt line, rendered mode and transition API before implementation.
 
-  <TransitionGroup name="list" tag="ul">
-    <li v-for="item in items" :key="item.id">{{ item.name }}</li>
-  </TransitionGroup>
-</template>
+- Use `<Transition>` for one conditional/switching child and `<TransitionGroup>` for keyed list identity. Select mode from required overlap and focus behavior, not a universal default.
+- Name every transitioned CSS property; never use `transition: all`. Coordinate absolute positioning/layout only when container sizing and focus/pointer behavior remain correct.
+- JS `enter` and `leave` hooks call `done` only when the installed Vue API and declared hook signature use its asynchronous completion callback; synchronous hooks need no fabricated callback. In both modes, clean timelines/listeners and converge component state on success, reduced motion, error, cancellation and unmount. Cancellation hooks receive only the element, so never invent a completion callback there.
+- SSR initial classes and hydration must produce a stable visible state. Route transitions preserve history, focus, scroll and error navigation.
+- Test keyed insert/remove/reorder, rapid reversal, nested transitions, preference changes and unsupported browser capabilities.
 
-<style>
-.fade-slide-enter-active { transition: opacity 200ms ease-out, transform 200ms ease-out; }
-.fade-slide-leave-active { transition: opacity 150ms ease-in, transform 150ms ease-in; }
-.fade-slide-enter-from { opacity: 0; transform: translateY(8px); }
-.fade-slide-leave-to { opacity: 0; transform: translateY(-8px); }
-
-.list-enter-active { transition: all 200ms ease-out; }
-.list-leave-active { transition: all 150ms ease-in; position: absolute; }
-.list-move { transition: transform 300ms ease-in-out; }
-.list-enter-from, .list-leave-to { opacity: 0; transform: translateY(8px); }
-</style>
-```
-
-## Guidelines
-
-- Use `<Transition>` for single element enter/leave
-- Use `<TransitionGroup>` for list animations with FLIP-based move transitions
-- Use `mode="out-in"` when swapping content -- prevents overlap
-- Use GSAP with Vue composables for complex timeline animations
+Official source: [Vue Transition](https://vuejs.org/guide/built-ins/transition.html).

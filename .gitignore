@@ -8,3 +8,5 @@
 /.codex-memory/
 /.codex/project.env
 /.idea/
+__pycache__/
+*.pyc

@@ -1,177 +1,38 @@
 ---
 name: mobile-deployment
-description: Build and deploy mobile apps — EAS Build, Fastlane, code signing, App Store/Google Play submission, OTA updates, TestFlight beta, CI/CD pipelines, and phased rollouts
+description: Implement repository-side mobile build, signing, beta, store, OTA, and rollout automation with explicit environment and release authority. Use for requested deployment changes; do not publish, promote, or submit externally without explicit authorization.
 metadata:
-  version: 1.5
-  argument-hint: "platform (iOS/Android/both), store (App Store/Play Store), CI/CD tool, release type"
+  owner: codex-framework
+  reviewed: "2026-07-26"
+  version: 2.0
+  argument-hint: "installed stack, platforms, environments, release action, rollback constraints"
 ---
 
-Implement mobile deployment for $ARGUMENTS.
+# Mobile Deployment
 
-## Tool Integration
+## Workflow
 
-- **browser automation** — capture screenshots for visual verification and regression testing
+1. Read repository instructions, manifests, lockfiles, native projects, build flavors/schemes, signing setup, CI, store identifiers, OTA configuration, migrations, and release runbook. Generate stack context first. Existing pins and native toolchains are authority unless migration is in scope; greenfield versions come from current official stable/LTS distribution channels and compatibility checks.
+2. Classify the stack by evidence. Use Expo/EAS guidance only when the project exposes compatible Expo/React Native configuration. Use Flutter's supported build/release tooling for Flutter. Use native Xcode/Gradle and repository-selected automation for native or bare projects. Do not infer tooling from a requested brand name.
+3. Resolve exact app ID/bundle ID, platform, environment, build flavor, signing identity, artifact, channel/track, and external action. Repository automation does not authorize a build, upload, submission, promotion, staged rollout, OTA publish, or rollback.
+4. Separate build, sign, attest, upload, submit, release, and promote stages. Pin toolchains and actions as repository policy requires; protect credentials in the platform secret store; verify artifact identity, provenance, signature, entitlements/permissions, and environment endpoints before upload.
+5. Gate production from protected tags/releases or an explicit approval boundary. A push or merge to the default branch must not automatically release to production unless the repository's approved policy expressly requires it.
+6. For OTA, bind a signed or otherwise integrity-protected update to an exact app/environment channel and a runtime compatibility identity. Native dependency, native configuration, permission, or runtime-contract changes require a compatible new binary. Verify the installed platform's actual OTA capabilities before adding commands.
+7. Design schema/API/config changes for mixed client versions. State forward/backward compatibility, migration ownership, irreversible steps, minimum supported build, feature flag behavior, and server rollback constraints.
+8. Define rollout cohorts and stop criteria from product risk and current store/provider capabilities. Do not prescribe fixed percentages or thresholds. Manual downloads, already-updated clients, review delay, and provider rollback semantics limit recovery.
 
-## Technology Selection
+## Release Evidence
 
-| Tool | Best for | Managed |
-|------|----------|---------|
-| EAS Build | Expo projects, cloud builds | Yes |
-| Fastlane | Bare React Native, native apps | No |
-| Xcode Cloud | Native iOS/macOS | Yes |
-| GitHub Actions + Fastlane | Full control | Partial |
+Before any authorized external mutation, present the exact target and expected effect. Afterward capture immutable build/version identifiers, artifact checksum/provenance, signing result, upload/submission response, store/OTA status, cohort, and monitoring window. A successful CLI exit is not proof of installability or release.
 
-Decision: Expo -> EAS Build. Bare RN/native -> Fastlane + GH Actions. Flutter -> EAS Build (supports Flutter projects) or Fastlane + GitHub Actions. iOS only -> Xcode Cloud.
-
-> **CodePush/AppCenter retired:** Microsoft retired CodePush and AppCenter in March 2025. Use **EAS Update** for OTA updates in Expo projects. For bare React Native, migrate to EAS Update or implement a custom update mechanism.
-
-## Code Signing
-
-### iOS
-
-- Distribution Certificate (1yr) + Provisioning Profile + Push Key (.p8)
-- Use **Fastlane Match**: certificates in encrypted Git repo, CI fetches read-only
-- `fastlane match appstore --readonly` in CI
-
-### Android
-
-- Upload Keystore (.jks) signs the AAB; Google Play manages final signing key
-- Store keystore in CI secrets, decode from base64 during build
-- Never commit keystores; enable Google Play App Signing
-
-### Rules
-
-- Never commit signing keys to source control; use Match or CI secrets
-- Separate identities for dev, ad-hoc, production
-- Back up keystores securely; rotate upload keys periodically
-
-## EAS Build (Expo)
-
-```json
-// eas.json
-{
-  "build": {
-    "development": { "developmentClient": true, "distribution": "internal" },
-    "preview": { "distribution": "internal", "channel": "preview" },
-    "production": { "autoIncrement": true, "channel": "production" }
-  },
-  "submit": {
-    "production": {
-      "ios": { "appleId": "...", "ascAppId": "...", "appleTeamId": "..." },
-      "android": { "serviceAccountKeyPath": "./google-sa.json", "track": "internal" }
-    }
-  }
-}
-```
-
-Commands: `eas build --profile production --platform all`, `eas submit`, `eas update --channel production --message "Fix"`.
-
-Rules: `autoIncrement` for production; separate channels; set `runtimeVersion` policy; store credentials as EAS secrets.
-
-## Fastlane
-
-### iOS
-
-```ruby
-lane :beta do
-  setup_ci if is_ci
-  match(type: "appstore", readonly: is_ci)
-  increment_build_number(build_number: ENV["BUILD_NUMBER"] || (latest_testflight_build_number + 1))
-  build_app(workspace: "MyApp.xcworkspace", scheme: "MyApp", export_method: "app-store")
-  upload_to_testflight(skip_waiting_for_build_processing: true)
-end
-```
-
-### Android
-
-```ruby
-lane :beta do
-  gradle(task: "bundle", build_type: "Release", project_dir: "android/")
-  upload_to_play_store(track: "internal", aab: "...app-release.aab", json_key: ENV["GP_KEY_PATH"])
-end
-
-lane :promote do
-  upload_to_play_store(track: "internal", track_promote_to: "production", rollout: "0.1")
-end
-```
-
-## CI/CD (GitHub Actions)
-
-iOS: macos-14 runner, setup ruby + node, `npm ci`, `pod install`, `fastlane ios beta` with Match/ASC secrets.
-Android: ubuntu runner, setup Java 17 + node, decode keystore from base64, `fastlane android beta`.
-EAS: ubuntu runner, `expo/expo-github-action`, `eas build --non-interactive`, `eas submit`.
-
-## Versioning
-
-`{major}.{minor}.{patch} (buildNumber)` -- e.g., `1.2.3 (45)`.
-
-- App version set manually on feature releases; build number auto-increments per CI build
-- iOS build numbers unique per version; Android versionCode always increases
-- Tag releases: `v1.2.3`; OTA updates do not change app version
-
-## Beta Distribution
-
-- **TestFlight** (iOS): internal (100 users, no review) + external (10K, Beta App Review)
-- **Firebase App Distribution** (cross-platform): `firebase_app_distribution()` in Fastlane
-- Internal: auto-distribute on push to main; external: tagged releases only
-- Include release notes; set 90-day expiry on beta builds
-
-## Store Submission
-
-### App Store Checklist
-
-Icon 1024x1024, screenshots per device family, privacy policy URL, privacy nutrition labels, TestFlight tested.
-Watch: 2.1 completeness, 2.3 metadata accuracy, 3.1.1 IAP for digital goods, 5.1 privacy declarations.
-
-### Google Play Checklist
-
-AAB format, content rating, data safety section, target API level current year-1, managed publishing.
-
-Automate via Fastlane/EAS Submit; submit to internal first; schedule weekday submissions.
-
-## Phased Rollouts
-
-Google Play: `upload_to_play_store(rollout: "0.1")` -> 0.5 -> 1.0. Halt: `rollout: "0.0"`.
-App Store: phased release over 7 days (1% -> 100%); pause from ASC dashboard.
-
-### Monitoring
-
-| Metric | Alert |
-|--------|-------|
-| Crash-free rate | <99.5% halt |
-| ANR rate (Android) | >0.5% |
-| Error rate | >2x baseline |
-| Ratings | <4.0 |
-
-### Rollback
-
-iOS: no true rollback; submit hotfix or revert via OTA (EAS Update). Use feature flags.
-Android: halt staged rollout; submit hotfix; users already updated cannot downgrade.
-
-## Anti-Patterns
-
-- Committing keystores or certificates to source control -- credential exposure is irreversible
-- APK instead of AAB for Play Store -- forfeits Google's dynamic delivery and size optimization
-- No phased rollout with crash monitoring -- bad releases reach 100% of users before detection
-- iOS builds attempted on Linux CI -- Xcode toolchain is macOS-only, builds will fail silently or not at all
-
-## Output Format
-
-```
-Platform:          [iOS / Android / both]
-Build Tool:        [EAS Build / Fastlane]
-Code Signing:      [Match / EAS managed]
-CI/CD:             [GitHub Actions / Bitrise]
-Beta:              [TestFlight / Firebase App Distribution]
-Store Submission:  [Fastlane / EAS Submit]
-OTA:               [EAS Update]
-Rollout:           [phased percentages + monitoring]
-```
+Test installation/upgrade from supported prior builds, clean install, authentication and backend environment, deep links, notifications, purchases or other critical native capabilities, migration behavior, OTA compatibility rejection, and rollback/feature-disable paths on representative devices. A store rejection leaves production unchanged; preserve the previous approved artifact and produce a corrected submission rather than bypassing policy.
 
 ## Done Criteria
 
-- Reproducible builds from any commit; automated code signing
-- Beta auto-distributes on push to main; store submission automated
-- Version/build numbers auto-increment; OTA deploys JS fixes without store review
-- Phased rollout with monitoring; rollback plan documented and tested
-- Both platforms build and deploy independently
+- Build and signing are reproducible for the exact installed stack without committed credentials.
+- Production mutation requires the declared approval boundary and targets one resolved app/environment/channel/track.
+- OTA and binary runtime compatibility are enforced; native changes cannot reach incompatible binaries.
+- Mixed-version data/API compatibility and store-rejection recovery are documented and exercised where feasible.
+- Rollout and recovery evidence is based on current provider state, with limitations and untested external paths reported.
+
+Return changed files, stack/version evidence, release-state diagram, credential boundaries, exact authorized external actions, verification evidence, recovery plan, and residual provider/store risks.

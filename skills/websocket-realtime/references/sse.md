@@ -1,60 +1,12 @@
-# Server-Sent Events (SSE)
+# Server-Sent Events
 
-## Server (Node.js/Express)
+Use SSE for one-way server-to-browser delivery when HTTP streaming and repository/proxy capabilities support it. Verify response flushing, buffering, compression, idle behavior and browser client APIs against the deployed path.
 
-```typescript
-app.get('/events', authenticate, (req, res) => {
-  const userId = req.user.id;
+- Authenticate the request with the supported cookie, header or bounded ticket mechanism and authorize the requested tenant/resource stream. Native EventSource can use cookies; a custom client is needed only for requirements such as custom headers or nonstandard handling.
+- Define versioned event type, stable ID/cursor, data schema, scope, retry/reconnect ownership, retention and error/reset semantics. Validate and encode data without embedding secrets.
+- Establish replay and live subscription atomically or through a cursor-safe handoff so events cannot be lost or interleaved across the boundary. If the cursor is outside retention, send an explicit reset/snapshot path rather than unbounded replay.
+- Heartbeats are transport liveness aids, not application data. Derive cadence from measured proxy/provider idle limits and handle write failure/abort cleanup.
+- Bound per-client backlog and fan-out. Define coalescing, disconnect or snapshot recovery for slow consumers; stop upstream work when the request aborts.
+- Do not assume fixed browser connection or HTTP/2 stream limits; verify supported browsers, negotiated protocol and infrastructure constraints.
 
-  res.writeHead(200, {
-    'Content-Type': 'text/event-stream',
-    'Cache-Control': 'no-cache',
-    'Connection': 'keep-alive',
-    'X-Accel-Buffering': 'no', // Disable Nginx buffering
-  });
-
-  // Initial event
-  res.write(`event: connected\ndata: ${JSON.stringify({ userId })}\n\n`);
-
-  // Keep-alive comment every 15s (prevents proxy timeout)
-  const keepAlive = setInterval(() => res.write(':keepalive\n\n'), 15_000);
-
-  // Subscribe to events
-  const unsubscribe = eventBus.subscribe(`user:${userId}`, (event) => {
-    res.write(`id: ${event.id}\nevent: ${event.type}\ndata: ${JSON.stringify(event.payload)}\n\n`);
-  });
-
-  // Resume from Last-Event-ID
-  const lastEventId = req.headers['last-event-id'];
-  if (lastEventId) {
-    replayEventsSince(userId, lastEventId).forEach((event) => {
-      res.write(`id: ${event.id}\nevent: ${event.type}\ndata: ${JSON.stringify(event.payload)}\n\n`);
-    });
-  }
-
-  req.on('close', () => {
-    clearInterval(keepAlive);
-    unsubscribe();
-  });
-});
-```
-
-## Client
-
-```typescript
-// Native EventSource -- auto-reconnect built in
-const source = new EventSource('/events');
-source.addEventListener('notification', (event) => {
-  const data = JSON.parse(event.data);
-  handleNotification(data);
-});
-source.onerror = () => updateConnectionState('reconnecting');
-// EventSource auto-sends Last-Event-ID on reconnect
-```
-
-## SSE Limitations
-
-- Unidirectional: server to client only (use POST requests for client-to-server)
-- Max 6 concurrent connections per domain in HTTP/1.1 (not an issue with HTTP/2)
-- No binary support -- text/JSON only
-- Browser EventSource API does not support custom headers -- use `@microsoft/fetch-event-source` for auth
+Verify wrong-tenant stream access, cookie/header expiry and revocation, initial replay/live race, duplicate/gap/out-of-retention cursors, malformed/oversized events, proxy buffering/idle close, slow clients, disconnect cleanup, reconnect storms and deployment drain.

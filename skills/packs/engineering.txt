@@ -1,0 +1,16 @@
+# Cross-cutting engineering quality and repository practices
+adr-management
+code-reuse
+contract-testing
+dependency-audit
+dependency-management
+docs-sync
+e2e-test
+monorepo-management
+performance
+plugin-security-review
+project-setup
+security-audit
+technical-debt
+test-data-management
+threat-modeling

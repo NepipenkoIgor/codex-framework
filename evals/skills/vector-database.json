@@ -1,0 +1,204 @@
+{
+  "schema_version": 1,
+  "contract_status": "reviewed",
+  "skill": "vector-database",
+  "native_ownership": {
+    "responsibility": "Design and implement evaluated vector retrieval with versioned embeddings/schema/index, in-query tenant authorization, deterministic lifecycle/deletion and measured recall-latency-cost migration.",
+    "excludes": [
+      "End-to-end RAG ingestion/retrieval/generation is owned by rag-pipeline.",
+      "General lexical/search UI implementation is owned by search-implementation.",
+      "Relational schema design without vector retrieval is owned by data-modeling."
+    ],
+    "nearest_neighbors": [
+      "rag-pipeline",
+      "search-implementation",
+      "data-modeling",
+      "llm-security"
+    ]
+  },
+  "risk": {
+    "mode": "repository_write",
+    "rationale": "vector-database can change production data, model, media, security, retrieval or financial behavior and requires explicit scope, rollback and affected-path verification."
+  },
+  "version_policy": {
+    "mode": "dynamic",
+    "technologies": [
+      "openai",
+      "python",
+      "typescript"
+    ]
+  },
+  "routing": {
+    "positive": [
+      {
+        "id": "route-tenant-vector",
+        "prompt": "Implement the vector-storage and similarity-retrieval layer for an existing pipeline whose document ingestion, chunking, reranking, prompting and generation remain unchanged. Use server-derived in-query tenant filters, stable source/chunk IDs, embedding/index versions, permission-change handling and verifiable source/tenant deletion."
+      },
+      {
+        "id": "route-index-migration",
+        "prompt": "Migrate embedding model and vector index generation using backfill, shadow/dual-read evaluation, compatible query routing, reversible cutover and measured filtered recall/latency/cost evidence."
+      }
+    ],
+    "negative": [
+      {
+        "id": "route-rag-pipeline",
+        "prompt": "Build the complete RAG pipeline including document ingestion, chunking, embeddings, vector retrieval, reranking, prompt grounding, citations and no-answer behavior.",
+        "expected_skill": "rag-pipeline"
+      },
+      {
+        "id": "route-search-feature",
+        "prompt": "Implement product search UX and lexical/full-text query behavior, filters, pagination, highlighting and relevance without embedding infrastructure.",
+        "expected_skill": "search-implementation"
+      }
+    ]
+  },
+  "reference_routing": [
+    {
+      "id": "reference-1-full-guide-md",
+      "prompt": "The selected vector store and index must be evaluated for a multi-tenant corpus. Define installed-version provider filtering, index tuning, versioned embedding compatibility, reindex/cutover, deletion and recall-latency-cost evidence.",
+      "expected": [
+        "skills/vector-database/references/full-guide.md"
+      ],
+      "forbidden": []
+    },
+    {
+      "id": "reference-main-only",
+      "prompt": "Handle a routine vector database request using only the concise main workflow; no selected provider, index, workflow-pattern, or optional deep-dive detail is needed.",
+      "expected": [],
+      "forbidden": [
+        "skills/vector-database/references/full-guide.md"
+      ]
+    }
+  ],
+  "scenarios": [
+    {
+      "id": "domain-critical-boundaries",
+      "kind": "domain",
+      "prompt": "A shared vector index accepts tenant ID from the client, retrieves globally then filters results in application code, mixes two embedding dimensions and deletes only the active collection. A new HNSW configuration is chosen from blog defaults without recall evidence. Repair it.",
+      "fixture": "evals/fixtures/existing-repository.md",
+      "assertions": [
+        {
+          "id": "vector-owner",
+          "dimension": "native_ownership",
+          "severity": "major",
+          "criterion": "Implements vector storage, index and retrieval lifecycle without implementing or claiming ownership of end-to-end RAG, general search or relational modeling."
+        },
+        {
+          "id": "vector-repo",
+          "dimension": "repository_context",
+          "severity": "critical",
+          "criterion": "Inspects corpus/queries/judgments, embedding/preprocessing/chunk/filter versions, provider/client pins, tenant auth, lifecycle/deletion, scale and tests from the fixture."
+        },
+        {
+          "id": "vector-flow",
+          "dimension": "decision_workflow",
+          "severity": "critical",
+          "criterion": "Establishes lexical/exact baseline and evaluation set, defines compatibility/tenant/lifecycle contract, then selects/tunes provider/index and plans reversible migration."
+        },
+        {
+          "id": "vector-correct",
+          "dimension": "domain_correctness",
+          "severity": "critical",
+          "criterion": "Derives tenant/resource scope server-side inside every query/write/delete, rejects embedding/schema mismatch, uses stable IDs, migrates via separate generations and propagates deletion to queues/caches/old indexes/backups."
+        },
+        {
+          "id": "vector-verify",
+          "dimension": "verification",
+          "severity": "critical",
+          "criterion": "Measures filtered recall against judgments/exact baseline plus latency percentiles/cost, tests missing filters/horizontal access, stale/missing vectors, dimension mismatch, partial backfill, cutover/rollback and verifiable deletion."
+        },
+        {
+          "id": "vector-output",
+          "dimension": "output_contract",
+          "severity": "major",
+          "criterion": "Reports the baseline/provider/index decision when evidence supports one, otherwise the decision procedure and missing evidence; reports versioned schema/lifecycle, isolation/deletion, migration and actual recall-latency-cost results or Not available, plus residual relevance/provider risk."
+        },
+        {
+          "id": "vector-maintain",
+          "dimension": "maintainability",
+          "severity": "major",
+          "criterion": "Keeps volatile provider APIs/defaults in the routed guide/adapter and uses immutable index generations and evaluation-derived parameters."
+        }
+      ]
+    },
+    {
+      "id": "safety-production-counterexample",
+      "kind": "safety",
+      "prompt": "A deletion request for one tenant removes source rows but leaves embeddings in an old migration index and queued retries; support proposes post-filtering queries until cleanup finishes.",
+      "fixture": "evals/fixtures/existing-repository.md",
+      "assertions": [
+        {
+          "id": "vector-safety",
+          "dimension": "runtime_safety",
+          "severity": "critical",
+          "criterion": "Stops retrieval for affected tenant/generations, authenticates deletion authority, tombstones stable source identities and coordinates active/old indexes, queues, caches and backups."
+        },
+        {
+          "id": "vector-safety-correct",
+          "dimension": "domain_correctness",
+          "severity": "critical",
+          "criterion": "Rejects post-filtering as tenant security, keeps mandatory provider-side query scope and verifies deletion/retry idempotency without resurrecting vectors."
+        },
+        {
+          "id": "vector-safety-proof",
+          "dimension": "verification",
+          "severity": "critical",
+          "criterion": "Requires negative retrieval across every generation/API, queue replay, count/source audit and documented backup erasure state rather than active-index success alone."
+        }
+      ]
+    },
+    {
+      "id": "version-installed-capability",
+      "kind": "version",
+      "prompt": "The project pins a vector client/extension and embedding model revision whose dimensions, metric and filter API differ from current examples. No migration is authorized.",
+      "fixture": "evals/fixtures/existing-repository.md",
+      "assertions": [
+        {
+          "id": "vector-version",
+          "dimension": "version_compatibility",
+          "severity": "critical",
+          "criterion": "Uses installed package/extension/server evidence and matching official provider/model docs; preserves the compatible tuple and treats embedding/index migration separately."
+        },
+        {
+          "id": "vector-version-context",
+          "dimension": "repository_context",
+          "severity": "major",
+          "criterion": "Checks client/server/index feature, embedding revision/dimensions/preprocessing/metric, metadata filter schema and backup/restore compatibility together."
+        },
+        {
+          "id": "vector-version-maintain",
+          "dimension": "maintainability",
+          "severity": "major",
+          "criterion": "Records immutable compatibility/index generation metadata and avoids remembered provider limits, dimensions, index defaults or model aliases."
+        }
+      ]
+    }
+  ],
+  "provenance": [
+    {
+      "claim_scope": "pgvector installed-version source",
+      "source": "https://github.com/pgvector/pgvector",
+      "checked_on": "2026-07-26"
+    },
+    {
+      "claim_scope": "Pinecone filtering/index documentation",
+      "source": "https://docs.pinecone.io/",
+      "checked_on": "2026-07-26"
+    },
+    {
+      "claim_scope": "Qdrant filtering/index documentation",
+      "source": "https://qdrant.tech/documentation/",
+      "checked_on": "2026-07-26"
+    },
+    {
+      "claim_scope": "OpenAI embedding capability source",
+      "source": "https://platform.openai.com/docs/guides/embeddings",
+      "checked_on": "2026-07-26"
+    },
+    {
+      "claim_scope": "local workflow and provider-guide routing",
+      "source": "skills/vector-database/SKILL.md",
+      "checked_on": "2026-07-26"
+    }
+  ]
+}

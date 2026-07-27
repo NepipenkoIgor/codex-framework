@@ -1,75 +1,12 @@
-# SignalR (.NET)
+# SignalR runtime
 
-```csharp
-// Strongly-typed hub
-public interface IChatClient
-{
-    Task ReceiveMessage(ChatMessage message);
-    Task UserJoined(string userId, string displayName);
-    Task UserLeft(string userId);
-    Task PresenceUpdate(PresenceInfo presence);
-    Task TypingStarted(string userId);
-    Task TypingStopped(string userId);
-}
+Use the installed ASP.NET Core/SignalR client and server capabilities. Verify hub filters, transport fallback, group, streaming, reconnect and scale-out APIs against pinned framework documentation.
 
-[Authorize]
-public class ChatHub : Hub<IChatClient>
-{
-    private readonly IPresenceService _presence;
-    private readonly IMessageService _messages;
+- Authenticate connection establishment, but authorize every hub method and resource operation using the current caller and server-loaded tenant/resource. Group membership is routing state, not authorization.
+- Construct group names from validated server-owned tenant/resource scope. Reauthorize before add, publish and sensitive stream; remove/close on membership or token revocation.
+- Validate method arguments and bound payload, stream items, send rate, inflight work and cancellation. A client-supplied group or user identifier is never authority.
+- Automatic reconnect does not restore application subscriptions, ordering or missed state by itself. Reauthenticate, rejoin authorized groups and reconcile with cursor/version or snapshot.
+- Add a backplane/service only for demonstrated multi-instance fan-out, with tenant isolation, failure behavior and deploy compatibility.
+- Hub completion/acknowledgement is not exactly-once business delivery. Consequential effects need operation identity, server idempotency and persisted outcome reconciliation.
 
-    public override async Task OnConnectedAsync()
-    {
-        var userId = Context.UserIdentifier!;
-        await _presence.SetOnline(userId);
-        await Groups.AddToGroupAsync(Context.ConnectionId, $"user:{userId}");
-    }
-
-    public override async Task OnDisconnectedAsync(Exception? exception)
-    {
-        var userId = Context.UserIdentifier!;
-        await _presence.SetOffline(userId);
-    }
-
-    public async Task JoinRoom(string roomId)
-    {
-        var userId = Context.UserIdentifier!;
-        if (!await _messages.CanJoinRoom(userId, roomId))
-            throw new HubException("Access denied");
-
-        await Groups.AddToGroupAsync(Context.ConnectionId, roomId);
-        await Clients.Group(roomId).UserJoined(userId, Context.User!.Identity!.Name!);
-    }
-
-    public async Task SendMessage(string roomId, string text)
-    {
-        var userId = Context.UserIdentifier!;
-        var message = await _messages.Save(roomId, userId, text);
-        await Clients.Group(roomId).ReceiveMessage(message);
-    }
-
-    public async Task StartTyping(string roomId)
-    {
-        await Clients.OthersInGroup(roomId).TypingStarted(Context.UserIdentifier!);
-    }
-}
-
-// Startup configuration
-builder.Services.AddSignalR()
-    .AddStackExchangeRedis(connectionString, options =>
-    {
-        options.Configuration.ChannelPrefix = RedisChannel.Literal("ChatHub");
-    });
-
-app.MapHub<ChatHub>("/hubs/chat");
-```
-
-## Key SignalR Features
-
-- Strongly-typed hubs with `IClient` interface -- compile-time safety
-- Groups for rooms/channels
-- `[Authorize]` on Hub and methods for auth
-- Redis backplane for scale-out: `AddStackExchangeRedis()`
-- `OnConnectedAsync` / `OnDisconnectedAsync` for presence
-- `Context.UserIdentifier` from JWT claims for user identification
-- Automatic transport negotiation (WebSocket -> SSE -> Long Polling)
+Verify cross-tenant method/group access, revocation, malformed/oversized/flood calls, cancellation, duplicate commands, reconnect/rejoin and missed-state recovery, and graceful deployment drain. When the selected deployment is multi-instance, also verify scale-out isolation, backplane/service outage, and deployment compatibility.

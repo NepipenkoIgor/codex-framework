@@ -1,66 +1,46 @@
 ---
 name: frontend-test-angular
-description: Angular testing with TestBed, component harnesses, signal-aware testing patterns
+description: Add behavior-focused Angular unit, component, harness, signal, HTTP, and integration tests using the repository's installed runner and supported TestBed APIs. Use when executable Angular test coverage is requested; do not use for feature implementation alone.
 metadata:
-  version: 1.0
+  owner: codex-framework
+  reviewed: "2026-07-26"
+  version: 2.0
   domain: frontend
-  keywords: [angular, testing, testbed, component harness, spectator, jasmine, jest, signal, fixture]
+  keywords: [angular, testing, testbed, vitest, jasmine, karma, signal, harness, http]
 ---
 
 # Frontend Test — Angular
 
-Pair with `frontend-test` for universal testing principles.
+Run `python3 scripts/framework-stack-context.py project <path>` and inspect `angular.json`, package/lock files, Angular core, TypeScript, test target/builder, Zone-versus-zoneless configuration, setup, installed DOM emulator, existing spies/timers, the target's production HTTP/provider configuration and nearby tests as one compatibility unit. Preserve the installed runner and conventions, and verify version-sensitive APIs against installed types plus matching Angular and runner documentation. Current new Angular CLI projects use Vitest, but an existing Karma/Jasmine, Jest, Web Test Runner or other supported setup is authority; migration is separate scope.
 
-## Setup
+## Test Contract
 
-- Use `TestBed.configureTestingModule()` for component and service tests
-- Prefer `jest` over `jasmine` for new projects — faster, better error messages
-- Use Angular CDK component harnesses for Material components — never query internal DOM of third-party components
-- Use `Spectator` library to reduce TestBed boilerplate for straightforward component tests
+- Test caller-visible behavior through the template, accessible queries, outputs, router/HTTP boundary and public service API. Avoid private members, implementation-only call order and third-party DOM internals; use component harnesses where available.
+- Configure the smallest TestBed. Use plain construction only when no Angular injection context/lifecycle is required. Set inputs through the supported component/fixture API and synchronize model-to-view using APIs exposed by the installed Angular line.
+- Do not prescribe `detectChanges()` after every operation. Establish the actual change-detection mode, auto-detection, signals and async boundary, then drive and await the user-observable state.
+- `TestBed.flushEffects()` is deprecated in current Angular in favor of `TestBed.tick()`. Use whichever synchronization API the installed types support and verify its semantics; do not confuse `TestBed.tick()` with the Zone-dependent `tick()` function. Preserve the installed runner's timer/async model and never mix incompatible fake and real async controls.
+- For HTTP tests, configure the production client/features first and `provideHttpClientTesting()` afterward so the testing backend overrides it. Use `HttpTestingController` to expect/flush/error requests and verify no unexpected requests. Never allow real network, credentials, production endpoints or service workers from unit/component tests.
 
-## Component Testing
+## Workflow
 
-- Always call `fixture.detectChanges()` after setup and after state mutations with Default CD
-- With `OnPush` components: use `fixture.componentRef.setInput()` to set inputs — triggers CD correctly
-- Never access private component properties in tests — test through template output and emitted events
-- Use `fixture.debugElement.query(By.css/By.directive)` over native `querySelector` — returns DebugElement
+1. Identify behavior and boundary: render/state, user event, output, router, HTTP, timer, signal/effect, resource or third-party component.
+2. Reuse repository helpers and runner syntax. Mock at external boundaries; do not replace the unit under test with its own mock.
+3. Cover success plus meaningful failure/race: loading, empty, server error, explicit timeout and caller-visible timeout outcome, cancellation, stale result, retry/duplicate, permission state and cleanup as applicable. Assert request and component state after timeout rather than inferring it from retry exhaustion.
+4. For HTTP, assert method, URL/query/body/headers only where contractually relevant; flush each request deterministically and verify none remain.
+5. Run the narrow authoritative test command, then affected suite/type/build checks. Diagnose environment limitations rather than weakening assertions.
 
-## Signal Testing
+## Verification
 
-- Signals update synchronously — no `detectChanges()` needed for signal reads in unit tests
-- For `effect()` testing: use `TestBed.flushEffects()` to flush pending effects synchronously
-- For `resource()` testing: use `fakeAsync` + `tick()` or mock the resource loader function
+- Tests fail for the intended regression before/falsification fixture where safe and pass after the implementation under test.
+- No live network or leaked timers/subscriptions/fixtures; HTTP controller and runner cleanup pass.
+- Signal/effect/resource behavior is synchronized through installed supported APIs, including stale async completion and destruction.
+- OnPush/default/zoneless behavior, accessibility-facing output and error paths are observed rather than inferred from internals.
 
-## Service Testing
+## Output Contract
 
-- Test services directly without TestBed when they have no Angular DI dependencies — plain class instantiation
-- Use `TestBed.inject()` to get service instances when DI is needed — never `new ServiceClass()`
-- Mock dependencies via `{ provide: MyService, useValue: mockService }` in providers array
+- Behaviors and boundaries covered
+- Installed Angular/runner/TestBed capability evidence
+- Files changed and commands/results
+- Uncovered browser/E2E or migration boundary
 
-## HTTP Testing
-
-- Use `HttpTestingController` from `@angular/common/http/testing`
-- Always call `httpMock.verify()` in `afterEach` to catch unexpected requests
-- Never mock `HttpClient` directly — always use `HttpTestingController`
-
-## Async Testing
-
-- Use `fakeAsync` + `tick()` for timer-based async — covers setTimeout, setInterval, Promise resolution
-- Use `async` + `fixture.whenStable()` for real async (HTTP, actual Promises outside fakeAsync)
-- Never mix `fakeAsync` and real async — choose one per test
-
-## Hard Rules
-
-- Never access private component members in tests
-- Never query third-party component internals — use harnesses
-- Never use `fixture.nativeElement.querySelector` when `By.css` works
-- Always `httpMock.verify()` in afterEach
-- Never mock `HttpClient` directly
-
-## Done Criteria
-
-- No access to private component properties
-- `httpMock.verify()` present in all HTTP test suites
-- All `OnPush` components tested via `setInput()` not direct property assignment
-- All effects flushed with `TestBed.flushEffects()` before asserting
-- Tests pass with no console errors
+Official sources: [Angular testing overview](https://angular.dev/guide/testing), [TestBed API](https://angular.dev/api/core/testing/TestBedStatic), and [HTTP testing](https://angular.dev/guide/http/testing).

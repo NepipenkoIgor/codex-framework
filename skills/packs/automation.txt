@@ -1,0 +1,5 @@
+# n8n and deterministic workflow automation
+automation-n8n-architecture
+automation-n8n-debug
+automation-n8n-implement
+n8n-test

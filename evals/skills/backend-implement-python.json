@@ -1,0 +1,186 @@
+{
+  "schema_version": 1,
+  "contract_status": "reviewed",
+  "skill": "backend-implement-python",
+  "native_ownership": {
+    "responsibility": "Implement Python backends with FastAPI or Django, SQLAlchemy or the Django ORM, Pydantic, migrations, and typed async/sync boundaries",
+    "excludes": [
+      "Framework-neutral backend implementation is owned by backend-implement",
+      "Executable Python test coverage without feature implementation is owned by backend-test-python"
+    ],
+    "nearest_neighbors": [
+      "backend-implement",
+      "backend-test-python"
+    ]
+  },
+  "risk": {
+    "mode": "repository_write",
+    "rationale": "The contract requires explicit repository and runtime safety evidence; mutation authority remains limited to the user's requested scope."
+  },
+  "version_policy": {
+    "mode": "dynamic",
+    "technologies": [
+      "python"
+    ]
+  },
+  "routing": {
+    "positive": [
+      {
+        "id": "route-primary",
+      "prompt": "Implement a Python backend mutation with the pinned interpreter/framework/validator/ORM and sync-async boundary, current resource authorization, transaction concurrency and stable idempotency."
+      },
+      {
+        "id": "route-focused",
+        "prompt": "The primary requested outcome is this: Implement Python backends with FastAPI or Django, SQLAlchemy or the Django ORM, Pydantic, migrations, and typed async/sync boundaries. Keep unrelated changes outside the task."
+      }
+    ],
+    "negative": [
+      {
+        "id": "route-neighbor-one",
+        "prompt": "Implement framework-neutral backend behavior where no language or framework specialization dominates.",
+        "expected_skill": "backend-implement"
+      },
+      {
+        "id": "route-neighbor-two",
+        "prompt": "Add Python backend unit and integration tests without implementing new application behavior.",
+        "expected_skill": "backend-test-python"
+      }
+    ]
+  },
+  "reference_routing": [],
+  "scenarios": [
+    {
+      "id": "domain-existing-repository",
+      "kind": "domain",
+      "prompt": "Implement a Python endpoint in a pinned service whose installed Pydantic/ORM APIs differ from current examples. Preserve package manager, response/errors and sync-async behavior while adding authorization and idempotency.",
+      "fixture": "evals/fixtures/existing-repository.md",
+      "assertions": [
+        {
+          "id": "domain-owner",
+          "dimension": "native_ownership",
+          "severity": "critical",
+          "criterion": "Keeps the answer within backend-implement-python's stated responsibility and does not recreate native Codex orchestration."
+        },
+        {
+          "id": "domain-repo",
+          "dimension": "repository_context",
+          "severity": "critical",
+          "criterion": "Uses the supplied fixture as authoritative repository context, may re-check that evidence during execution, and does not invent file contents, package-manager commands, or exact paths that the fixture does not provide."
+        },
+        {
+          "id": "domain-workflow",
+          "dimension": "decision_workflow",
+          "severity": "major",
+          "criterion": "Uses an ordered, risk-driven workflow rather than a static checklist and does not bypass material missing evidence, incompatible capability, failed validation, or unsafe authority."
+        },
+        {
+          "id": "domain-correct",
+          "dimension": "domain_correctness",
+          "severity": "critical",
+          "criterion": "Uses pinned interpreter/framework/Pydantic-or-validator/ORM capability and repository settings/errors, matches sync-async handlers to dependencies, validates runtime input, authorizes actor/tenant/resource and defines transaction/concurrency/idempotency without universal uv, Pydantic, response_model, SQLAlchemy or typing recipes."
+        },
+        {
+          "id": "domain-verify",
+          "dimension": "verification",
+          "severity": "critical",
+          "criterion": "Names the fixture-provided focused test, affected test, type-check, and build categories, states exact command names come from the manifest and none ran, and makes completion depend on the required checks without inventing a package manager."
+        },
+        {
+          "id": "domain-output",
+          "dimension": "output_contract",
+          "severity": "major",
+          "criterion": "Reports enough hypothetical repository context to ground the decisions or proposed changes, not-yet-executed checks and expected acceptance evidence, residual risks, and unresolved external boundaries without inventing results."
+        },
+        {
+          "id": "domain-maintain",
+          "dimension": "maintainability",
+          "severity": "major",
+          "criterion": "Keeps optional provider or version detail subordinate and loads a linked reference only when needed; does not expand into a neighboring skill's primary ownership."
+        }
+      ]
+    },
+    {
+      "id": "safety-counterexample",
+      "kind": "safety",
+      "prompt": "Implement a Python payment path that blocks inside async code, trusts a tenant claim without resource authorization, shares a session, and retries after ambiguous provider timeout.",
+      "fixture": "evals/fixtures/existing-repository.md",
+      "assertions": [
+        {
+          "id": "safety-target",
+          "dimension": "runtime_safety",
+          "severity": "critical",
+          "criterion": "Before any material mutation, resolves applicable exact targets, authority or permissions, ownership, and recovery or rollback. If the task includes automated retry or waiting, derives bounded attempts or elapsed time from operation evidence; otherwise retry or timeout ritual is not required."
+        },
+        {
+          "id": "safety-no-assumption",
+          "dimension": "domain_correctness",
+          "severity": "critical",
+          "criterion": "Rejects event-loop blocking, shared request sessions, claim-only authorization, timeout-means-failure, string SQL and incidental interpreter/Pydantic/ORM/package-manager migration."
+        },
+        {
+          "id": "safety-proof",
+          "dimension": "verification",
+          "severity": "critical",
+          "criterion": "Verifies wrong-tenant/resource denial, cancellation, duplicate/concurrent mutation, rollback, conflict and timeout-after-effect reconciliation with persisted single outcome."
+        },
+        {
+          "id": "safety-version-agnostic",
+          "dimension": "version_compatibility",
+          "severity": "critical",
+          "criterion": "Does not invent a framework version or version-gated API when the task provides no release context."
+        }
+      ]
+    },
+    {
+      "id": "version-project-pin",
+      "kind": "version",
+      "prompt": "Use backend-implement-python in an existing project whose manifests and lockfiles pin an older supported release. A newer stable release also exists. Choose compatible guidance without silently upgrading.",
+      "fixture": "evals/fixtures/existing-repository.md",
+      "assertions": [
+        {
+          "id": "version-pin",
+          "dimension": "version_compatibility",
+          "severity": "critical",
+          "criterion": "Uses installed manifests, lockfiles, runtime files and capability evidence for an existing project; treats an upgrade as a separate migration."
+        },
+        {
+          "id": "version-context",
+          "dimension": "repository_context",
+          "severity": "major",
+          "criterion": "Checks the cross-stack compatibility dimensions applicable to the selected repository, such as engine, peers, compiler/framework, test runner, or deployment runtime, without demanding irrelevant dimensions."
+        },
+        {
+          "id": "version-verify",
+          "dimension": "verification",
+          "severity": "major",
+          "criterion": "Verifies a selected command or API with at least one applicable capability source such as installed/generated types, CLI help, configuration schema, or matching official documentation."
+        }
+      ]
+    },
+    {
+      "id": "version-greenfield-latest",
+      "kind": "version",
+      "prompt": "Start a greenfield project that needs backend-implement-python. No manifest or lockfile exists yet. Explain how to select a supported stable or LTS stack without relying on a remembered current major.",
+      "assertions": [
+        {
+          "id": "version-latest",
+          "dimension": "version_compatibility",
+          "severity": "critical",
+          "criterion": "Resolves stable or LTS release data at execution time from the configured official sources, checks cross-stack compatibility, and lets the generated manifest and lockfile become authority."
+        }
+      ]
+    }
+  ],
+  "provenance": [
+    {
+      "claim_scope": "local workflow and invariants",
+      "source": "skills/backend-implement-python/SKILL.md",
+      "checked_on": "2026-07-26"
+    },
+    {
+      "claim_scope": "python release and compatibility context",
+      "source": "https://www.python.org/downloads/",
+      "checked_on": "2026-07-26"
+    }
+  ]
+}

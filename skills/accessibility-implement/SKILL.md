@@ -1,225 +1,52 @@
 ---
 name: accessibility-implement
-description: Implement accessible components — ARIA live regions, focus management, keyboard navigation, skip links, screen reader testing, and WCAG 2.2 AA compliance patterns
+description: Implement scoped WCAG 2.2 accessibility repairs in components and flows using native semantics, keyboard/focus behavior, forms, announcements, and verified assistive-technology outcomes. Use for requested repository changes; do not use for audit-only work.
 metadata:
-  version: 1.3
-  argument-hint: "target component/page, WCAG level (A/AA/AAA), issues to fix (contrast/keyboard/ARIA)"
+  owner: codex-framework
+  reviewed: "2026-07-26"
+  version: 2.0
+  argument-hint: "affected flow, target WCAG level, user impact, browsers and assistive technologies, existing primitives"
 ---
 
-Implement accessibility for $ARGUMENTS.
+# Accessibility Implementation
 
+Generate stack context with `python3 scripts/framework-stack-context.py project <path>` and inspect the rendered UI, semantic/accessibility tree, installed primitives, existing browser/AT support matrix, design tokens, client and server validation/mutation behavior, motion lifecycle implementation, and tests. Explicitly report the relevant inspected evidence before choosing a repair. Existing pins are authority; verify framework-specific APIs against installed types and official docs. Scope conformance claims to the pages/states actually tested.
 
-## Tool Integration
+## Invariants
 
-- **Type diagnostics** — verify type-safety
-- **browser automation**: use browser navigation and snapshot tools to verify focus management, keyboard navigation, and color contrast in a live browser — always navigate first before any interaction
+- Use the correct native HTML element and browser behavior first. Add ARIA only when semantics or state are missing; ARIA does not add keyboard behavior, validation, focus, or authorization.
+- For forms, use native labels, `required`, suitable types/autocomplete and the Constraint Validation API when the product contract permits browser validation. If custom validation replaces or supplements it, preserve programmatic name/description, invalid state, error association, focus/summary behavior and server-authoritative validation. Do not add `aria-required` or `role="alert"` mechanically when native semantics already communicate the state.
+- Heading ranks represent document/section hierarchy, not font size. Avoid introducing skipped ranks into a subsection, but do not enforce a blanket adjacent-level rule: returning from a deeper subsection to a higher-rank sibling is correct, and reusable fixed regions need a consistent contextual hierarchy.
+- Live regions are scarce interruption channels. Announce only changes users cannot otherwise perceive and need to act on; choose status/alert semantics by urgency, keep the region stable, deduplicate messages, and avoid announcing every keystroke, loading tick, toast, or simultaneously focused error.
+- Accessibility output is a user-visible disclosure surface. Never place payment details, credentials, tokens, private provider responses, or other sensitive data in live regions, accessible names/descriptions, validation messages, DOM attributes, logs, screenshots, or retained assistive-technology evidence; expose only the minimum safe action and correlation boundary.
+- Reduced motion must preserve state transitions and lifecycle completion. Replace or suppress nonessential movement while ensuring exit cleanup, focus restoration, callbacks, hidden/inert state and completion events still occur. Never use a global near-zero-duration hack as the only policy.
+- Distinguish modal dialogs, nonmodal dialogs, alert dialogs, disclosures, popovers and menus by interaction semantics. Visual overlay shape does not justify `aria-modal`, focus trapping or menu keyboard behavior.
 
-Frameworks in scope:
-- React (react-aria, @headlessui/react, Radix UI)
-- Angular (CDK a11y module)
-- Vue (headless-ui/vue)
-- Blazor (native ARIA attributes)
+## Workflow
 
-## Focus Management
+1. Reproduce the affected user flow with keyboard and accessibility-tree inspection; identify violated normative criterion, user impact, states and exact ownership.
+2. Prefer repairing the shared native/design-system primitive when the defect is shared and scope permits; otherwise make the smallest local fix without duplicating focus/live-region managers.
+3. Define keyboard, focus, naming, state, validation, announcement, motion and error behavior before code. Preserve authorization and mutation correctness at the server boundary.
+4. For a production consequential flow, resolve the exact deployment target, change authority, ownership, and a tested rollback or recovery path before mutation.
+5. Implement with existing tokens and primitives. Do not change visual order independently of DOM/focus order without a verified reading sequence.
+6. Test automated rules plus manual keyboard, zoom/reflow and representative screen-reader behavior. Automation cannot certify conformance.
 
-### Focus Trap
-Contain focus within modals, dialogs, drawers:
-```typescript
-// React — using react-aria
-import { FocusScope } from 'react-aria';
-<FocusScope contain restoreFocus autoFocus>
-  <Dialog>{children}</Dialog>
-</FocusScope>
-```
+## Verification
 
-### Roving Tabindex
-For composite widgets (toolbars, menus, tab lists):
-- Container: `tabIndex={0}` on the group
-- Items: `tabIndex={-1}` on all, `tabIndex={0}` on active item
-- Arrow keys move focus between items
-- Home/End jump to first/last item
+- Semantic/accessibility tree, accessible names/descriptions/states, landmarks and meaningful heading hierarchy across loading, empty, error, disabled and success states.
+- Exercise representative assistive-technology heading-navigation commands through the changed page states and verify announced level/name and navigation order; outline or accessibility-tree inspection alone is not heading-navigation evidence.
+- Complete keyboard flow, focus visibility/not-obscured, modal/nonmodal behavior, removed trigger, route change and no keyboard trap.
+- Native and custom constraint validation, client bypass, server errors, error summary/focus and no duplicate announcements.
+- Reduced-motion preference during enter/exit, interrupted transition and unmount; high contrast/forced colors, text spacing, zoom/reflow and target-size requirements.
+- Use the exact representative browser/screen-reader names from the inspected repository support matrix, or record the missing policy as a blocker requiring an owner; run focused automated checks and affected repository tests. Report every untested AT/browser combination.
+- For payment or other consequential mutations, bypass client controls, exercise server failure and recalculation races, and prove the correct persisted outcome plus provider/server reconciliation; accessible announcements or UI success are not mutation evidence.
 
-```typescript
-function useRovingTabIndex(items: HTMLElement[]) {
-  const [activeIndex, setActiveIndex] = useState(0);
-  const onKeyDown = (e: KeyboardEvent) => {
-    let next = activeIndex;
-    if (e.key === 'ArrowDown' || e.key === 'ArrowRight') next = (activeIndex + 1) % items.length;
-    if (e.key === 'ArrowUp' || e.key === 'ArrowLeft') next = (activeIndex - 1 + items.length) % items.length;
-    if (e.key === 'Home') next = 0;
-    if (e.key === 'End') next = items.length - 1;
-    setActiveIndex(next);
-    items[next]?.focus();
-    e.preventDefault();
-  };
-  return { activeIndex, onKeyDown };
-}
-```
+## Output Contract
 
-### Focus Restoration
-When closing a dialog/popover, return focus to the trigger element:
-```typescript
-const triggerRef = useRef<HTMLButtonElement>(null);
-const onClose = () => { setOpen(false); triggerRef.current?.focus(); };
-```
+- User impact and normative criteria
+- Semantic, focus, validation, announcement, motion and dialog decisions
+- Exact changed primitives/file paths and test evidence
+- Scope of the conformance claim
+- Untested assistive-technology/browser combinations and residual product risks
 
-## ARIA Live Regions
-
-### Dynamic Content Announcements
-```html
-<!-- Status messages (non-urgent) -->
-<div role="status" aria-live="polite">3 results found</div>
-
-<!-- Error/alert messages (urgent) -->
-<div role="alert" aria-live="assertive">Payment failed. Please try again.</div>
-
-<!-- Loading states -->
-<div aria-live="polite" aria-busy="true">Loading results...</div>
-```
-
-Rules:
-- `polite` for non-critical updates (search results, form feedback)
-- `assertive` for errors, alerts, time-sensitive info
-- The live region element must exist in DOM before content changes
-- Never use `aria-live` on elements that update rapidly (typing indicators)
-
-### Toast/Snackbar Announcements
-```typescript
-// Create a persistent live region, update its content
-const announcer = document.getElementById('a11y-announcer');
-announcer.textContent = ''; // Clear first
-requestAnimationFrame(() => { announcer.textContent = message; });
-```
-
-## Keyboard Navigation Patterns
-
-### Skip Navigation
-```html
-<a href="#main-content" class="sr-only focus:not-sr-only focus:absolute focus:top-4 focus:left-4 focus:z-50 focus:bg-white focus:px-4 focus:py-2">
-  Skip to main content
-</a>
-<!-- ... header/nav ... -->
-<main id="main-content" tabindex="-1">
-```
-
-### Common Keyboard Patterns
-
-| Widget | Keys | Behavior |
-|--------|------|----------|
-| Menu | Arrow keys | Navigate items |
-| Menu | Enter/Space | Activate item |
-| Menu | Escape | Close, return focus to trigger |
-| Tabs | Arrow keys | Switch tabs |
-| Tabs | Home/End | First/last tab |
-| Dialog | Escape | Close dialog |
-| Dialog | Tab | Cycle within focus trap |
-| Combobox | Arrow keys | Navigate options |
-| Combobox | Enter | Select option |
-| Combobox | Escape | Close listbox |
-| Accordion | Enter/Space | Toggle panel |
-| Tree view | Arrow keys | Navigate nodes |
-| Tree view | Left/Right | Collapse/expand |
-
-## Accessible Forms
-
-### Label Association
-```html
-<!-- Explicit association (preferred) -->
-<label for="email">Email address</label>
-<input id="email" type="email" aria-required="true" aria-describedby="email-hint email-error" />
-<span id="email-hint">We'll never share your email</span>
-<span id="email-error" role="alert">Please enter a valid email</span>
-```
-
-### Error Announcements
-- Use `aria-invalid="true"` on invalid fields
-- Use `aria-describedby` pointing to error message element
-- Error message element should have `role="alert"` for immediate announcement
-- On form submission error: focus the first invalid field
-
-### Required Fields
-- Use `aria-required="true"` (not just HTML `required` — some screen readers handle differently)
-- Visual indicator (asterisk) with hidden text: `<span aria-hidden="true">*</span>`
-
-## Color & Visual
-
-### Contrast
-- Text: 4.5:1 minimum (AA), 7:1 enhanced (AAA)
-- Large text (18px+ bold, 24px+): 3:1 minimum
-- UI components and focus indicators: 3:1 against adjacent colors
-- Use `prefers-contrast: more` media query for high contrast mode
-
-### Reduced Motion
-```css
-@media (prefers-reduced-motion: reduce) {
-  *, *::before, *::after {
-    animation-duration: 0.01ms !important;
-    animation-iteration-count: 1 !important;
-    transition-duration: 0.01ms !important;
-    scroll-behavior: auto !important;
-  }
-}
-```
-
-```typescript
-const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-```
-
-## Screen Reader Testing
-
-### Testing Methodology
-1. **VoiceOver (macOS):** Cmd+F5 to toggle. Navigate with VO keys (Ctrl+Option + arrows). Test rotor (VO+U).
-2. **NVDA (Windows):** Free. Insert key as modifier. Browse mode vs focus mode.
-3. **Mobile:** VoiceOver (iOS) or TalkBack (Android). Swipe navigation.
-
-### What to Verify
-- [ ] All interactive elements are focusable and operable via keyboard
-- [ ] All images have appropriate alt text (or `alt=""` for decorative)
-- [ ] Form fields have associated labels announced by screen reader
-- [ ] Error messages are announced when they appear
-- [ ] Dynamic content changes are announced via live regions
-- [ ] Heading hierarchy is logical (h1 → h2 → h3, no skips)
-- [ ] Landmarks are present (`<main>`, `<nav>`, `<aside>`, `<header>`, `<footer>`)
-- [ ] Modal focus is trapped and restored on close
-- [ ] Custom widgets follow WAI-ARIA authoring practices
-
-## Framework-Specific
-
-### React — react-aria
-```typescript
-import { useButton, useFocusRing, useTextField } from 'react-aria';
-// Handles ARIA attributes, keyboard, focus management automatically
-const { buttonProps } = useButton({ onPress }, ref);
-const { isFocusVisible, focusProps } = useFocusRing();
-```
-
-### Blazor
-```razor
-<button @onclick="OnClick" aria-label="@AriaLabel" aria-expanded="@IsExpanded" aria-controls="panel-1">
-  @ButtonText
-</button>
-<div id="panel-1" role="region" aria-labelledby="heading-1" hidden="@(!IsExpanded)">
-  @ChildContent
-</div>
-```
-
-## Anti-Patterns
-- Using `div` or `span` as buttons without `role="button"` and keyboard handler
-- `aria-label` that duplicates visible text (redundant announcement)
-- Using `tabindex` > 0 (breaks natural tab order)
-- Removing focus outlines without providing alternative focus indicator
-- Using `aria-hidden="true"` on focusable elements
-- Placeholder text as the only label
-
-## Done Criteria
-
-- [ ] All interactive elements keyboard accessible
-- [ ] Focus indicators visible on all focusable elements
-- [ ] Skip navigation link present and functional
-- [ ] ARIA live regions for dynamic content
-- [ ] Form errors announced and fields linked to error messages
-- [ ] Color contrast meets AA (4.5:1 text, 3:1 UI components)
-- [ ] `prefers-reduced-motion` respected
-- [ ] Screen reader tested (VoiceOver or NVDA)
-- [ ] No ARIA anti-patterns
-- [ ] Heading hierarchy is logical
+Official foundations: [WCAG 2.2](https://www.w3.org/TR/WCAG22/), [ARIA Authoring Practices](https://www.w3.org/WAI/ARIA/apg/), [HTML forms](https://html.spec.whatwg.org/multipage/forms.html), and [WAI headings](https://www.w3.org/WAI/tutorials/page-structure/headings/).

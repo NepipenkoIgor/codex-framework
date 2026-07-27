@@ -1,161 +1,57 @@
 ---
 name: modal-dialog-patterns
-description: Implement modal, dialog, drawer, and overlay patterns including focus trapping, keyboard handling, stacking, animations, and accessible dismiss patterns
+description: Implement modal dialogs, nonmodal dialogs, drawers, sheets, and alert dialogs with correct focus, dismissal, layering, and mutation semantics. Use when overlay interaction is primary; do not use for a broad accessibility retrofit or unrelated frontend refactor.
 metadata:
-  version: 1.4
-  argument-hint: "modal type (confirmation/form/drawer/sheet), trigger context, framework, animation needed"
+  owner: codex-framework
+  reviewed: "2026-07-26"
+  version: 2.0
+  argument-hint: "interaction type, trigger/focus context, dismissal policy, installed framework primitive, mutation consequence"
 ---
 
-Implement $ARGUMENTS.
+# Modal and Dialog Patterns
 
-## Documentation
+Derive stack context from repository manifests and lockfiles, installed types/configuration, browser targets, and matching official documentation, then inspect the installed framework/design-system primitive, portal/layer manager, form/mutation contract, and accessibility tests. The repository helper may summarize this evidence when available, but no particular helper command is required. For authorized greenfield work, resolve stable/LTS releases from configured official sources at execution time, verify cross-stack compatibility, and make the generated manifest and lockfile authoritative. Prefer a maintained native/framework primitive that already implements the required semantics, but verify its actual capability; do not replace it or upgrade packages incidentally.
 
-> Use **available docs lookup tools or official docs** when you encounter unknown API syntax, current library versions, or framework-specific configuration. Do not rely on training data for library docs — fetch current docs on demand.
+## Choose the Interaction
 
-## Overlay Type Selection
+- A modal dialog makes content outside inert and traps the user's interaction until closed. Use it only when interruption is necessary.
+- A nonmodal dialog, popover, disclosure, inline region, or separate page may be better when users must compare or interact with background content. Do not add `aria-modal="true"` to a visually floating but interactive-background surface.
+- Use `alertdialog` only for urgent decisions that require immediate attention, not every destructive action. The action consequence determines safe dismissal and initial focus.
 
-| Type | Use when | Anatomy |
-|------|----------|---------|
-| Modal / Dialog | Focused task requiring user input or confirmation | Centered, backdrop, max-w-lg |
-| Drawer / Sheet | Supplementary content, filters, settings, navigation | Side-attached, slides in |
-| Bottom Sheet | Mobile-first actions, confirmations, pickers | Anchored to bottom, swipeable |
-| Popover | Contextual info, mini-actions | Anchored to trigger, no backdrop |
-| Command Palette | Search + action list, keyboard-driven | Centered, search input |
-| Alert Dialog | Destructive confirmation | Centered, non-dismissible by outside click |
+## Focus and Dismissal Contract
 
-## Accessibility (Non-Negotiable)
+1. Capture the logical invoker. On open, move focus according to content and risk: often a heading/static introduction for complex content, the least destructive action for irreversible confirmation, or the first task field when appropriate. Never universally focus the first focusable element.
+2. For modal content, keep Tab navigation inside and make the rest of the document inert using the verified primitive. For nonmodal content, preserve an understandable route between trigger, dialog, and page.
+3. On close, restore focus to the invoker if it still exists and is meaningful; otherwise choose the next logical workflow target. Handle route changes, deleted rows, nested overlays, and virtualized triggers.
+4. Escape and outside interaction are product/risk decisions. Provide an explicit accessible close route for ordinary dialogs. Do not dismiss on pointer-down in a way that loses selection, commits a drag, or discards input. Block dismissal only when interruption would corrupt an in-flight state, and explain how the user can recover.
+5. Use the native `<dialog>` `showModal()`/`close()` or a maintained framework primitive only when supported behavior, cancellation events, focus, inertness, portal/layering, and browser targets match the contract. Avoid hand-rolled global key listeners when the primitive owns them.
 
-### Focus Trap
+## Mutations and Unsaved State
 
-When an overlay is open, Tab/Shift+Tab must cycle only within the overlay. Focus must not escape to background content.
+- A disabled or loading button is not duplicate protection. Before consequential confirmation or retry, bind the exact authenticated actor, tenant, target resource/version and permission at the server boundary. Give it a stable operation identity and server-side idempotency/authorization; handle timeout-after-commit and retry.
+- Preserve input on validation, network, authorization, and conflict failures. For unsaved changes, prefer preventing accidental loss in the current dialog; if a nested confirmation is necessary, the layer manager must make only the top dialog interactive and restore focus correctly.
+- Destructive copy names the object and consequence. Never infer authorization from the dialog having opened.
 
-> Use available docs lookup tools or official docs to fetch current `react-aria` FocusScope, Radix Dialog, or Angular CDK Dialog docs for implementation syntax.
+## Presentation
 
-Rules:
-- Auto-focus first focusable element on mount
-- Return focus to the trigger element on close
-- `role="dialog"` + `aria-modal="true"` for standard modals
-- `role="alertdialog"` for destructive confirmations
-- `aria-labelledby` pointing to dialog title; `aria-describedby` when description present
+- Use the repository's layer tokens and scroll-lock owner; compose with existing popovers/toasts instead of inventing arbitrary z-index constants.
+- Keep content usable at zoom, small viewports, virtual keyboard, and long translations. Respect reduced-motion preferences; animation must not delay focus or leave invisible interactive content.
+- Do not force every mobile dialog into a sheet or every drawer into a modal. Semantics follow interaction, not shape.
 
-### Keyboard Handling
+## Verification
 
-| Key | Action |
-|-----|--------|
-| Escape | Close (except alert dialogs during destructive flows) |
-| Tab / Shift+Tab | Cycle within focus trap |
-| Enter | Activate button / submit form |
-| Space | Activate button |
+- Keyboard and screen-reader behavior for open, initial focus, Tab/Shift+Tab, Escape policy, explicit close, validation error, nested layer, and focus return after invoker removal.
+- Background inertness for modal and continued accessibility for nonmodal; accessible name/description; scroll/zoom/virtual keyboard; reduced motion.
+- Pointer outside/drag/selection, route change, rapid open-close, concurrent triggers, and portal/layer cleanup.
+- Destructive submit under double activation, timeout after server commit, duplicate retry, stale authorization, conflict, and partial failure; prove persisted outcome.
+- Browser tests with the actual primitive plus focused unit/integration checks. Report any primitive/browser limitation.
 
-## Stacking and Layering
+## Output Contract
 
-```css
-:root {
-  --z-overlay: 200;
-  --z-modal: 300;
-  --z-popover: 400;
-  --z-toast: 500;
-}
-```
+- Interaction and dismissal semantics
+- Focus/layer/scroll ownership
+- Mutation idempotency and unsaved-state behavior
+- Installed primitive capability evidence
+- Verification results and residual assistive-technology/browser risks
 
-Nested modals: prefer replacing content within the same modal. When unavoidable, use a stack manager — only the topmost modal responds to Escape and outside click.
-
-## Animations
-
-```css
-@keyframes modalIn { from { opacity: 0; transform: scale(0.95) translateY(8px); } to { opacity: 1; transform: scale(1) translateY(0); } }
-@keyframes slideInRight { from { transform: translateX(100%); } to { transform: translateX(0); } }
-@keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
-
-@media (prefers-reduced-motion: reduce) {
-  .modal-enter, .modal-exit, .drawer-enter, .drawer-exit,
-  .sheet-enter, .sheet-exit, .backdrop-enter, .backdrop-exit {
-    animation-duration: 0.01ms !important;
-  }
-}
-```
-
-Rules:
-- Enter slightly longer than exit (200ms enter, 150ms exit)
-- Ease-out entering, ease-in exiting
-- Animate only `transform` and `opacity` for GPU compositing
-- Always respect `prefers-reduced-motion`
-
-## Dismissal Patterns
-
-- **Outside click**: use `mousedown` (fires before focus changes), not `click`
-- **ESC key**: listen on `document`, clean up on unmount
-- **Close button**: always include visible X in top-right; `aria-label="Close"` for icon-only
-- **Swipe**: bottom sheets and drawers support swipe-to-dismiss on touch devices
-
-## Unsaved Changes Guard
-
-Track form dirty state. If dirty when closing, show a nested `role="alertdialog"` confirmation. Never silently discard user input.
-
-## Scroll Locking
-
-Prevent background scroll when overlay is open. iOS Safari requires `position: fixed` + saved `scrollY` offset approach — `overflow: hidden` on body alone is insufficient.
-
-## Mobile Responsiveness
-
-- Modals → full-screen or bottom sheet on mobile (`max-width: 639px`)
-- Drawers → full-width on mobile
-- Touch targets: minimum 44x44px
-- Swipe-to-dismiss on bottom sheets and drawers
-
-## Framework Integration
-
-### React — Radix Dialog (recommended)
-
-> Use available docs lookup tools or official docs to fetch current `@radix-ui/react-dialog` docs for implementation syntax.
-
-Radix provides focus trap, return focus, Escape handling, outside click, portal rendering, and ARIA attributes automatically. Style with Tailwind using `data-[state=open]:` variants.
-
-### React — Headless UI
-
-Use `<Dialog>` + `<Transition>` with `enter`/`leave` props. Same accessibility primitives as Radix.
-
-### Angular — CDK Dialog
-
-`inject(Dialog).open(Component, { autoFocus: 'first-tabbable', restoreFocus: true })`. Use `MatDialogRef` / `MAT_DIALOG_DATA` for Material Dialog.
-
-> Use available docs lookup tools or official docs to fetch current `@angular/cdk/dialog` docs.
-
-## Performance
-
-- Conditional rendering (`{isOpen && <Modal>}`) defers mount until open
-- Use `React.lazy()` / dynamic import for heavy modal content
-- Always render via portal (document root) to avoid z-index stacking context issues
-- Keep open/close state in the closest parent that needs it
-
-## Anti-Patterns
-
-- No focus trap, no return focus, no Escape key — baseline accessibility failures
-- No scroll lock — users scroll behind the modal
-- Dismissing alert dialogs on outside click
-- Arbitrary z-index values
-- Full-screen modal on desktop for a simple confirmation
-- No loading state on confirm button — duplicate submissions
-
-## Implementation Workflow
-
-1. Choose overlay type (modal / drawer / bottom sheet / command palette)
-2. Choose library: Radix or Headless UI (React), CDK Dialog (Angular), or custom
-3. Implement: focus trap → return focus → Escape → outside click → scroll lock (iOS-safe)
-4. Add enter/exit animations with `prefers-reduced-motion` fallback
-5. Add mobile responsiveness (bottom sheet or full-screen on small viewports)
-6. Add unsaved changes guard for form modals
-7. Verify: ARIA roles, keyboard navigation, screen reader announcements
-
-## Done Criteria
-
-- Focus trapped within overlay when open; returns to trigger on close
-- Escape closes overlay (except alert dialogs)
-- Outside click closes overlay (except alert dialogs)
-- Enter/exit animations with reduced-motion fallback
-- Background scroll locked (including iOS)
-- Modal adapts to mobile: bottom sheet or full-screen on small viewports
-- Form modals guard against accidental close with unsaved changes
-- Close button has `aria-label="Close"`
-- Dialog has `role="dialog"` or `role="alertdialog"` with `aria-modal="true"` and `aria-labelledby`
-- Loading state on confirm button prevents duplicate submissions
+Stable interaction semantics come from the [WAI-ARIA APG Modal Dialog Pattern](https://www.w3.org/WAI/ARIA/apg/patterns/dialog-modal/) and the [WHATWG dialog element](https://html.spec.whatwg.org/multipage/interactive-elements.html#the-dialog-element); volatile framework callbacks remain behind the installed primitive boundary.

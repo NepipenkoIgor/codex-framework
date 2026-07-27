@@ -1,75 +1,34 @@
 ---
 name: backend-implement-dotnet
-description: ASP.NET Core 8+ patterns — minimal APIs, EF Core 8, FluentValidation, ProblemDetails, structured logging
+description: Implement ASP.NET Core and .NET backend behavior using the repository's target framework, API style, validation, persistence, auth, logging, and test conventions. Use when .NET-specific server behavior dominates; do not use for non-.NET services or testing-only work.
 metadata:
-  version: 1.0
+  owner: codex-framework
+  reviewed: "2026-07-27"
+  version: 1.1
   domain: backend
-  keywords: [dotnet, .net, csharp, c#, aspnet, asp.net core, minimal api, ef core, entity framework, web api, fluent validation, problem details]
+  keywords: [dotnet, csharp, aspnet core, minimal api, controller, ef core, problem details]
 ---
 
-# Backend Implement — .NET
+# Backend Implement - .NET
 
-Pair with `backend-implement` for universal rules.
+## Establish capability
 
-## API Style
+1. Read instructions, solution/project files, lock/central package config, target framework/runtime deployment, API and serialization/OpenAPI setup, persistence/migrations, auth policies, logging, and nearby tests.
+2. Generate stack context. Existing projects keep their target and compatible packages; use installed types/analyzers/CLI and matching official docs. SDK, TFM, ASP.NET, EF, serializer, OpenAPI, or test-stack migration is separate scope. For greenfield selection, resolve current supported SDK/runtime and cross-stack compatibility from official sources, generate the project manifest, restore a resolved lock/package graph, and treat those generated artifacts as authority before implementation.
+3. Preserve established Minimal API versus controller style, validation/error contract, DI/configuration, data access, and public compatibility unless change is explicit.
 
-- Prefer Minimal APIs for new endpoints in .NET 8+ — Controllers only for complex filter pipelines
-- Always use typed `Results<T1, T2>` return types — never bare `IResult` (loses type information)
-- Group related endpoints with `MapGroup()` — never scatter `app.Map*` calls without organization
-- Always `.WithTags()` and `.WithName()` on endpoints — required for OpenAPI/Swagger generation
-- Use endpoint filters (`IEndpointFilter`) for cross-cutting concerns — never duplicated logic per handler
+## Implementation invariants
 
-## Validation
+- Validate untrusted input at the transport boundary and again at domain/persistence boundaries where invariants require it. Use the repository's single intentional validation pipeline; built-in validation, DataAnnotations, FluentValidation, or endpoint filters are capability choices, not universals.
+- Authenticate and authorize actor, tenant and target resource server-side. Route/group authorization helps coverage but does not replace resource-level checks.
+- Use cancellation and async only through APIs that genuinely support them; avoid sync-over-async and leaking request-scoped state.
+- Keep transaction boundaries explicit. Enforce concurrency with database constraints/version tokens and make consequential retries idempotent with stable operation identity; a client-disabled button is insufficient. Derive retry/reconciliation attempt and elapsed-time bounds from provider or operation semantics and request/job deadlines. If the outcome remains ambiguous, persist pending/unknown state and hand off to bounded asynchronous reconciliation or operator review instead of waiting or retrying indefinitely.
+- Shape queries to required data. Tracking, projections, includes, split queries, compiled queries, repositories, Dapper and EF are workload/repository choices, not blanket rules.
+- Preserve the established error media type and schema. Use Problem Details when it is the repository/public contract; do not silently replace a versioned error contract.
+- Log structured, redacted context with existing telemetry; never expose secrets, tokens, PII, stack traces, or raw provider payloads.
 
-- Use `FluentValidation` for all request models — never manual `if` chains for validation
-- Register validators via `builder.Services.AddValidatorsFromAssemblyContaining<T>()`
-- Return `ValidationProblem()` (RFC 7807 compliant) on validation failure — never custom error shapes
-- Validate at the API boundary — never pass unvalidated models into services or repositories
+## Verification
 
-## Dependency Injection
+Run focused and affected restore/build/analyzer/test/migration-contract checks. Exercise invalid input, unauthenticated, forbidden resource/tenant, duplicate/concurrent mutation, conflict, cancellation, timeout-after-commit, retry exhaustion with pending/reconciliation handoff, and persistence rollback where relevant. Verify response plus persisted outcome; compilation alone is not proof.
 
-- Register with correct lifetime: `AddScoped` for per-request (DbContext), `AddSingleton` for stateless, `AddTransient` for lightweight
-- Never `new` a service that has DI dependencies — always resolve through the container
-- Never inject `IServiceProvider` to manually resolve — signals a design problem, fix the dependency graph
-- Use `IOptions<T>` for typed configuration — never `IConfiguration["key"]` string indexing in services
-
-## Entity Framework Core 8
-
-- Always use migrations — never `EnsureCreated()` outside of tests
-- Never lazy loading (`UseLazyLoadingProxies`) — always explicit `.Include()` / `.ThenInclude()`
-- Always `AsNoTracking()` for read-only queries — never track entities you will not modify
-- Call `SaveChangesAsync()` once per unit of work — never once per entity in a loop
-- Always scope `DbContext` — never singleton, never static
-- Use compiled queries (`EF.CompileAsyncQuery`) for hot paths queried frequently
-
-## Error Handling
-
-- Use `IExceptionHandler` (registered via `builder.Services.AddExceptionHandler<T>()`) — never try/catch in every handler
-- Always return `ProblemDetails` (RFC 7807) for errors — never custom error response shapes
-- Use `ILogger<T>` everywhere — never `Console.Write`, `Debug.WriteLine`, or `Trace`
-- Always structured log parameters: `_logger.LogError(ex, "Order {OrderId} failed", orderId)` — never string interpolation in log calls
-
-## Auth
-
-- Use `.RequireAuthorization()` on `MapGroup()` — never per-endpoint auth checks as inline code
-- Policy-based auth for business rules — never role string comparisons in handlers or services
-- Always validate JWT `iss`, `aud`, `exp`, `nbf` — never accept tokens without full claim validation
-
-## Hard Rules
-
-- Never `EnsureCreated()` in production — migrations always
-- Never lazy loading — explicit `Include()` always
-- Never `Console.Write` or `Debug.WriteLine` — `ILogger<T>` always
-- Never string interpolation in log messages — structured logging always
-- Never singleton `DbContext`
-- Never `IConfiguration["key"]` string access in services — `IOptions<T>` always
-- Never untyped `IResult` return from endpoints — `Results<T1, T2>` always
-
-## Done Criteria
-
-- All endpoints return `ProblemDetails` on error
-- All request models validated with FluentValidation at API boundary
-- No `EnsureCreated()` anywhere in production code paths
-- No lazy loading — all related data via explicit Include
-- Structured logging with `ILogger<T>` throughout — no Console calls
-- LSP reports zero errors
+Report installed capability, files/contracts changed, auth/transaction/idempotency decisions, commands/results, migration/deployment paths not exercised, and residual risk.

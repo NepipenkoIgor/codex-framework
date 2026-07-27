@@ -1,79 +1,50 @@
 ---
 name: accessibility-audit
-description: Audit frontend code for WCAG 2.2 Level AA accessibility
+description: Audit a defined frontend sample against applicable WCAG 2.2 Level A or AA criteria using code, rendered-state, keyboard, and assistive-technology evidence. Use for a read-only accessibility findings report; do not use when remediation is the primary deliverable.
 metadata:
-  version: 1.4
-  argument-hint: "page URL or component path, WCAG level (A/AA/AAA), audit scope (full page / specific components), framework (React/Vue/Angular/etc)"
+  owner: codex-framework
+  reviewed: "2026-07-27"
+  version: 1.5
+  argument-hint: "page URL or component path, conformance target, sampled routes/templates/states, browsers and assistive technologies"
 ---
 
-Audit $ARGUMENTS for WCAG 2.2 compliance. READ-ONLY analysis — findings and fix guidance only, never produce implementation code.
+# Accessibility Audit
 
-## Tool Integration
+Audit `$ARGUMENTS` read-only. Findings and remediation guidance are allowed; repository or external-state changes are not.
 
-- **browser automation**: Use browser navigation and snapshot tools for live WCAG verification, keyboard navigation testing, and contrast ratio checks at runtime.
-- **LSP diagnostics**: Use available diagnostics tools to catch accessibility-related TypeScript errors.
-- docs lookup tools: Fetch current ARIA specs and WCAG docs on demand.
+For an existing repository, manifests, resolved lockfiles, runtime files, generated types, browser policy, and installed capabilities are authoritative. Before using any version-sensitive command or API, verify that exact selection against at least one applicable installed capability source such as generated types, configuration schema, CLI help, or matching official documentation; manifest script existence alone is not capability evidence. For greenfield analysis, resolve current stable/LTS releases from official sources at execution time, verify cross-stack compatibility, and once a project is generated treat its manifest and resolved lockfile as the authoritative stack record rather than the earlier lookup.
 
-## Example
+## Define the claim before testing
 
-A React dashboard component with several accessibility issues:
+1. Record the requested conformance target, product/browser support policy, and exact sample: routes, templates, components, viewport/zoom, themes, locales, auth roles, states, input methods, and assistive technologies.
+2. Inspect authoritative source, rendered DOM/styles, design primitives, existing accessibility checks, and user flows. Do not infer runtime semantics solely from JSX/templates.
+3. Map applicable WCAG criteria to evidence methods. Automated rules find a subset; they do not prove conformance.
+4. If a route, state, browser, assistive technology, or authenticated path cannot be exercised, mark it untested rather than extrapolating.
+5. When the supplied repository contract requires focused tests, affected tests, type-check, or build evidence, derive exact commands from its manifest and require every applicable category before declaring the audit complete. If read-only scope or the environment prevents execution, report each category as not run and block the corresponding completion or conformance claim rather than making it optional.
 
-```tsx
-// components/StatusCard.tsx
-function StatusCard({ status, onClick }) {
-  return (
-    <div className="card" onClick={onClick} style={{ color: status === 'error' ? 'red' : '#666' }}>
-      <img src="/icon-status.svg" />
-      <span className="label">{status}</span>
-      <div className="action" onClick={() => navigate('/details')}>View details</div>
-    </div>
-  );
-}
-```
+## Evidence methods
 
-Audit findings for this component:
+- Prefer native HTML semantics and built-in behavior. Recommend ARIA only where native semantics cannot express the required contract, and verify that ARIA behavior is implemented.
+- Use automated scanning for detectable names, roles, relationships, contrast, parsing, and common rules; manually validate each reported issue.
+- Test keyboard order, visible focus, activation, escape/dismissal, skip/navigation, and focus restoration through representative workflows.
+- Inspect accessible names/descriptions, headings, landmarks, status/error announcements, tables, forms, dialogs, pointer alternatives, reflow, zoom, motion, and color-independent meaning where applicable.
+- Screen-reader or other assistive-technology claims require named tool/version, browser/platform, exact steps, and observed output. DOM inspection alone is not screen-reader evidence.
+- Contrast must use rendered foreground/background and state, including overlays and opacity; source tokens alone may be insufficient.
 
-```
-[CRITICAL] WCAG 2.1.1 Keyboard — non-interactive element with click handler
-File: components/StatusCard.tsx:3
-Element: <div className="card" onClick={onClick}>
-Issue: div with onClick is not keyboard accessible — no role, tabIndex, or onKeyDown
-Impact: keyboard and screen reader users cannot activate this card
-Fix: use <button> or add role="button" tabIndex={0} onKeyDown={handleKeyDown}
+## Evidence safety
 
-[HIGH] WCAG 1.1.1 Non-text Content — image without alt text
-File: components/StatusCard.tsx:4
-Element: <img src="/icon-status.svg" />
-Issue: image has no alt attribute — screen readers announce the file name
-Impact: blind users hear "icon-status.svg" with no meaningful context
-Fix: add alt="Status indicator" or alt="" with aria-hidden="true" if decorative
+- Runtime captures, accessible trees, recordings, console/network output, and test accounts may expose names, messages, emails, tokens, or other sensitive data. Use the least-privileged safe environment, minimize capture, redact PII/secrets, and do not retain artifacts without authorization.
+- Do not enter destructive or consequential workflows merely to complete an audit. Use seeded/synthetic data and read-only paths where possible.
 
-[HIGH] WCAG 1.4.1 Use of Color — status conveyed by color alone
-File: components/StatusCard.tsx:3
-Element: inline style color: status === 'error' ? 'red' : '#666'
-Issue: error state is indicated only by red text color — no icon, text, or pattern
-Impact: color-blind users cannot distinguish error from normal state
-Fix: add a visual icon or text prefix like "Error:" alongside the color change
+## Findings
 
-[MEDIUM] WCAG 2.4.4 Link Purpose — ambiguous link text
-File: components/StatusCard.tsx:6
-Element: <div className="action">View details</div>
-Issue: "View details" is repeated across cards without distinguishing context
-Impact: screen reader users navigating by links hear identical text with no context
-Fix: use aria-label="View details for {status} card" or visually hidden context text
-```
+For each reproducible finding report severity, criterion, exact page/component/state, affected users, steps, observed versus expected behavior, evidence method, and a remediation direction that favors native semantics. Distinguish confirmed defects, code-review risks requiring runtime confirmation, and coverage gaps.
 
-## Output
+Do not publish a fabricated "compliance percentage" or claim site-wide WCAG conformance from a sample. Summarize instead:
 
-Group findings by severity (highest first), then by WCAG principle. Each: severity, WCAG criterion number+name, file:line, element, issue, affected user groups (blind/low-vision/motor/cognitive), fix with code example. End with estimated WCAG 2.2 AA compliance %, testing recommendations, and positive patterns observed.
-
-## Runtime Accessibility Testing with browser automation
-
-Use **browser automation** to complement code analysis with runtime checks:
-- Navigate to audited pages and verify actual rendered DOM structure
-- Check focus order by tabbing through interactive elements
-- Verify ARIA live regions update correctly during dynamic content changes
-- Test color contrast in the rendered page context (accounts for overlays, backgrounds)
-- Verify screen reader landmarks and heading hierarchy in rendered output
-- Check modal/dialog focus trapping behavior
-- Close the browser when verification is complete
+- sampled scope and environment;
+- confirmed findings by severity and criterion;
+- passed checks only within the tested sample;
+- automated/manual/assistive-technology methods used;
+- untested paths and residual risk;
+- positive patterns supported by evidence.

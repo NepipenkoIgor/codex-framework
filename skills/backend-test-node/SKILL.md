@@ -1,65 +1,27 @@
 ---
 name: backend-test-node
-description: Node.js API testing with vitest/jest, supertest, MSW, database integration patterns
+description: Add Node.js, Bun, Express, Fastify, Elysia, or framework-neutral backend tests with the repository's installed runner, application harness, persistence, auth, and provider boundaries. Use when executable non-Nest Node coverage is requested; do not migrate the stack or implement unrelated features.
 metadata:
-  version: 1.0
+  owner: codex-framework
+  reviewed: "2026-07-27"
+  version: 1.1
   domain: backend
-  keywords: [node, nodejs, testing, vitest, jest, supertest, msw, integration test, api test, prisma test]
+  keywords: [nodejs, bun, vitest, jest, supertest, integration, api test, database]
 ---
 
-# Backend Test — Node.js
+# Backend Test - Node
 
-Pair with `backend-test` for universal testing principles.
+1. Read instructions, manifests/lockfiles/engines, runner/setup, server/app factory, schemas, auth, persistence/migrations, jobs/providers, nearby tests and authoritative commands.
+2. Generate stack context. Preserve installed runtime, runner, module system, HTTP injection/client and mock/interceptor libraries. Route NestJS coverage to `backend-test-nestjs` and feature implementation to the matching backend implementation skill.
+3. Choose pure unit, in-process HTTP, persistence integration, contract, job/event, or concurrency test by the behavior boundary.
 
-## Setup
+## Test invariants
 
-- Use `vitest` for new projects — faster, native ESM, compatible with Vite ecosystem
-- Use `jest` only when already established in the codebase — no migration mid-project
-- Use `supertest` for HTTP integration tests against the Express/Fastify app instance
-- Use a real test database — never mock Prisma/Drizzle/ORM (schema bugs hide behind mocks)
-- Use separate test DB with `.env.test` — never run tests against development or production DB
+- Mock injected dependencies for pure logic. Use an isolated schema-compatible database when proving migrations, constraints, transactions, query behavior, locking or concurrency. Do not universally mock or require a real DB.
+- Use the framework's installed injection or HTTP harness; supertest is optional. Preserve Jest/Vitest/Bun test and timer semantics rather than migrating.
+- Block real external network and production resources. Use installed request interception, provider adapters/fakes, containers or local isolated services; fail unhandled calls and reset mutable globals, timers, modules and handlers.
+- Seed explicit tenant/actor/resource ownership. Cover 401 and resource-level 403/wrong-tenant paths, not merely missing token. When auth semantics matter, exercise the repository's installed authentication harness or pipeline rather than injecting or spoofing a principal past the boundary under test.
+- For consequential work cover duplicate and concurrent invocation, database conflict, retry, effect-before-ack, timeout-after-commit, and transaction failure/rollback with no partial persisted or external-effect outcome. Verify persisted outcome and dedupe identity; mock call count is insufficient.
+- Avoid arbitrary sleeps; use controllable clocks, barriers/latches, deferred promises or database synchronization to make races deterministic.
 
-## Database
-
-- Run migrations before test suite: `prisma migrate deploy` or `drizzle-kit push` in test setup
-- Use `beforeEach` to seed required fixtures, `afterEach` to clean up — never share state across tests
-- Use transactions rolled back after each test for isolation when supported
-- Never mock `prisma.$transaction` or query methods — test the real DB behavior
-
-## HTTP Testing with supertest
-
-- Test at HTTP layer: `await request(app).post('/users').send(body).expect(201)`
-- Always assert response status code AND response body shape — never just status
-- Test auth enforcement: always include a test that the endpoint returns 401/403 without valid token
-- Test validation: always include a test that invalid input returns 400 with error detail
-
-## External Services
-
-- Use MSW (`msw/node`) to mock external HTTP services (Stripe, SendGrid, third-party APIs)
-- Define MSW handlers in `src/mocks/handlers.ts`, server in `src/mocks/server.ts`
-- Use `server.use()` per-test for error/edge-case overrides
-- Always `server.resetHandlers()` in `afterEach` — never let handler overrides leak
-
-## NestJS Testing
-
-- Use `Test.createTestingModule()` for unit tests of services and controllers
-- Use `@nestjs/testing` `NestApplication` + supertest for integration tests
-- Override providers with `{ provide: MyService, useValue: mockService }` — only mock external dependencies
-- Never mock services under test — only mock their dependencies
-
-## Hard Rules
-
-- Never mock ORM/DB client — use real test database always
-- Never share mutable state between tests — always clean up in `afterEach`
-- Always test auth enforcement (401/403) on protected endpoints
-- Always test validation error (400) on endpoints with input schemas
-- Never use `setTimeout` in tests — use `vi.useFakeTimers()` / `jest.useFakeTimers()` for time
-
-## Done Criteria
-
-- All API endpoints have integration tests via supertest
-- Auth enforcement tested (401 without token, 403 with wrong role)
-- Validation rejection tested (400 with invalid body)
-- Real DB used — no ORM mocks
-- MSW handles all external HTTP calls
-- Tests isolated — no shared mutable state between tests
+Run focused and affected repository suites plus relevant type/lint/build/migration checks. Report tests, installed harness, isolated resources/cleanup, commands/results, and untested provider/deployment risk.

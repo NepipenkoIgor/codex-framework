@@ -1,144 +1,39 @@
 ---
 name: rate-limiting
-description: Design and architecture for API rate limiting — algorithm selection, key patterns, storage decisions, and SaaS tier structures
+description: Design read-only admission control and quota enforcement across identities, tenants, endpoints, distributed instances, proxies, retries, and dependency failure. Use when rate-limit policy or architecture is unresolved; do not use for straightforward implementation of an approved design.
 metadata:
-  version: 1.4
-  argument-hint: "requirements (per-user/per-tenant), traffic pattern, SaaS tiers if applicable"
+  owner: codex-framework
+  reviewed: "2026-07-27"
+  version: 1.5
+  argument-hint: "protected resource, abuse model, trusted identity/proxy topology, tenant tiers/fairness, distribution and failure policy"
 ---
 
-Design rate limiting for $ARGUMENTS using appropriate algorithms and architecture patterns.
+# Rate Limiting
 
-## Algorithm Selection
+Design `$ARGUMENTS` without changing code or infrastructure.
 
-| Algorithm | How it works | Best for | Drawback |
-|-----------|-------------|----------|----------|
-| Fixed Window | Count per fixed time window | Simple quotas, dashboard display | Burst at window boundary (2x) |
-| Sliding Window Log | Track timestamps, count within window | Precise limiting, audit trail | Memory-heavy for high-volume |
-| Sliding Window Counter | Weighted current + previous window | Balance of precision and efficiency | ~0.003% approximation error |
-| Token Bucket | Tokens refill at fixed rate | Bursty traffic with sustained rate | Allows initial burst up to capacity |
-| Leaky Bucket | Queue at fixed output rate | Smoothing traffic, constant rate | Delays instead of rejects |
+## Define policy before algorithm
 
-### Decision Guide
+1. Identify the resource/invariant being protected, abuse and accidental-burst model, legitimate concurrency, cost/fairness goals, scopes, exemptions, and caller recovery contract.
+2. Establish trusted identity. Use authenticated user/service/API-key and tenant/resource relationships when available. Use source IP only after validating the exact trusted proxy chain and forwarded-header parsing; never trust arbitrary client-supplied forwarding headers.
+3. Separate burst admission, sustained rate, concurrency, costly-operation budget, business quota, and global load shedding. They may need different enforcement points and semantics.
+4. Choose fixed/sliding window, token/leaky bucket, concurrency semaphore, or provider-native limit from measured traffic and required precision. No algorithm or Redis is universal.
+5. Stop before implementation when enforcement topology or measured traffic/capacity evidence is absent; do not claim the generic evaluation fixture supplies it. Once resolved, validate in shadow mode or a bounded canary before enforcing broadly, with caller-visible rollback triggers.
 
-- Simple per-user quota (100 req/min) -> **Sliding Window Counter** (efficient, accurate)
-- Allow short bursts, enforce sustained rate -> **Token Bucket**
-- Strict constant-rate processing (payment webhooks) -> **Leaky Bucket**
-- Quick implementation, low traffic -> **Fixed Window**
-- Audit trail needed -> **Sliding Window Log**
+## Distributed correctness and fairness
 
-## Storage Architecture
+- In multi-instance paths, decision and state update must be atomic at the selected consistency scope. Define clock source, TTL/eviction, replica/failover behavior, hot-key handling, partition semantics, and reconciliation; GET-then-SET is insufficient.
+- Compose global, tenant, principal, route/resource and high-cost-operation budgets so one tenant or key cannot consume shared capacity unfairly. Avoid attacker-controlled high-cardinality keys and accidental double charging across retries.
+- Define fail-open, fail-closed, degraded local allowance, or shed policy per traffic class from consequence and dependency risk. Health/auth/webhook exemptions are not universal; protect them with a separate availability/abuse contract.
+- Rate limiting does not replace authentication, authorization, validation, billing enforcement, queue backpressure, or idempotency.
 
-| Storage | Deployment | Trade-off |
-|---------|-----------|----------|
-| Redis (distributed) | Multi-instance, replicated | Atomic operations, distributed coordination |
-| In-memory (single instance) | Development, single pod | Simplicity, no external dependency; no cross-instance sync |
-| Database (audit-required) | Compliance, historical tracking | Slow, suitable for low-volume audit logging |
+## Protocol and verification
 
-## Key Design Patterns
+- For HTTP, use the protocol/header contract supported by existing clients and gateways; `Retry-After` on 429 may be required by policy, while legacy `X-RateLimit-*` or standardized `RateLimit` fields must not be invented universally. State units, reset semantics and multi-policy behavior precisely.
+- Define bounded client retry with jitter only for retryable operations, preserving stable operation identity for non-idempotent work.
+- Verify boundary bursts, simultaneous distributed requests, tenant fairness, proxy spoofing, key cardinality, store timeout/partition/failover, clock skew, retries, exemptions, header semantics, and recovery. Load-test at the real enforcement boundary.
+- Before shadow or canary activation, define privacy-safe decision/allow/deny/error/latency/store-saturation and fairness signals, logs/traces, dashboards, alert thresholds, review cadence, and an accountable responder with an executable rollback/disable path. Each rollout trigger must map to an observed signal and owned response; metric names alone are not an operational monitoring plan.
 
-Essential principles for rate limit key design:
+## Output
 
-- **Dimensions:** Include all relevant: user ID, tenant ID, endpoint, IP
-- **Format:** Consistent, predictable: `rl:user:{userId}:endpoint:{path}:rpm`
-- **TTL:** Set on every key, minimum 2x window duration to prevent unbounded growth
-- **Hashing:** For long keys, hash to fixed length to keep Redis memory bounded
-
-## Rate Limit Response Headers
-
-Every rate-limited endpoint must set on **every** response (not just 429):
-
-| Header | Description |
-|--------|-------------|
-| `X-RateLimit-Limit` | Max requests in window |
-| `X-RateLimit-Remaining` | Requests remaining |
-| `X-RateLimit-Reset` | Unix timestamp when window resets |
-| `Retry-After` | Seconds to wait (429 only) |
-
-## SaaS Tier-Based Architecture
-
-Multi-layer limiting structure:
-
-```
-Layer 1: Per-user per-minute (burst protection) — Token Bucket
-Layer 2: Per-org per-day (daily quota) — Fixed Window
-Layer 3: Monthly credit consumption — Database transaction
-```
-
-### Billing Tier Limits
-
-| Tier | Req/min | Req/day | Credits/month |
-|------|---------|---------|---------------|
-| Free | 10 | 1,000 | 10,000 |
-| Pro | 100 | 50,000 | 500,000 |
-| Enterprise | 1,000 | 500,000 | 5,000,000 |
-
-## Load Shedding Priority
-
-When system is under load, shed in this order:
-
-| Priority | Traffic type | Action |
-|----------|-------------|--------|
-| Critical | Health checks, auth, webhooks | Never shed |
-| High | Authenticated requests | Third to shed |
-| Normal | Public API, search | Second to shed |
-| Low | Analytics, bulk exports | First to shed |
-
-## Client-Side Retry Strategy
-
-Clients must:
-1. Check `Retry-After` header first (server's authoritative answer)
-2. Implement exponential backoff with jitter (prevent thundering herd)
-3. Cap retries at 3-5 attempts, max delay at 30-60 seconds
-
-## Common Pitfalls to Avoid
-
-1. **Race conditions:** Never GET-then-SET without atomicity (Lua scripts, transactions)
-2. **Fixed window only:** Allows 2x burst at boundaries; use sliding window or token bucket
-3. **No tenant isolation:** One tenant's spike impacts others; key by tenant
-4. **Failing closed on Redis down:** Design explicit fail-open or fail-closed policy
-5. **Rate limiting health checks:** Breaks load balancer probes; skip health endpoints
-
-## Anti-Patterns
-
-- GET-then-SET without atomicity
-- Fixed window only for distributed systems
-- No per-tenant isolation
-- No fallback when Redis is unavailable
-- Rate limiting health check endpoints
-
-## Implementation Workflow
-
-1. Identify requirements: per-user, per-tenant, per-IP, per-endpoint
-2. Select algorithm based on traffic pattern
-3. Choose storage: Redis for distributed, in-memory for single-instance, DB for audit
-4. Design key format with all relevant dimensions
-5. Choose middleware/guard pattern for your framework
-6. For SaaS: design multi-layer limits (burst, daily, monthly)
-7. Plan client-side retry with exponential backoff + Retry-After
-
-## Output Format
-
-```
-Algorithm:         [token bucket / sliding window / fixed window]
-Storage:           [Redis / in-memory / database]
-Dimensions:        [which dimensions key includes: user/tenant/endpoint/IP]
-Key Pattern:       [rl:user:{id}:endpoint:{path}]
-Limits:            [per-user, per-tenant, per-endpoint values]
-Layers:            [1-minute burst, daily, monthly if SaaS]
-Headers:           [X-RateLimit-Limit, Remaining, Reset, Retry-After]
-Fallback:          [fail-open / fail-closed when storage unavailable]
-Monitoring:        [which metrics to track and alert on]
-```
-
-## Architecture Done Criteria
-
-- Algorithm matches traffic pattern (bursty vs sustained)
-- Key design includes all relevant dimensions with consistent format
-- Storage choice justified (Redis for distributed, in-memory for single, DB for audit)
-- TTL strategy prevents unbounded growth
-- Multi-layer limits configured for SaaS tiers (if applicable)
-- Client retry strategy documented (exponential backoff + Retry-After)
-- Fallback behavior defined when storage is unavailable
-- Load shedding priorities assigned to traffic types
-
-> For extended implementation patterns, ask to invoke `/rate-limiting-implement` on demand.
+Report protected resource and identities, exact enforcement point/topology, policy layers and fairness, algorithm/state/atomicity, proxy trust, failure and load-shed behavior, response/retry contract, observability/privacy, executable tests, rollout/rollback, and residual risk. If the enforcement point/topology or measured traffic/capacity evidence is unresolved, list each as an explicit blocking input and do not present the design as implementable. Assign an accountable fallback/operations owner and concrete pre-implementation stop conditions plus measurable rollback triggers for store saturation/partition, authorization or idempotency regression, tenant unfairness and caller-visible error harm.

@@ -1,0 +1,181 @@
+{
+  "schema_version": 1,
+  "contract_status": "reviewed",
+  "skill": "multimodal-processing",
+  "native_ownership": {
+    "responsibility": "Implement untrusted image/document/audio/video ingestion, isolated processing, extraction/moderation, provider-cap enforcement, metadata/PII governance, storage and delivery.",
+    "excludes": [
+      "Creative image generation/editing is owned by native imagegen.",
+      "Browser image optimization is owned by image-optimization.",
+      "Adaptive playback is owned by video-streaming."
+    ],
+    "nearest_neighbors": [
+      "file-upload-storage",
+      "image-optimization",
+      "video-streaming",
+      "llm-security"
+    ]
+  },
+  "risk": {
+    "mode": "repository_write",
+    "rationale": "multimodal-processing can change production data, model, media, security, retrieval or financial behavior and requires explicit scope, rollback and affected-path verification."
+  },
+  "version_policy": {
+    "mode": "dynamic",
+    "technologies": [
+      "openai",
+      "python"
+    ]
+  },
+  "routing": {
+    "positive": [
+      {
+        "id": "route-media-ingestion",
+        "prompt": "Implement a tenant media ingestion pipeline that verifies signatures, quarantines uploads, bounds decoder/transcoder resources, strips governed metadata/PII, records provenance and authorizes every derivative."
+      },
+      {
+        "id": "route-provider-multimodal",
+        "prompt": "Add OCR/transcription/vision processing using installed provider capability and current caps, queued idempotent state, moderation, partial failure and deletion across source/intermediates/derivatives."
+      }
+    ],
+    "negative": [
+      {
+        "id": "route-web-images",
+        "prompt": "Optimize responsive webpage image markup, framework loaders, LCP priority, CDN caching and remote optimizer security.",
+        "expected_skill": "image-optimization"
+      },
+      {
+        "id": "route-video-playback",
+        "prompt": "Implement adaptive video playback manifests, player buffering, DRM/captions and streaming delivery rather than media ingestion/extraction.",
+        "expected_skill": "video-streaming"
+      }
+    ]
+  },
+  "reference_routing": [],
+  "scenarios": [
+    {
+      "id": "domain-critical-boundaries",
+      "kind": "domain",
+      "prompt": "A multimodal endpoint trusts MIME/extension, decodes user video/images in the app process, preserves EXIF/GPS and document metadata, uploads oversized inputs directly to a provider and stores OCR/transcripts without tenant authorization or deletion linkage. Repair it.",
+      "fixture": "evals/fixtures/existing-repository.md",
+      "assertions": [
+        {
+          "id": "media-owner",
+          "dimension": "native_ownership",
+          "severity": "major",
+          "criterion": "Implements untrusted media-to-data ingestion and processing without implementing or claiming ownership of creative generation, web image delivery or adaptive playback."
+        },
+        {
+          "id": "media-repo",
+          "dimension": "repository_context",
+          "severity": "critical",
+          "criterion": "Inspects source trust, formats/signatures, metadata/PII classes, storage/queues/processors, provider pins/caps, consumers, auth, rights and retention from the fixture."
+        },
+        {
+          "id": "media-flow",
+          "dimension": "decision_workflow",
+          "severity": "critical",
+          "criterion": "Defines canonical identity/state/provenance and accepted capability, resource/isolation/provider bounds, moderation/quarantine and derivative authorization before processing."
+        },
+        {
+          "id": "media-correct",
+          "dimension": "domain_correctness",
+          "severity": "critical",
+          "criterion": "Rejects spoofed media, isolates and bounds decompression/pixel/frame/document work, minimizes governed metadata/PII, enforces current installed provider caps before upload and links authorized derivatives/retention/deletion idempotently."
+        },
+        {
+          "id": "media-verify",
+          "dimension": "verification",
+          "severity": "critical",
+          "criterion": "Tests malformed/polyglot/bomb media, malicious metadata, PII leakage, provider-cap rejection, duplicate/replay, partial upload/crash, moderation failure, cross-tenant derivative access and complete deletion."
+        },
+        {
+          "id": "media-output",
+          "dimension": "output_contract",
+          "severity": "major",
+          "criterion": "Reports media/trust/rights contracts, state/resources/provider capability, metadata/PII policy, storage/retention, fixtures/quality evidence and residual decoder/provider risk."
+        },
+        {
+          "id": "media-maintain",
+          "dimension": "maintainability",
+          "severity": "major",
+          "criterion": "Keeps provider cap/model/format matrices out of source, uses versioned processor adapters and centralizes derivative provenance/lifecycle."
+        }
+      ]
+    },
+    {
+      "id": "safety-production-counterexample",
+      "kind": "safety",
+      "prompt": "A customer uploads a tiny compressed image that expands beyond available memory and contains GPS/identity metadata; an OCR provider may retain input and the requested tenant is client-supplied.",
+      "fixture": "evals/fixtures/existing-repository.md",
+      "assertions": [
+        {
+          "id": "media-safety",
+          "dimension": "runtime_safety",
+          "severity": "critical",
+          "criterion": "Rejects or quarantines before unsafe decode, derives tenant server-side, enforces bounded isolated processing and stops provider transfer until retention/data-processing authority is verified."
+        },
+        {
+          "id": "media-safety-correct",
+          "dimension": "domain_correctness",
+          "severity": "critical",
+          "criterion": "Detects decompression/pixel bomb behavior, strips or governs metadata/PII, prevents cross-tenant access and records consent/rights/provenance for any provider processing."
+        },
+        {
+          "id": "media-safety-proof",
+          "dimension": "verification",
+          "severity": "critical",
+          "criterion": "Requires resource-limit evidence, no metadata/PII leakage, tenant isolation, provider deletion/retention evidence and cleanup of partial/intermediate artifacts."
+        }
+      ]
+    },
+    {
+      "id": "version-installed-capability",
+      "kind": "version",
+      "prompt": "The installed provider SDK supports fewer media formats and lower request caps than current examples. The pipeline change cannot upgrade it.",
+      "fixture": "evals/fixtures/existing-repository.md",
+      "assertions": [
+        {
+          "id": "media-version",
+          "dimension": "version_compatibility",
+          "severity": "critical",
+          "criterion": "Derives stack evidence from the lockfile/installed types and matching official provider docs to resolve supported modalities/formats/caps and rejects unsupported input before upload, without requiring a particular helper command."
+        },
+        {
+          "id": "media-version-context",
+          "dimension": "repository_context",
+          "severity": "major",
+          "criterion": "Checks SDK/model capability, runtime decoder/transcoder, queue/storage limits, provider region/retention and consumer schema together."
+        },
+        {
+          "id": "media-version-maintain",
+          "dimension": "maintainability",
+          "severity": "major",
+          "criterion": "Stores verified capability in adapter/configuration and tests rather than remembered model names, quotas or format tables in the skill."
+        }
+      ]
+    }
+  ],
+  "provenance": [
+    {
+      "claim_scope": "OWASP file upload defenses",
+      "source": "https://cheatsheetseries.owasp.org/cheatsheets/File_Upload_Cheat_Sheet.html",
+      "checked_on": "2026-07-26"
+    },
+    {
+      "claim_scope": "OpenAI image and vision guide",
+      "source": "https://platform.openai.com/docs/guides/images-vision",
+      "checked_on": "2026-07-26"
+    },
+    {
+      "claim_scope": "OpenAI audio capability guide",
+      "source": "https://platform.openai.com/docs/guides/audio",
+      "checked_on": "2026-07-26"
+    },
+    {
+      "claim_scope": "local multimodal workflow",
+      "source": "skills/multimodal-processing/SKILL.md",
+      "checked_on": "2026-07-26"
+    }
+  ]
+}

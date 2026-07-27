@@ -1,75 +1,27 @@
 ---
 name: backend-test-python
-description: Python API testing with pytest, pytest-asyncio, httpx, SQLAlchemy test fixtures, factory_boy
+description: Add Python backend unit, HTTP, persistence, auth, job, provider, async, and concurrency tests with the repository's installed runner and framework harness. Use when Python-specific executable coverage is requested; do not migrate pytest/unittest, framework, ORM, or async mode.
 metadata:
-  version: 1.0
+  owner: codex-framework
+  reviewed: "2026-07-27"
+  version: 1.1
   domain: backend
-  keywords: [python, pytest, pytest-asyncio, httpx, fastapi test, django test, sqlalchemy test, factory boy, respx]
+  keywords: [python, pytest, unittest, fastapi, django, httpx, sqlalchemy, async test]
 ---
 
-# Backend Test — Python
+# Backend Test - Python
 
-Pair with `backend-test` for universal testing principles.
+1. Read instructions, interpreter/dependency pins, runner/plugins/config, application/test clients, sync/async mode, persistence/migrations, auth/providers, fixtures and authoritative commands.
+2. Generate stack context. Preserve installed pytest/unittest/Django runner, asyncio/anyio mode, HTTP client/transport, ORM and factory approach. Route implementation to `backend-implement-python`.
+3. Before material setup or cleanup, resolve exact task-owned test/fixture/configuration and data targets, package/team ownership, write authority/permissions and a reversible diff plus resource recovery/cleanup path; otherwise stop.
+4. Choose pure unit, framework HTTP, persistence/migration, job/event, provider-contract or concurrency boundary based on the behavior.
 
-## Setup
+## Test invariants
 
-- Use `pytest` with `pytest-asyncio` for async test support — never `unittest` for new code
-- Use `httpx.AsyncClient` for FastAPI integration tests — never `requests` (sync)
-- Use `pytest-asyncio` with `asyncio_mode = "auto"` in `pyproject.toml` — never `@pytest.mark.asyncio` per test
-- Use a real test database — never mock SQLAlchemy session or Django ORM (schema bugs hide behind mocks)
-- Use separate test DB configured via `DATABASE_URL` in `.env.test` or pytest fixture override
+- Direct function tests are valid for pure logic; HTTP/application tests are required when middleware, dependency injection, serialization, auth, transactions or exception mapping matter.
+- Mock injected collaborators for units. Use an isolated schema-compatible database when constraints, transaction isolation, migrations, ORM query semantics or concurrency matter. SQLite, in-memory or ORM mocks are valid only when their semantic differences are outside the asserted contract.
+- No real external network, production DB, queue, identity or payment calls. Reuse installed transports/interceptors/adapters/fakes and fail unhandled requests. Clean dependency overrides, event loops, tasks, DB state and globals.
+- Preserve installed sync/async semantics; do not mandate `asyncio_mode`, HTTPX, factories or decorators. Avoid arbitrary sleeps; use events/barriers/controlled clocks.
+- Cover invalid input, 401, current resource/tenant authorization failure, duplicate/concurrent mutation, conflict, rollback, cancellation, retry and timeout-after-effect when relevant. Verify response plus persisted/effect outcome.
 
-## FastAPI Integration Testing
-
-```python
-# Always use httpx.AsyncClient with ASGITransport
-async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
-    response = await client.post("/users", json=body)
-```
-
-- Always test at HTTP layer — never call route handlers directly
-- Override dependencies for test DB: `app.dependency_overrides[get_db] = get_test_db`
-- Clear `dependency_overrides` after each test — never let overrides leak
-
-## Database Fixtures
-
-- Use `pytest` fixtures with `scope="function"` for DB transactions — roll back after each test
-- Use SQLAlchemy: begin transaction in fixture, yield session, rollback in teardown
-- Use `factory_boy` with SQLAlchemy integration for test data — never hardcoded fixture dicts
-- Never use production DB — always test-scoped DB or SQLite for pure logic tests
-
-## Django Testing
-
-- Use `pytest-django` with `@pytest.mark.django_db` — never `TestCase` for new code
-- Use `django.test.AsyncClient` for async views — never sync client with async views
-- Use `mixer` or `factory_boy` for model factories — never raw `Model.objects.create()` inline in tests
-- Use `@pytest.mark.django_db(transaction=True)` only when testing transaction behavior — default is non-transactional (faster)
-
-## External Services
-
-- Use `respx` to mock external HTTP calls in async tests — never mock `httpx.AsyncClient` directly
-- Use `responses` library for sync HTTP mocking (requests-based) — never monkeypatch `requests.get`
-- Always assert mock was called: `respx.calls.call_count`, `respx.calls.last.request`
-
-## Auth Testing
-
-- Always test protected endpoints return `401` without Authorization header
-- Always test `403` when authenticated user lacks required permission/role
-- Use fixture that returns valid JWT or session cookie for authenticated requests
-
-## Hard Rules
-
-- Never mock SQLAlchemy session or Django ORM for integration tests — real DB always
-- Never `requests` in async test context — `httpx.AsyncClient` always
-- Never hardcode test data inline — `factory_boy` or fixtures always
-- Always test 401 on protected endpoints
-- Always clean DB state between tests — never share mutable DB state
-
-## Done Criteria
-
-- All API endpoints tested via `httpx.AsyncClient` or Django test client at HTTP layer
-- Auth enforcement tested (401 without token, 403 with wrong role)
-- Validation rejection tested (422 with invalid body for FastAPI, 400 for Django)
-- Real DB used with per-test transaction rollback
-- All external HTTP mocked via `respx` or `responses`
-- `factory_boy` used for all test model creation
+Run focused and affected runner/type/lint/migration checks. Report tests, installed harness and database/provider boundary, commands/results, cleanup and residual production/provider risk.

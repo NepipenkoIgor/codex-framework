@@ -1,186 +1,45 @@
 ---
 name: message-queue-patterns
-description: Implement message queue systems for producer/consumer patterns, schema registry, message ordering, and idempotent consumers
+description: Implement broker-backed producers and consumers with durable publish, acknowledgements, redelivery-safe effects, schema evolution, ordering, poison handling, and recovery. Use when an external message broker carries application work or events; do not use for in-process background jobs, event-driven architecture design, or HTTP webhooks.
 metadata:
-  version: 1.3
-  argument-hint: "broker (RabbitMQ/Kafka/NATS), pattern (work-queue/pub-sub/event-streaming), ordering/delivery guarantees, language/framework"
+  owner: codex-framework
+  reviewed: "2026-07-26"
+  version: 2.0
+  argument-hint: "broker, topic/queue, producer transaction, message contract, consumer effect, ordering, replay"
 ---
 
-Implement message queue infrastructure for $ARGUMENTS with reliable delivery and production-ready messaging patterns.
+# Message Queue Patterns
 
+Implement `$ARGUMENTS` against the configured broker and client capabilities.
 
-## Broker Selection
+Treat producer durability and consumer correctness as one end-to-end contract even when the reported incident is consumer-side. Do not omit the producer transaction/outbox boundary, broker acknowledgement/confirm responsibility, schema-registry capability or ambiguous-publish recovery from discovery, design, fault tests or the final report.
 
-| Broker | Best for | Ordering | Delivery |
-|--------|----------|----------|----------|
-| RabbitMQ | Task queues, routing, RPC, low latency | Per-queue FIFO | At-least-once (with ack) |
-| Apache Kafka | Event streaming, replay, high throughput | Per-partition | At-least-once (default) |
-| NATS | Lightweight, cloud-native, low latency | Per-subject (JetStream) | At-most-once (core), at-least-once (JS) |
+## Workflow
 
-Decision: Flexible routing/RPC -> RabbitMQ. Event log/replay/high throughput -> Kafka. Lightweight/cloud-native -> NATS. .NET with MassTransit -> RabbitMQ (first-class). All three well-supported in Node.js.
+1. Inspect manifests/lockfiles, broker/client configuration, topic/queue declarations, producer transaction, message schemas and registry, consumer groups, offset/ack mode, retry/dead-letter topology, retention, deployment lifecycle, existing telemetry, recent failure/redelivery evidence, and tests. Preserve pins and verify unfamiliar APIs against installed types/config and matching official docs.
+2. Define message purpose, owner, key, immutable event/command ID, schema identifier/version, partition/ordering key, producer transaction boundary, consumer business operation, retention/privacy, and compatibility rules.
+3. Publish durably: atomically persist domain change plus outbox when direct broker publish cannot share the transaction. Mark outbox dispatch complete only after the configured broker acknowledgement/confirm proves broker responsibility; ambiguous publish is retried with the same message identity.
+4. Assume redelivery. The consumer establishes a durable inbox/business-operation identity, applies the side effect and completion atomically when possible, and acknowledges/commits only after the durable outcome. If the side effect is external, use provider idempotency plus reconciliation for crash-between-effect-and-ack.
+5. Ordering is scoped to the broker's proven unit (for example a partition or single active consumer), not a global promise. Key related mutations consistently and make handlers robust to duplicates, gaps, late messages, and rebalances. Commit only work whose ownership and effects are complete.
+6. Evolve schemas by explicit compatibility policy. Consumers tolerate unknown fields where the format allows, reject or quarantine unknown enum variants safely, and never reinterpret an old field silently. Roll out producer/consumer changes in an order supported by compatibility tests.
+7. Poison messages are classified and quarantined with the lossless original payload (encrypted and access-controlled according to data policy), schema/version, attempts, error, side-effect evidence, and trace context. User-facing reports redact payload secrets, but the protected quarantine record must retain enough exact payload evidence for schema-aware diagnosis and authorized replay. Prevent hot requeue loops. Replay is authorized, schema-aware, auditable, idempotent, and does not discard the original failure.
+8. Bound prefetch/poll batch, concurrency, processing deadline, retry delay, retention, and DLQ policy from measured workload, broker limits, downstream capacity, and recovery objectives—not universal values.
+9. Verify broker outage and ambiguous confirm; crash before the external/provider effect, after provider success but before durable local completion/ack, and after acknowledgement/commit; duplicate and out-of-order delivery; poison payload; rebalance during work; redelivery after ownership loss; an old consumer receiving a new enum without falling into a destructive default; schema rollback; DLQ evidence and replay; shutdown; and backlog recovery.
 
-## RabbitMQ Patterns
+## Required counterexamples
 
-Exchange types: Direct (exact routing key), Fanout (broadcast), Topic (wildcard routing), Headers (match on headers).
+- A consumer crashing after a provider side effect but before ack must not repeat the side effect without idempotency/reconciliation.
+- A rebalance or channel loss invalidates ownership; work completed afterward cannot blindly commit another consumer's offset/tag.
+- An unknown enum value must not fall through to a privileged or destructive default branch.
+- Publisher send success without a broker confirm is not durable-publish proof.
+- A poison message must not loop forever and starve healthy traffic.
 
-### Work Queue (Node.js amqplib)
+## Output
 
-```typescript
-// Producer
-await ch.assertQueue(queue, {
-  durable: true,
-  arguments: { 'x-dead-letter-exchange': 'dlx', 'x-dead-letter-routing-key': `${queue}.dlq`, 'x-message-ttl': 86400000 },
-});
-ch.sendToQueue(queue, Buffer.from(JSON.stringify(payload)), { persistent: true, messageId: crypto.randomUUID() });
+Report broker/client and topology evidence, inspected deployment lifecycle/shutdown ownership, message/schema contract, publish transaction and confirm semantics, consumer inbox/effect/ack ordering, ordering and rebalance behavior, retry/DLQ/replay policy, capacity assumptions, observability, and any unverified broker or provider boundary. Enumerate fault-test results separately for the three crash boundaries (before effect, after effect before completion/ack, and after ack/commit), duplicate delivery, out-of-order delivery, rebalance/ownership loss, broker outage/ambiguous confirm, poison/schema replay, shutdown, and backlog recovery. Include a recovery inventory of quarantined and replayed identities, schema versions, known prior effects, and unresolved messages without leaking payload secrets.
 
-// Consumer
-await ch.prefetch(10);
-ch.consume(queue, async (msg) => {
-  if (!msg) return;
-  try { await handler(JSON.parse(msg.content.toString())); ch.ack(msg); }
-  catch (err) { ch.nack(msg, false, isTransientError(err)); }
-});
-```
+## Provenance
 
-Topic exchange: `ch.publish(exchange, routingKey, ...)` with wildcards `order.*` (one level), `order.#` (multi-level).
-
-DLQ: configure `x-dead-letter-exchange` on every queue. Messages arrive when nack'd without requeue, TTL expires, or queue length exceeded.
-
-Rules: durable queues + persistent messages in production, manual ack (never auto-ack), prefetch for concurrency control, DLX on every queue, monitor queue depth and consumer count.
-
-## Apache Kafka
-
-Partitions determine ordering and parallelism. Messages within a partition are strictly ordered. Consumer groups enable parallel consumption.
-
-### Partition Key Strategy
-
-| Key | Guarantee | Use when |
-|-----|-----------|----------|
-| Entity ID | All entity events in order | Order lifecycle, user events |
-| Tenant ID | All tenant events in order | Multi-tenant isolation |
-| None (round-robin) | No ordering, max throughput | Independent events, logging |
-
-### KafkaJS (Node.js)
-
-> KafkaJS is in maintenance mode. For new production Kafka workloads, prefer `@confluentinc/kafka-javascript` (Confluent's official client, built on librdkafka) for better performance and active support.
-
-```typescript
-// Producer — idempotent, Snappy compression
-const producer = kafka.producer({ idempotent: true, transactionalId: 'tx-1' });
-await producer.send({
-  topic: 'orders', compression: CompressionTypes.Snappy,
-  messages: [{ key: event.orderId, value: JSON.stringify(event.data),
-    headers: { 'event-type': event.type, 'schema-version': '1' } }],
-});
-
-// Consumer — with idempotency check
-await consumer.run({
-  partitionsConsumedConcurrently: 3,
-  eachMessage: async ({ topic, partition, message }) => {
-    const messageId = `${topic}-${partition}-${message.offset}`;
-    if (await isAlreadyProcessed(messageId)) return;
-    await processEvent(message.headers?.['event-type']?.toString(), JSON.parse(message.value!.toString()));
-    await markAsProcessed(messageId);
-  },
-});
-```
-
-Exactly-once: use `producer.transaction()` with `sendOffsets` to commit consumer offsets atomically.
-
-Rules: partition keys based on ordering needs, `idempotent: true` on producers, monitor consumer lag, Snappy/LZ4 compression, set `retention.ms` for replay needs.
-
-## NATS
-
-Core NATS: fire-and-forget, pub/sub with wildcards, queue groups for load balancing. JetStream: persistence, ack/nak, durable consumers, message deduplication by `msgID`.
-
-```typescript
-// JetStream publish with dedup
-const pa = await js.publish('orders.created', JSON.stringify(event), { msgID: event.id });
-
-// Durable consumer
-for await (const msg of consumer.consume()) {
-  try { await processEvent(JSON.parse(msg.data)); msg.ack(); }
-  catch (err) { isPermanentError(err) ? msg.term() : msg.nak(); }
-}
-```
-
-## Schema Registry (Kafka)
-
-Avro with Confluent Schema Registry: register schemas, encode on produce, decode on consume. Protobuf as alternative.
-
-Compatibility modes: Backward (add optional fields, consumers updated first), Forward (producers updated first), Full (add/remove optional only).
-
-Rules: backward compatibility by default, new fields with defaults only, never rename/change type of existing fields, validate in CI.
-
-## .NET — MassTransit with RabbitMQ
-
-```csharp
-builder.Services.AddMassTransit(x => {
-    x.AddConsumer<OrderCreatedConsumer>();
-    x.UsingRabbitMq((context, cfg) => {
-        cfg.Host(config["RabbitMQ:Host"], h => { h.Username(config["RabbitMQ:User"]!); h.Password(config["RabbitMQ:Pass"]!); });
-        cfg.ReceiveEndpoint("order-created", e => {
-            e.PrefetchCount = 16;
-            e.UseMessageRetry(r => r.Exponential(5, TimeSpan.FromSeconds(1), TimeSpan.FromSeconds(30), TimeSpan.FromSeconds(2)));
-            e.ConfigureConsumer<OrderCreatedConsumer>(context);
-        });
-    });
-});
-```
-
-MassTransit sagas: `MassTransitStateMachine<TState>` for multi-step process management with state persistence.
-
-## Message Ordering
-
-Strategies: single partition/queue (global order, low throughput), partition by key (order per key, high throughput), sequence numbers (app-enforced), no ordering (maximum throughput).
-
-Handle out-of-order: track last processed sequence per entity, skip duplicates (seq <= last), buffer gaps (seq > last + 1), drain buffer after processing.
-
-## Idempotent Consumers
-
-Use message ID or `topic-partition-offset` as dedup key. Check before processing, clear on failure. TTL 24-48h on dedup keys. DB unique constraints for financial operations.
-
-## Poison Pill Handling
-
-Track attempt count per message ID. After max attempts (3), move to DLQ. Deserialization errors -> immediate DLQ. Let broker handle retry for transient errors.
-
-## Monitoring
-
-| Metric | Alert threshold |
-|--------|----------------|
-| Consumer lag (Kafka) | >10,000 sustained |
-| Queue depth (RabbitMQ) | >5,000 sustained |
-| Processing latency P95 | >5s |
-| Error rate | >5% of throughput |
-| DLQ size | >0 |
-
-## Anti-Patterns
-
-- Auto-ack before processing completes — message lost on crash mid-handler; always ack after success
-- Large messages (>1MB) in broker — use object storage and pass a reference; brokers are not file stores
-- Publishing + DB write without outbox pattern — race condition between commit and publish on failure
-- Shared DLQ for all queues — impossible to attribute or replay failures per queue/topic
-
-## Output Format
-
-```
-Broker:            [RabbitMQ / Kafka / NATS]
-Topics/Queues:     [list with partitioning]
-Ordering:          [strategy and partition key]
-Delivery:          [at-most/at-least/exactly-once]
-Idempotency:       [dedup approach]
-DLQ:               [per queue/topic]
-Schema:            [Avro / Protobuf / JSON validation]
-Monitoring:        [metrics and thresholds]
-```
-
-## Done Criteria
-
-- Messages delivered with chosen delivery guarantee
-- Ordering preserved for related messages
-- Consumers idempotent, handle duplicates gracefully
-- Poison pills detected and moved to DLQ
-- Schema validated on produce and consume
-- DLQ configured with alerting for every queue/topic
-- Consumer lag and queue depth monitored
-- Outbox pattern used when DB write + publish must be atomic
+- RabbitMQ acknowledgements and publisher confirms: https://www.rabbitmq.com/docs/confirms
+- RabbitMQ reliability and redelivery: https://www.rabbitmq.com/docs/reliability
+- Apache Kafka consumer rebalance API: https://kafka.apache.org/43/javadoc/org/apache/kafka/clients/consumer/ConsumerRebalanceListener.html

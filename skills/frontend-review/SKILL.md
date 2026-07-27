@@ -1,51 +1,39 @@
 ---
 name: frontend-review
-description: Review frontend code for correctness, performance, maintainability, accessibility, and UI consistency
+description: Review frontend changes for concrete correctness, regression, performance, maintainability, and test risks. Use when a read-only findings report is requested; route broad WCAG, visual-system consistency, or security audits to their dedicated skills and do not implement fixes.
 metadata:
-  version: 2.0
-  argument-hint: "PR/diff/module, framework (React/Vue/Angular), review scope"
+  owner: codex-framework
+  reviewed: "2026-07-27"
+  version: 2.1
+  argument-hint: "PR/diff/module, framework, expected behavior, review and verification scope"
 ---
 
-Review $ARGUMENTS.
+# Frontend Review
 
-## Review Priorities
+Review `$ARGUMENTS` read-only. Findings must identify a behavior-changing defect or material regression risk supported by evidence.
 
-- correctness and regressions
-- state and async behavior
-- accessibility
-- performance
-- maintainability
-- design-system fit and UI consistency
-- hardcoded visual values, arbitrary utility values, and inline style drift
-- strict CSP compatibility: no new avoidable `style` attributes, inline `<style>`, inline event handlers, or reliance on `'unsafe-inline'`
-- missing tests
+## Boundary and workflow
 
-## Method
+1. Read applicable instructions, the actual diff and callers, manifests/lockfiles, generated types/config, nearby tests, and public browser/server contracts.
+2. Reconstruct expected behavior across fresh load/navigation, SSR/hydration, loading/empty/error/retry, focus/keyboard, responsive/theme, authorization, cache, and mutation states affected by the diff.
+3. Trace high-risk paths first: server/client ownership, stale async work, data exposure, mutation validation/authorization/idempotency, rendering/hydration, event/focus lifecycle, and performance-sensitive loops.
+4. Use the repository's installed framework capability and authoritative commands. A newer documented API is not a defect when the pinned supported stack does not expose it.
+5. Exercise focused tests or rendered behavior when safe and useful. Clearly label code-only hypotheses and untested authenticated/provider/browser paths.
 
-1. Read the diff or target files first.
-2. Check risky flows before stylistic concerns.
-3. Check whether UI changes reuse existing components, tokens, variants, utility classes, and interaction states.
-4. Report findings with file references and clear fix direction.
-5. If there are no findings, say so explicitly and mention residual risk.
+## Ownership
 
-## Verification
+- Own diff-scoped frontend correctness and regression findings, including accessibility or UI symptoms caused by the reviewed change.
+- Route broad criterion-level WCAG conformance to `accessibility-audit`, system-wide token/variant drift to `ui-consistency-audit`, and threat-model/vulnerability work to `security-audit`.
+- Do not inflate style preferences, optional refactors, or unsupported best practices into findings.
 
-- Inspect the rendered states implied by the diff: loading, error, empty, disabled, hover/focus, mobile, and desktop.
-- Prefer local browser, story, visual regression, or component tests when available.
-- If browser automation or screenshots are unavailable, say the review is code-only.
+## Evidence rules
 
-## Constraints
+- Report CSP only from an authoritative deployed/header policy, repository policy test, or explicit target. Inline styles are not universally invalid; nonces/hashes, framework behavior, CSP directives, and browser support determine impact. Never recommend `'unsafe-inline'` as a routine fix.
+- Treat hardcoded values as defects only when they violate an authoritative token/component contract or cause observable inconsistency.
+- Verify exact framework/runtime/package capability from project pins and installed artifacts before making version-sensitive claims.
+- A passing unit test, screenshot, or build does not prove authenticated, persisted, hydration, accessibility, or production behavior outside its boundary.
+- When acting authority, resource ownership, idempotency or effect recovery/rollback remains unresolved on a material mutation path, report that missing boundary as a blocker rather than assuming safety.
 
-- Stay read-only.
-- Findings first, summary second.
-- Do not spend review budget on low-signal style comments.
-- Do not approve hardcoded visual values when repo tokens or variants exist.
-- Treat avoidable inline styles as a finding when the app has or should have strict CSP headers.
-- Do not treat accessibility, responsive behavior, or state coverage as optional when the UI changed.
+## Output
 
-## Output Contract
-
-- Findings: severity, file:line, issue, fix direction
-- Open questions: only blockers or assumptions
-- Verification: browser/test/code-only evidence
-- Residual risk: none or concise list
+Findings first, ordered by severity. Each finding includes exact file/line, affected execution path, expected versus observed behavior, reproduction or concrete counterexample, impact, and bounded fix direction. Then report checks/evidence used, open blockers, and residual risk. If no actionable finding is supported, say so explicitly.
