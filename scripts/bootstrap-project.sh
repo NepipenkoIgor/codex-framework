@@ -8,6 +8,7 @@ TARGET_CODEX_DIR="$TARGET_DIR/.codex"
 TARGET_AGENTS="$TARGET_DIR/AGENTS.md"
 TARGET_NATIVE_AGENTS="$TARGET_CODEX_DIR/agents"
 TARGET_RULES="$TARGET_CODEX_DIR/rules"
+TARGET_PACK_MANIFEST="$TARGET_CODEX_DIR/skill-packs.txt"
 
 mkdir -p "$TARGET_NATIVE_AGENTS" "$TARGET_RULES"
 
@@ -23,9 +24,18 @@ done
 
 [ -e "$TARGET_RULES/safety.rules" ] || cp "$FRAMEWORK_ROOT/.codex/rules/safety.rules" "$TARGET_RULES/safety.rules"
 
+if [ ! -e "$TARGET_PACK_MANIFEST" ]; then
+  printf '%s\n' \
+    '# One pack name per line. Available packs live in codex-framework/skills/packs/.' \
+    '# Run codex-framework/scripts/framework-skill-sync.sh <project-root> after editing.' \
+    > "$TARGET_PACK_MANIFEST"
+fi
+
 bash "$FRAMEWORK_ROOT/scripts/hooks.sh" install "$TARGET_DIR" >/dev/null
+bash "$FRAMEWORK_ROOT/scripts/framework-skill-sync.sh" "$TARGET_DIR" >/dev/null
 
 printf 'project instructions: %s\n' "$TARGET_AGENTS"
 printf 'native agents: %s\n' "$TARGET_NATIVE_AGENTS"
 printf 'native rules: %s\n' "$TARGET_RULES/safety.rules"
 printf 'hook config: %s\n' "$TARGET_CODEX_DIR/config.toml"
+printf 'project skill packs: %s\n' "$TARGET_PACK_MANIFEST"

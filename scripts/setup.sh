@@ -2,11 +2,16 @@
 set -euo pipefail
 
 REPO_DIR="$(cd "$(dirname "$0")/.." && pwd)"
-CODEX_HOME="${CODEX_HOME:-$HOME/.codex}"
-INSTALL_ROOT="$CODEX_HOME/skills/codex-framework-core"
-PACK_ROOT="$CODEX_HOME/skills/codex-framework-packs"
+FRAMEWORK_CODEX_HOME="${CODEX_HOME:-$HOME/.codex}"
+USER_SKILLS_ROOT="${CODEX_SKILLS_HOME:-$HOME/.agents/skills}"
+FRAMEWORK_CODEX_HOME="$(python3 -c 'from pathlib import Path; import sys; print(Path(sys.argv[1]).expanduser().resolve(strict=False))' "$FRAMEWORK_CODEX_HOME")"
+USER_SKILLS_ROOT="$(python3 -c 'from pathlib import Path; import sys; print(Path(sys.argv[1]).expanduser().resolve(strict=False))' "$USER_SKILLS_ROOT")"
+LEGACY_INSTALL_ROOT="$FRAMEWORK_CODEX_HOME/skills/codex-framework-core"
+LEGACY_PACK_ROOT="$FRAMEWORK_CODEX_HOME/skills/codex-framework-packs"
+INSTALL_STATE="$USER_SKILLS_ROOT/.codex-framework-install.json"
+LINK_STATE="$FRAMEWORK_CODEX_HOME/frameworks/.codex-framework-links.json"
 GLOBAL_GUIDANCE_SOURCE="$REPO_DIR/templates/global/AGENTS.md"
-GLOBAL_GUIDANCE_TARGET="$CODEX_HOME/AGENTS.md"
+GLOBAL_GUIDANCE_TARGET="$FRAMEWORK_CODEX_HOME/AGENTS.md"
 SELECTED_PACKS=""
 
 while [ $# -gt 0 ]; do
@@ -32,6 +37,8 @@ EOF
   esac
   shift
 done
+
+SELECTED_PACKS="$(printf '%s' "$SELECTED_PACKS" | tr ' ' '\n' | awk 'NF && !seen[$0]++' | sort | tr '\n' ' ')"
 
 # Validate the complete request before replacing an existing pack installation.
 for pack in $SELECTED_PACKS; do
@@ -71,39 +78,33 @@ report_dep() {
   fi
 }
 
-mkdir -p "$CODEX_HOME/skills"
-mkdir -p "$CODEX_HOME/frameworks"
-mkdir -p "$CODEX_HOME/bin"
-mkdir -p "$CODEX_HOME/agents"
-mkdir -p "$CODEX_HOME/rules"
-rm -rf "$INSTALL_ROOT"
-mkdir -p "$INSTALL_ROOT"
-while IFS= read -r skill; do
-  case "$skill" in ''|'#'*) continue ;; esac
-  [ -d "$REPO_DIR/skills/$skill" ] || { printf 'missing core skill: %s\n' "$skill" >&2; exit 1; }
-  ln -sfn "$REPO_DIR/skills/$skill" "$INSTALL_ROOT/$skill"
-done < "$REPO_DIR/skills/core.txt"
+link_args=(
+  --state "$LINK_STATE"
+  --link "$FRAMEWORK_CODEX_HOME/frameworks/codex-framework=$REPO_DIR"
+  --link "$FRAMEWORK_CODEX_HOME/bin/codex-framework-stack-context=$REPO_DIR/scripts/framework-stack-context.py"
+  --link "$FRAMEWORK_CODEX_HOME/bin/codex-framework-doctor=$REPO_DIR/scripts/framework-doctor.sh"
+  --link "$FRAMEWORK_CODEX_HOME/agents/codex-framework-architect.toml=$REPO_DIR/.codex/agents/architect.toml"
+  --link "$FRAMEWORK_CODEX_HOME/agents/codex-framework-reviewer.toml=$REPO_DIR/.codex/agents/reviewer.toml"
+  --link "$FRAMEWORK_CODEX_HOME/agents/codex-framework-tester.toml=$REPO_DIR/.codex/agents/tester.toml"
+  --link "$FRAMEWORK_CODEX_HOME/rules/codex-framework-safety.rules=$REPO_DIR/.codex/rules/safety.rules"
+)
+# All auxiliary collisions are checked before the skill installer can write.
+python3 "$REPO_DIR/scripts/framework-link-install.py" --preflight "${link_args[@]}"
 
-rm -rf "$PACK_ROOT"
-mkdir -p "$PACK_ROOT"
+install_args=(
+  --root "$REPO_DIR"
+  --skills-root "$USER_SKILLS_ROOT"
+  --state "$INSTALL_STATE"
+  --core "$REPO_DIR/skills/core.txt"
+  --legacy-root "$LEGACY_INSTALL_ROOT"
+  --legacy-root "$LEGACY_PACK_ROOT"
+)
 for pack in $SELECTED_PACKS; do
-  manifest="$REPO_DIR/skills/packs/$pack.txt"
-  pack_dir="$PACK_ROOT/$pack"
-  mkdir -p "$pack_dir"
-  while IFS= read -r skill; do
-    case "$skill" in ''|'#'*) continue ;; esac
-    ln -sfn "$REPO_DIR/skills/$skill" "$pack_dir/$skill"
-  done < "$manifest"
+  install_args+=(--pack "$pack")
 done
-ln -sfn "$REPO_DIR" "$CODEX_HOME/frameworks/codex-framework"
-ln -sfn "$REPO_DIR/scripts/framework-stack-context.py" "$CODEX_HOME/bin/codex-framework-stack-context"
+python3 "$REPO_DIR/scripts/framework-install.py" "${install_args[@]}"
 
-rm -f "$CODEX_HOME/agents"/codex-framework-*.toml
-for agent_file in "$REPO_DIR"/.codex/agents/*.toml; do
-  [ -f "$agent_file" ] || continue
-  ln -sfn "$agent_file" "$CODEX_HOME/agents/codex-framework-$(basename "$agent_file")"
-done
-ln -sfn "$REPO_DIR/.codex/rules/safety.rules" "$CODEX_HOME/rules/codex-framework-safety.rules"
+python3 "$REPO_DIR/scripts/framework-link-install.py" "${link_args[@]}"
 
 if [ -e "$GLOBAL_GUIDANCE_TARGET" ] || [ -L "$GLOBAL_GUIDANCE_TARGET" ]; then
   if [ "$GLOBAL_GUIDANCE_TARGET" -ef "$GLOBAL_GUIDANCE_SOURCE" ]; then
@@ -118,14 +119,18 @@ fi
 
 cat <<EOF
 Installed skills:
-  $INSTALL_ROOT (curated native core from $REPO_DIR/skills/core.txt)
-  $PACK_ROOT (selected packs:${SELECTED_PACKS:- none})
+  $USER_SKILLS_ROOT (direct native USER skills; selected global packs:${SELECTED_PACKS:- none})
+Removed legacy framework skill namespaces:
+  $LEGACY_INSTALL_ROOT
+  $LEGACY_PACK_ROOT
 Installed native agents:
-  $CODEX_HOME/agents/codex-framework-*.toml -> $REPO_DIR/.codex/agents/*.toml
+  $FRAMEWORK_CODEX_HOME/agents/codex-framework-*.toml -> $REPO_DIR/.codex/agents/*.toml
 Installed native rules:
-  $CODEX_HOME/rules/codex-framework-safety.rules -> $REPO_DIR/.codex/rules/safety.rules
+  $FRAMEWORK_CODEX_HOME/rules/codex-framework-safety.rules -> $REPO_DIR/.codex/rules/safety.rules
 Installed dynamic stack resolver:
-  $CODEX_HOME/bin/codex-framework-stack-context -> $REPO_DIR/scripts/framework-stack-context.py
+  $FRAMEWORK_CODEX_HOME/bin/codex-framework-stack-context -> $REPO_DIR/scripts/framework-stack-context.py
+Installed effective-state doctor:
+  $FRAMEWORK_CODEX_HOME/bin/codex-framework-doctor -> $REPO_DIR/scripts/framework-doctor.sh
 Packaged plugin:
   $REPO_DIR/plugins/ai-codex-framework (optional hooks bundle; curated skills remain unchanged)
 Installed global guidance:
@@ -141,7 +146,7 @@ $(report_dep optional jq "jq")
 Next steps:
 1. Use native Codex directly: codex, codex doctor, codex update, codex mcp, codex plugin, codex review
 2. Start a new Codex session after installation so native skills and agents are discovered.
-3. Install domain-only packs explicitly with --pack, or add individual skills project-scoped when a task needs them.
+3. Install domain-only packs project-scoped with scripts/framework-skill-sync.sh, or pass --pack for an intentionally global pack.
 4. Use Codex directly for planning, issues, reviews, worktrees, plugins, and MCP.
 5. Run bash "$REPO_DIR/scripts/framework-health.sh" after framework changes.
 6. Enable native memories and multi-agent V2 in user config; use the same project config from Desktop and CLI.

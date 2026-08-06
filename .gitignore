@@ -2,10 +2,8 @@
 /.codex/runs/
 /.codex/specs/
 /.codex/hooks/
-/.codex/config.toml
 /.codex/native-next-prompt.txt
 /.codex/agents/*.local.toml
-/.codex-memory/
 /.codex/project.env
 /.idea/
 __pycache__/
