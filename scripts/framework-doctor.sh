@@ -195,27 +195,9 @@ if [ "$RUN_NATIVE" -eq 1 ]; then
   codex doctor --summary --json > "$native_json"
   native_status=$?
   set -e
-  if python3 - "$native_json" "$native_status" <<'PY'
-import json
-import os
-import sys
-
-path, raw_status = sys.argv[1:]
-report = json.load(open(path))
-failures = []
-for name, check in report.get("checks", {}).items():
-    if check.get("status") in {"ok", "idle"}:
-        continue
-    if name == "terminal.env" and not os.isatty(0) and check.get("details", {}).get("TERM") == "dumb":
-        continue
-    failures.append(f"{name}: {check.get('summary', check.get('status'))}")
-if failures:
-    print("\n".join(failures), file=sys.stderr)
-    raise SystemExit(1)
-PY
+  if python3 "$ROOT/scripts/framework-doctor-native.py" "$native_json" "$native_status"
   then
     ok 'native codex doctor has no actionable failures'
-    [ "$native_status" -eq 0 ] || note 'ignored TERM=dumb because this audit is running without a TTY'
   else
     fail 'native codex doctor reported an actionable failure'
   fi

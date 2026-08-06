@@ -23,7 +23,7 @@
   },
   "gateReceiptSha256": {
     "deterministicHealth": "ef7e05d909ed63a7b9a95ca3e7ebac767d56884fb894a10e7f3902c79a2a1326",
-    "effectiveInstallDoctor": "fc7643d35456a9ca321cae1405d9b305aa48fa3a3346cd5b32f1d7f577ece4c1",
+    "effectiveInstallDoctor": "871a13e598ed99d23849d49ddc67ea270187c08d2ff2ba843332fcd20a3dfefe",
     "liveVersionResolution": "3c2d07f7426ee0cf78edcfd1b67aec733d0c15c3045b183d13f16bfa103e8df7",
     "nativeSkillLoaderCanary": "5df9d5f651f2279cd42a476b2be2a4bfef198463a1d81e9e2765a9515f6ebac2"
   },
@@ -34,8 +34,8 @@
     "liveVersionResolution": "pass",
     "nativeSkillLoaderCanary": "pass"
   },
-  "generatedAt": "2026-08-06T16:04:43+00:00",
-  "gitHeadAtGeneration": "16e6008e66adf55be7efc1d75e06046367337b6e",
+  "generatedAt": "2026-08-06T16:29:16+00:00",
+  "gitHeadAtGeneration": "5558401b7b2e37b48a7f1d8939a04c5eab96b5f9",
   "schemaVersion": 1,
-  "sourceDigest": "23dc227795f651455236b4f9569ad8a2178ea9baada0ccbde7100132b4456306"
+  "sourceDigest": "d942ee45a000db6510c7e016142bf341d637a278ee814d304ba8811972657d5b"
 }
