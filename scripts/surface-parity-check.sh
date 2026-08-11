@@ -17,6 +17,9 @@ check() {
 }
 
 check 'project config parses in native Codex' bash -c "codex --strict-config -C '$ROOT' --help >/dev/null"
+if git -C "$ROOT" rev-parse --git-dir >/dev/null 2>&1; then
+  check 'project config is eligible for source control, not ignored local state' bash -c "! git -C '$ROOT' check-ignore -q .codex/config.toml"
+fi
 check 'shared native agent concurrency is bounded' grep -Eq '^max_concurrent_threads_per_session = 4$' "$CONFIG"
 check 'shared native agent delegation is one level deep' grep -Eq '^max_depth = 1$' "$CONFIG"
 check 'no surface-specific runtime branch exists' bash -c "! rg -n -i 'surface[[:space:]]*=' '$ROOT'/scripts '$ROOT'/.codex --glob '!runs/**' --glob '!hooks/events.jsonl'"

@@ -2,10 +2,10 @@
 name: framework-management
 description: Audit and maintain this native Codex framework, including skills, profiles, hooks, setup, documentation, routing, and corpus governance. Use when changing or evaluating the framework itself; do not use for ordinary application implementation or repository setup.
 metadata:
-  version: 2.0
+  version: 2.1
   argument-hint: "mode (audit/create/update/consolidate/validate), scope, acceptance criteria"
   owner: framework-maintainers
-  reviewed: "2026-07-26"
+  reviewed: "2026-08-06"
 ---
 
 # Framework Management
@@ -92,6 +92,9 @@ bash scripts/framework-eval.sh
 bash scripts/framework-drift-check.sh
 bash scripts/surface-parity-check.sh
 bash scripts/framework-health.sh
+bash scripts/framework-doctor.sh
+bash scripts/framework-skill-loader-live-eval.sh
+bash scripts/framework-release.sh
 ```
 
 Use `scripts/framework-live-eval.sh` when routing, profiles, or agent ownership changes and live Codex usage is acceptable.

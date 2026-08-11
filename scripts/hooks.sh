@@ -38,7 +38,7 @@ max_concurrent_threads_per_session = 4
 max_depth = 1
 
 [[hooks.PreToolUse]]
-matcher = "Bash|Exec|Shell|Terminal"
+matcher = "^Bash$"
 
 [[hooks.PreToolUse.hooks]]
 type = "command"
@@ -47,8 +47,6 @@ timeout = 5
 statusMessage = "Checking safety policy"
 
 [[hooks.Stop]]
-matcher = ".*"
-
 [[hooks.Stop.hooks]]
 type = "command"
 command = 'bash "\$(git rev-parse --show-toplevel)/.codex/hooks/stop.sh"'

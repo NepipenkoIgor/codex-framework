@@ -1,0 +1,41 @@
+{
+  "artifactPolicy": "Compact verdict manifest only; raw model transcripts remain task-owned ephemeral data.",
+  "changedSkillEvidence": {
+    "certified": 1,
+    "contractSha256": "37f68bbf81a4465621f1942b34145439b82463a176b938b7787dbe3ae33665b8",
+    "qualityArtifactSha256": "d1b7999713b194ceee9a77704b1a5a06be158a6e1d69c0a5848efd21db2b0190",
+    "routingArtifactSha256": "984c9edf8e9e64b063506ca73a4b0a94d51a8f0bde4d1c8b9d35d411437e9ec4",
+    "routingDigest": "79ed715b19e3ebdae3564dcbb4108f893845f938348b9a001c11bae7886a44eb",
+    "routingPassed": 4,
+    "routingTotal": 4,
+    "semanticDigest": "454a08b6386d8f43338decc11f0308f05d16a065e002404e33ac5b9e35d4a008",
+    "skill": "framework-management",
+    "skillSha256": "df3f4e97b4feac74e2a443540c98c6c3b9175151060b73783437d7277c89b6aa"
+  },
+  "codexVersion": "codex-cli 0.146.1",
+  "corpus": {
+    "largestSkillBytes": 9606,
+    "references": 46,
+    "skillDescriptionCharacters": 42650,
+    "skillMainLines": 6085,
+    "skills": 155,
+    "versionResolvers": 25
+  },
+  "gateReceiptSha256": {
+    "deterministicHealth": "ef7e05d909ed63a7b9a95ca3e7ebac767d56884fb894a10e7f3902c79a2a1326",
+    "effectiveInstallDoctor": "871a13e598ed99d23849d49ddc67ea270187c08d2ff2ba843332fcd20a3dfefe",
+    "liveVersionResolution": "3c2d07f7426ee0cf78edcfd1b67aec733d0c15c3045b183d13f16bfa103e8df7",
+    "nativeSkillLoaderCanary": "5df9d5f651f2279cd42a476b2be2a4bfef198463a1d81e9e2765a9515f6ebac2"
+  },
+  "gates": {
+    "changedSkillCertification": "pass",
+    "deterministicHealth": "pass",
+    "effectiveInstallDoctor": "pass",
+    "liveVersionResolution": "pass",
+    "nativeSkillLoaderCanary": "pass"
+  },
+  "generatedAt": "2026-08-06T16:29:16+00:00",
+  "gitHeadAtGeneration": "5558401b7b2e37b48a7f1d8939a04c5eab96b5f9",
+  "schemaVersion": 1,
+  "sourceDigest": "d942ee45a000db6510c7e016142bf341d637a278ee814d304ba8811972657d5b"
+}

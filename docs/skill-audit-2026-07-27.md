@@ -73,7 +73,7 @@ No community skill replaces a maintained local skill without preserved identical
 - Routing and semantic digests are scoped per skill around a shared catalog digest, so repairing one case, body or scenario does not invalidate unrelated passing evidence.
 - `framework-health.sh` no longer repeats quality checks already owned by `framework-eval.sh`.
 
-## Audit score and release evidence
+## Historical audit score and release evidence
 
 The framework-management audit scores seven dimensions from 1–10. A score is `10` only when the applicable release gate has direct evidence; a pending dimension cannot be rounded up. All seven dimensions now meet the release rubric after one independent falsification review, the resulting revision, strict recertification and the full final gate suite. This is a release assessment, not a mathematical guarantee that future model behavior, external registries or project evidence cannot drift.
 
@@ -89,7 +89,7 @@ The framework-management audit scores seven dimensions from 1–10. A score is `
 
 The independent reviewer falsified the original semantic green result: candidate omissions could be cured by skill prose, evaluator implementation was absent from evidence digests, stack discovery could escape the repository or prefer an installed prerelease over the lockfile, preview/prerelease tracks were insufficiently rejected, community claims exceeded preserved benchmark evidence, and setup could overwrite an existing empty guidance file. The revision made candidate-output coverage mandatory, bound evaluator source into routing/semantic digests, enforced repository boundaries plus lockfile authority and stable/LTS-only resolution, downgraded community conclusions to reproducible evidence, and preserved every existing setup target. The strict semantic corpus was then regenerated rather than reusing the invalid evidence.
 
-Current release evidence:
+Historical release evidence captured on 2026-07-27 (the temporary raw artifact paths below are not a current reproducible certification):
 
 - `python3 scripts/framework-skill-quality.py certify --artifact-dir /tmp/codex-framework-quality-finalrun.nw2rYh` — 155/155 current strict artifacts certified with zero critical findings.
 - The preserved routing artifacts cover 631/631 cases; `bash scripts/framework-live-eval.sh` covers 8/8 native owner/delegation cases.

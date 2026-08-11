@@ -1,0 +1,49 @@
+name: Framework
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: framework-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  CODEX_CLI_VERSION: 0.146.1
+
+jobs:
+  deterministic:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Install pinned Codex CLI
+        run: npm install --global "@openai/codex@${CODEX_CLI_VERSION}"
+      - name: Syntax and compile checks
+        run: |
+          find scripts plugins -type f -name '*.sh' -print0 | xargs -0 -n1 bash -n
+          python3 -m compileall -q scripts
+          python3 -m json.tool plugins/ai-codex-framework/.codex-plugin/plugin.json >/dev/null
+          python3 -m json.tool plugins/ai-codex-framework/hooks/hooks.json >/dev/null
+      - name: Framework source health
+        run: bash scripts/framework-health.sh
+      - name: Project pack and doctor fixtures
+        run: |
+          bash scripts/framework-skill-sync.sh .
+          bash scripts/framework-doctor-self-test.sh
+      - name: Fresh-checkout reproducibility
+        run: |
+          fixture="$(mktemp -d)"
+          git archive HEAD | tar -x -C "$fixture"
+          bash "$fixture/scripts/framework-health.sh"
+          rm -r "$fixture"
+      - name: Release evidence is current for source and pinned runtime
+        run: python3 scripts/framework-release-evidence.py check
