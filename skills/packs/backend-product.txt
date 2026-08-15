@@ -1,0 +1,6 @@
+# Backend product and commercial capabilities
+email-notifications
+feature-flags
+graphql-development
+multi-tenancy-design
+payment-integration

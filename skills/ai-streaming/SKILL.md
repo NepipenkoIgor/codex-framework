@@ -10,13 +10,13 @@ metadata:
 
 # AI Streaming
 
-Run `python3 scripts/framework-stack-context.py project <path>` and inspect the exact core/provider SDK pins, installed types, route runtime, client adapter, proxy/CDN buffering, protocol headers, event schema, target-browser stream support, UI state, tools/side effects and tests as one compatibility chain. Existing pins and matching official SDK/runtime/browser documentation are authority; record the resulting response/decoder capability decision. Use `python3 scripts/framework-stack-context.py latest ai-sdk <other-technologies...>` only for greenfield selection. Treat SDK, protocol, runtime or client migration as separate scope.
+The executable plan must include running `python3 scripts/framework-stack-context.py project <path>` before interpreting or changing an existing project; saying the command was not run is an honest result boundary, not a substitute for planning it. Inspect its output with the exact core/provider SDK pins, installed types, route runtime, client adapter, proxy/CDN buffering, protocol headers, event schema, target-browser stream support, UI state, tools/side effects and tests as one compatibility chain. Existing pins and matching official SDK/runtime/browser documentation are authority; record the resulting response/decoder capability decision. Use `python3 scripts/framework-stack-context.py latest ai-sdk <other-technologies...>` only for greenfield selection. Treat SDK, protocol, runtime or client migration as separate scope.
 
 Prefer the installed SDK's proven stream encoder/decoder and response method when client and server share its protocol. Current AI SDK docs expose `streamText(...).toUIMessageStreamResponse()` for UI-message streams, but apply only methods present in installed types. Do not parse an SDK-specific data protocol as generic SSE.
 
 ## Raw SSE Contract
 
-Use a standards-tested SSE library where practical. A custom decoder must be incremental and covered by byte-level fixtures:
+Select an installed, maintained, standards-tested SSE decoder first and record the capability evidence. Implement a custom decoder only after proving that no compatible maintained decoder is installed or practical for the selected runtime/protocol, and record that reason. A justified custom decoder must be incremental and covered by byte-level fixtures:
 
 - Decode UTF-8 with a streaming `TextDecoder`; at EOF call the final `decode()` to flush pending bytes.
 - Recognize CRLF, lone CR and lone LF even when separators cross chunks. Do not use `buffer.split('\n')` as the protocol parser.
@@ -51,6 +51,7 @@ Track at least request identity, generation identity, status (`connecting`, `str
 ## Output Contract
 
 - Installed protocol/response method and framing schema
+- Maintained decoder selected, or concrete evidence why a custom decoder was necessary
 - Decoder, state, terminal and partial-result contracts
 - Abort/backpressure/reconnect and side-effect reconciliation
 - Byte-level and deployed-path evidence

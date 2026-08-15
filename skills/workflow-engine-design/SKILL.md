@@ -1,6 +1,6 @@
 ---
 name: workflow-engine-design
-description: Design durable workflow execution with authoritative state transitions, timers, retries, human waits, idempotent effects, compensation, replay, versioning, and recovery. Use when long-running orchestration semantics are unresolved; do not use for simple in-request sequences or direct implementation.
+description: Design platform-neutral durable workflow execution with authoritative state transitions, timers, retries, human waits, idempotent effects, compensation, replay, versioning, and recovery. Use when long-running orchestration semantics are unresolved; route n8n-specific architecture to automation-n8n-architecture, and do not use for simple in-request sequences or direct implementation.
 metadata:
   owner: codex-framework
   reviewed: "2026-07-27"

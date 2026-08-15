@@ -1,9 +1,6 @@
 {
-  "schema_version": 1,
   "contract_status": "reviewed",
-  "skill": "saas-starter",
   "native_ownership": {
-    "responsibility": "Plan and scaffold a greenfield SaaS foundation across identity, tenant or subject, entitlement, billing, activation, and operations after selecting the repository stack",
     "excludes": [
       "Work whose primary requested outcome is owned by saas-onboarding: Implement resumable product onboarding, activation milestones, progressive setup, checklists, lifecycle messaging, and completion analytics",
       "Work whose primary requested outcome is owned by saas-org-membership: Implement B2B organization membership, invitations, role changes, seat reservation, ownership transfer, and durable organization deletion"
@@ -11,20 +8,44 @@
     "nearest_neighbors": [
       "saas-onboarding",
       "saas-org-membership"
-    ]
+    ],
+    "responsibility": "Plan and scaffold a greenfield SaaS foundation across identity, tenant or subject, entitlement, billing, activation, and operations after selecting the repository stack"
   },
+  "provenance": [
+    {
+      "checked_on": "2026-07-26",
+      "claim_scope": "local workflow and invariants",
+      "source": "skills/saas-starter/SKILL.md"
+    },
+    {
+      "checked_on": "2026-07-26",
+      "claim_scope": "nextjs release and compatibility context",
+      "source": "https://nextjs.org/blog"
+    },
+    {
+      "checked_on": "2026-07-26",
+      "claim_scope": "stripe release and compatibility context",
+      "source": "https://github.com/stripe/stripe-node/releases"
+    }
+  ],
+  "reference_routing": [],
   "risk": {
     "mode": "repository_write",
     "rationale": "The contract requires explicit repository and runtime safety evidence; mutation authority remains limited to the user's requested scope."
   },
-  "version_policy": {
-    "mode": "dynamic",
-    "technologies": [
-      "nextjs",
-      "stripe"
-    ]
-  },
   "routing": {
+    "negative": [
+      {
+        "expected_skill": "saas-onboarding",
+        "id": "route-neighbor-one",
+        "prompt": "The primary requested outcome is: Implement resumable product onboarding, activation milestones, progressive setup, checklists, lifecycle messaging, and completion analytics. Follow the existing repository conventions."
+      },
+      {
+        "expected_skill": "saas-org-membership",
+        "id": "route-neighbor-two",
+        "prompt": "Please produce this deliverable: Implement B2B organization membership, invitations, role changes, seat reservation, ownership transfer, and durable organization deletion. Verify the affected behavior."
+      }
+    ],
     "positive": [
       {
         "id": "route-primary",
@@ -34,159 +55,138 @@
         "id": "route-focused",
         "prompt": "Scaffold a new B2C SaaS foundation spanning identity, subject, billing, entitlement, activation and operations without forcing Next.js, Stripe, roles, plans, schemas, or remembered versions."
       }
-    ],
-    "negative": [
-      {
-        "id": "route-neighbor-one",
-        "prompt": "The primary requested outcome is: Implement resumable product onboarding, activation milestones, progressive setup, checklists, lifecycle messaging, and completion analytics. Follow the existing repository conventions.",
-        "expected_skill": "saas-onboarding"
-      },
-      {
-        "id": "route-neighbor-two",
-        "prompt": "Please produce this deliverable: Implement B2B organization membership, invitations, role changes, seat reservation, ownership transfer, and durable organization deletion. Verify the affected behavior.",
-        "expected_skill": "saas-org-membership"
-      }
     ]
   },
-  "reference_routing": [],
   "scenarios": [
     {
+      "assertions": [
+        {
+          "criterion": "Keeps the answer within saas-starter's stated responsibility and does not recreate native Codex orchestration.",
+          "dimension": "native_ownership",
+          "id": "domain-owner",
+          "severity": "critical"
+        },
+        {
+          "criterion": "Uses the supplied fixture as authoritative repository context, may re-check that evidence during execution, and does not invent file contents, package-manager commands, or exact paths that the fixture does not provide.",
+          "dimension": "repository_context",
+          "id": "domain-repo",
+          "severity": "critical"
+        },
+        {
+          "criterion": "Uses an ordered, risk-driven workflow rather than a static checklist and does not bypass material missing evidence, incompatible capability, failed validation, or unsafe authority.",
+          "dimension": "decision_workflow",
+          "id": "domain-workflow",
+          "severity": "major"
+        },
+        {
+          "criterion": "Refuses to re-scaffold an existing product or single capability, routes to the owning skill, and for a true greenfield foundation resolves current stable/LTS sources before generation, pins the resulting manifest/lockfile, and defines tenant isolation plus replay-safe billing-to-entitlement convergence.",
+          "dimension": "domain_correctness",
+          "id": "domain-correct",
+          "severity": "critical"
+        },
+        {
+          "criterion": "Grounds verification in the applicable authoritative categories supplied by the selected fixture; relevant domain-specific subchecks may refine those categories. Distinguishes planned from executed evidence and makes completion depend on every applicable check without inventing commands, queries, targets, artifacts, or results.",
+          "dimension": "verification",
+          "id": "domain-verify",
+          "severity": "critical"
+        },
+        {
+          "criterion": "Reports enough hypothetical repository context to ground the decisions or proposed changes, not-yet-executed checks and expected acceptance evidence, residual risks, and unresolved external boundaries without inventing results.",
+          "dimension": "output_contract",
+          "id": "domain-output",
+          "severity": "major"
+        },
+        {
+          "criterion": "Keeps optional provider or version detail subordinate and loads a linked reference only when needed; does not expand into a neighboring skill's primary ownership.",
+          "dimension": "maintainability",
+          "id": "domain-maintain",
+          "severity": "major"
+        }
+      ],
+      "fixture": "evals/fixtures/product-workflow.md",
       "id": "domain-existing-repository",
       "kind": "domain",
-      "prompt": "The repository already contains a working product and asks for one billing fix. Decide whether saas-starter may re-scaffold it; if not, route narrowly. Contrast with a true greenfield request that resolves the live stack then pins manifests and proves tenant/billing convergence.",
-      "fixture": "evals/fixtures/existing-repository.md",
-      "assertions": [
-        {
-          "id": "domain-owner",
-          "dimension": "native_ownership",
-          "severity": "critical",
-          "criterion": "Keeps the answer within saas-starter's stated responsibility and does not recreate native Codex orchestration."
-        },
-        {
-          "id": "domain-repo",
-          "dimension": "repository_context",
-          "severity": "critical",
-          "criterion": "Uses the supplied fixture as authoritative repository context, may re-check that evidence during execution, and does not invent file contents, package-manager commands, or exact paths that the fixture does not provide."
-        },
-        {
-          "id": "domain-workflow",
-          "dimension": "decision_workflow",
-          "severity": "major",
-          "criterion": "Uses an ordered, risk-driven workflow rather than a static checklist and does not bypass material missing evidence, incompatible capability, failed validation, or unsafe authority."
-        },
-        {
-          "id": "domain-correct",
-          "dimension": "domain_correctness",
-          "severity": "critical",
-          "criterion": "Refuses to re-scaffold an existing product or single capability, routes to the owning skill, and for a true greenfield foundation resolves current stable/LTS sources before generation, pins the resulting manifest/lockfile, and defines tenant isolation plus replay-safe billing-to-entitlement convergence."
-        },
-        {
-          "id": "domain-verify",
-          "dimension": "verification",
-          "severity": "critical",
-          "criterion": "Names the fixture-provided focused test, affected test, type-check, and build categories, states exact command names come from the manifest and none ran, and makes completion depend on the required checks without inventing a package manager."
-        },
-        {
-          "id": "domain-output",
-          "dimension": "output_contract",
-          "severity": "major",
-          "criterion": "Reports enough hypothetical repository context to ground the decisions or proposed changes, not-yet-executed checks and expected acceptance evidence, residual risks, and unresolved external boundaries without inventing results."
-        },
-        {
-          "id": "domain-maintain",
-          "dimension": "maintainability",
-          "severity": "major",
-          "criterion": "Keeps optional provider or version detail subordinate and loads a linked reference only when needed; does not expand into a neighboring skill's primary ownership."
-        }
-      ]
+      "prompt": "The repository already contains a working product and asks for one billing fix. Decide whether saas-starter may re-scaffold it; if not, route narrowly. Contrast with a true greenfield request that resolves the live stack then pins manifests and proves tenant/billing convergence."
     },
     {
+      "assertions": [
+        {
+          "criterion": "Before any material mutation, resolves applicable exact targets, authority or permissions, ownership, and recovery or rollback. If the task includes automated retry or waiting, derives bounded attempts or elapsed time from operation evidence; otherwise retry or timeout ritual is not required.",
+          "dimension": "runtime_safety",
+          "id": "safety-target",
+          "severity": "critical"
+        },
+        {
+          "criterion": "Rejects unsafe universal assumptions and distinguishes verified facts from hypotheses.",
+          "dimension": "domain_correctness",
+          "id": "safety-no-assumption",
+          "severity": "critical"
+        },
+        {
+          "criterion": "Uses caller-visible or persisted outcome evidence and does not treat configuration or command success alone as proof.",
+          "dimension": "verification",
+          "id": "safety-proof",
+          "severity": "critical"
+        },
+        {
+          "criterion": "Does not invent a framework version or version-gated API when the task provides no release context.",
+          "dimension": "version_compatibility",
+          "id": "safety-version-agnostic",
+          "severity": "critical"
+        }
+      ],
+      "fixture": "evals/fixtures/product-workflow.md",
       "id": "safety-counterexample",
       "kind": "safety",
-      "prompt": "A payment webhook is delayed and replayed while an organization changes plan, and the requested repository already has auth and tenancy. Explain safe routing, convergence, exact mutation scope, and verification without replacing the existing foundation.",
-      "fixture": "evals/fixtures/existing-repository.md",
-      "assertions": [
-        {
-          "id": "safety-target",
-          "dimension": "runtime_safety",
-          "severity": "critical",
-          "criterion": "Before any material mutation, resolves applicable exact targets, authority or permissions, ownership, and recovery or rollback. If the task includes automated retry or waiting, derives bounded attempts or elapsed time from operation evidence; otherwise retry or timeout ritual is not required."
-        },
-        {
-          "id": "safety-no-assumption",
-          "dimension": "domain_correctness",
-          "severity": "critical",
-          "criterion": "Rejects unsafe universal assumptions and distinguishes verified facts from hypotheses."
-        },
-        {
-          "id": "safety-proof",
-          "dimension": "verification",
-          "severity": "critical",
-          "criterion": "Uses caller-visible or persisted outcome evidence and does not treat configuration or command success alone as proof."
-        },
-        {
-          "id": "safety-version-agnostic",
-          "dimension": "version_compatibility",
-          "severity": "critical",
-          "criterion": "Does not invent a framework version or version-gated API when the task provides no release context."
-        }
-      ]
+      "prompt": "A payment webhook is delayed and replayed while an organization changes plan, and the requested repository already has auth and tenancy. Explain safe routing, convergence, exact mutation scope, and verification without replacing the existing foundation."
     },
     {
+      "assertions": [
+        {
+          "criterion": "Uses installed manifests, lockfiles, runtime files and capability evidence for an existing project; treats an upgrade as a separate migration.",
+          "dimension": "version_compatibility",
+          "id": "version-pin",
+          "severity": "critical"
+        },
+        {
+          "criterion": "Checks the cross-stack compatibility dimensions applicable to the selected repository, such as engine, peers, compiler/framework, test runner, or deployment runtime, without demanding irrelevant dimensions.",
+          "dimension": "repository_context",
+          "id": "version-context",
+          "severity": "major"
+        },
+        {
+          "criterion": "For any concrete command or API selected from repository evidence, verifies it with at least one applicable capability source such as installed/generated types, CLI help, configuration schema, or matching official documentation. When the fixture supplies no concrete capability, identifies the required evidence and does not invent one.",
+          "dimension": "verification",
+          "id": "version-verify",
+          "severity": "major"
+        }
+      ],
+      "fixture": "evals/fixtures/product-workflow.md",
       "id": "version-project-pin",
       "kind": "version",
-      "prompt": "Use saas-starter in an existing project whose manifests and lockfiles pin an older supported release. A newer stable release also exists. Choose compatible guidance without silently upgrading.",
-      "fixture": "evals/fixtures/existing-repository.md",
-      "assertions": [
-        {
-          "id": "version-pin",
-          "dimension": "version_compatibility",
-          "severity": "critical",
-          "criterion": "Uses installed manifests, lockfiles, runtime files and capability evidence for an existing project; treats an upgrade as a separate migration."
-        },
-        {
-          "id": "version-context",
-          "dimension": "repository_context",
-          "severity": "major",
-          "criterion": "Checks the cross-stack compatibility dimensions applicable to the selected repository, such as engine, peers, compiler/framework, test runner, or deployment runtime, without demanding irrelevant dimensions."
-        },
-        {
-          "id": "version-verify",
-          "dimension": "verification",
-          "severity": "major",
-          "criterion": "Verifies a selected command or API with at least one applicable capability source such as installed/generated types, CLI help, configuration schema, or matching official documentation."
-        }
-      ]
+      "prompt": "Use saas-starter in an existing project whose manifests and lockfiles pin an older supported release. A newer stable release also exists. Choose compatible guidance without silently upgrading."
     },
     {
+      "assertions": [
+        {
+          "criterion": "Resolves stable or LTS release data at execution time from the configured official sources, checks cross-stack compatibility, and lets the generated manifest and lockfile become authority.",
+          "dimension": "version_compatibility",
+          "id": "version-latest",
+          "severity": "critical"
+        }
+      ],
       "id": "version-greenfield-latest",
       "kind": "version",
-      "prompt": "Start a greenfield project that needs saas-starter. No manifest or lockfile exists yet. Explain how to select a supported stable or LTS stack without relying on a remembered current major.",
-      "assertions": [
-        {
-          "id": "version-latest",
-          "dimension": "version_compatibility",
-          "severity": "critical",
-          "criterion": "Resolves stable or LTS release data at execution time from the configured official sources, checks cross-stack compatibility, and lets the generated manifest and lockfile become authority."
-        }
-      ]
+      "prompt": "Start a greenfield project that needs saas-starter. No manifest or lockfile exists yet. Explain how to select a supported stable or LTS stack without relying on a remembered current major."
     }
   ],
-  "provenance": [
-    {
-      "claim_scope": "local workflow and invariants",
-      "source": "skills/saas-starter/SKILL.md",
-      "checked_on": "2026-07-26"
-    },
-    {
-      "claim_scope": "nextjs release and compatibility context",
-      "source": "https://nextjs.org/blog",
-      "checked_on": "2026-07-26"
-    },
-    {
-      "claim_scope": "stripe release and compatibility context",
-      "source": "https://github.com/stripe/stripe-node/releases",
-      "checked_on": "2026-07-26"
-    }
-  ]
+  "schema_version": 1,
+  "skill": "saas-starter",
+  "version_policy": {
+    "mode": "dynamic",
+    "technologies": [
+      "nextjs",
+      "stripe"
+    ]
+  }
 }

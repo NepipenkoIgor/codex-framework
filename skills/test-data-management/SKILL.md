@@ -4,7 +4,7 @@ description: Implement isolated test factories, fixtures, seeds, anonymized data
 metadata:
   owner: codex-framework
   reviewed: "2026-07-27"
-  version: 2.0
+  version: 2.1
   argument-hint: "exact environment/database, schemas and relationships, worker isolation, volume, privacy and retention policy"
 ---
 
@@ -14,7 +14,7 @@ Implement test data management for $ARGUMENTS.
 
 Read repository instructions, manifests/lockfiles, database configuration, migrations/schema, test runner and workers, existing factories/seeds, environment guards, CI topology, privacy policy, and cleanup conventions. Resolve the exact database/project/account, environment, schema/namespace and credentials from trusted configuration. Prove it is an approved non-production target before any mutation; ambiguous ownership or production reachability is a stop condition.
 
-Preserve installed libraries and repository patterns. Verify APIs from installed types/CLI/schema or matching official docs. For greenfield tool selection, use `scripts/framework-stack-context.py`; never upgrade a test stack incidentally.
+Preserve installed libraries and repository patterns. Verify APIs from installed types/CLI/schema or matching official docs, and validate the applicable dependency-engine, peer-dependency, compiler/framework, test-runner and deployment-runtime relationships as one mutually compatible stack. For greenfield tool selection, use `scripts/framework-stack-context.py`; never upgrade a test stack incidentally.
 
 ## Data design
 

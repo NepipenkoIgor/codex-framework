@@ -12,7 +12,7 @@ Manage the ADR requested in $ARGUMENTS.
 
 ## Establish the decision record
 
-Read repository instructions, ADR index/templates/numbering, related ADRs, current code/configuration, issues/specs and available implementation evidence. Identify whether a decision has actually been made, by whom, and with what status. If authority or outcome is absent, create a proposed record or decision draft; never invent consensus, acceptance, dates, owners, alternatives, evidence or implementation results.
+Read repository instructions, ADR index/templates/numbering, related ADRs, current code/configuration, issues/specs and available implementation evidence. Identify whether a decision has actually been made, by whom, and with what status. Before creating even a proposed ADR or draft, resolve the exact repository path, writable scope, applicable mutation permission, file owner, and recovery for a conflicting write; if any is unavailable, provide the draft in the response without writing it. If decision authority or outcome is absent, label the content proposed; never invent consensus, acceptance, dates, owners, alternatives, evidence or implementation results.
 
 Use an ADR when a durable architectural, data, API, security, deployment or ownership choice has meaningful alternatives and consequences. Keep routine implementation detail in code/docs. Preserve repository format and location rather than imposing a universal template.
 

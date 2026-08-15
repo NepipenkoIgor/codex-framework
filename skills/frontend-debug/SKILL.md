@@ -4,7 +4,7 @@ description: Reproduce, localize, and fix a concrete frontend defect across rend
 metadata:
   owner: codex-framework
   reviewed: "2026-07-27"
-  version: 3.1
+  version: 3.3
   argument-hint: "symptom and expected behavior, exact URL/build/browser/account/time, reproduction steps and affected framework"
 ---
 
@@ -12,9 +12,11 @@ metadata:
 
 Debug and fix `$ARGUMENTS` within the authorized repository scope.
 
+If the target is greenfield and no runnable frontend defect exists, stop this workflow and route scaffolding/version selection to `project-setup` plus the applicable frontend implementation owner. `frontend-debug` may begin only after that owner provides a runnable baseline and concrete defect; it must not silently create the project itself.
+
 ## Reproduce and localize
 
-1. Capture exact expected versus observed behavior, URL/build/commit, browser/device, viewport, role/account, locale, timestamps, data/state, and reproduction sequence.
+1. Capture exact expected versus observed behavior, URL/build/commit, browser/device, viewport, role/account, locale, timestamps, data/state, and reproduction sequence. Start or attach to the repository-native dev server early and reproduce the route in the visible in-app Browser; a lost tab is recovered inside the same browser binding, not replaced by silent headless automation.
 2. Reproduce from a clean fresh load as well as navigation when initialization, cache, SSR, or hydration may differ. Do not rely on hot-reload state as evidence.
 3. Correlate browser console/network/performance evidence with server/provider logs when available. Redact secrets and PII.
 4. Trace ownership across rendered DOM/CSS, state and events, effects/watchers, router/cache, request/response, server/client serialization, hydration, and third-party boundaries. State hypotheses and falsifying observations.
@@ -22,7 +24,7 @@ Debug and fix `$ARGUMENTS` within the authorized repository scope.
 
 ## Capability and production boundaries
 
-- Generate stack context and use installed manifests, lockfiles, runtime config, generated types, browser targets, and matching official documentation. Do not assume current framework APIs.
+- Generate stack context and use installed manifests, lockfiles, runtime config, generated types, browser targets, and matching official documentation. Before applying a version-sensitive diagnosis or fix, verify the pinned frontend framework, runtime engine, peer-dependency graph, compiler/build tooling, test runner, browser targets, and deployment runtime as one mutual-compatibility chain. Do not assume current framework APIs.
 - Source maps are evidence only when they match the exact deployed artifact/runtime and are access-controlled; stale/local maps can misattribute a production stack.
 - A local fix is not production proof. Distinguish local, preview, deployed, authenticated, browser/device, and provider paths.
 - If immediate production mitigation is required, first obtain explicit authority for the exact production target and action. Then bound the affected traffic/data, choose a reversible feature flag/rollback/config action with owner and stop condition, preserve evidence, and avoid destructive cache/data actions without explicit authority.
@@ -36,6 +38,6 @@ Debug and fix `$ARGUMENTS` within the authorized repository scope.
 
 ## Verification and output
 
-- Rerun the exact reproduction, focused regression, and affected repository checks. Test fresh load, failure/retry, and relevant browser/server boundaries.
+- Rerun the exact reproduction interactively in the visible Browser, then the focused regression and affected repository checks. Test fresh load, failure/retry, and relevant browser/server boundaries; headless evidence is supplementary.
 - For mutations verify caller-visible and persisted outcomes, including duplicate activation or timeout-after-commit where material.
 - Report reproduction, root-cause evidence, fix and why it is bounded, commands/results, deployed paths actually verified, mitigation/rollback state, and residual risk.

@@ -1,0 +1,165 @@
+{
+  "schemaVersion": 1,
+  "reviewedAt": "2026-08-15T09:12:37+00:00",
+  "codexVersion": "codex-cli 0.147.0",
+  "latestReleaseTag": "rust-v0.147.0",
+  "changelogReviewedThrough": "2026-08-13",
+  "sources": [
+    {
+      "kind": "manual",
+      "url": "https://developers.openai.com/codex/",
+      "sha256": "a71e18659761b9e71fa636d978a4dfb7b7a4dca0bfdf312f56e8c5ed1032748c"
+    },
+    {
+      "kind": "changelog",
+      "url": "https://learn.chatgpt.com/docs/changelog",
+      "sha256": "bdabf01bf63368d7f9bdaf7a4590efc4ac2699ce8db932192e4d5733610f02c4"
+    },
+    {
+      "kind": "release",
+      "url": "https://github.com/openai/codex/releases/tag/rust-v0.147.0",
+      "sha256": "5c4c607f2d53595ee9a1e400ed7bb93a82b130626297169fc4c1c206b9f39432"
+    }
+  ],
+  "capabilities": [
+    {
+      "id": "portable-plugins",
+      "nativeFeature": "Portable Agent Plugins and repository marketplaces",
+      "decision": "adopted",
+      "localOverlap": "Direct pack projection remains necessary for REPO and IDE discovery during migration.",
+      "action": "Pilot one bounded frontend-design plugin and preserve direct discovery without simultaneous duplicate installation.",
+      "evidence": [
+        ".agents/plugins/marketplace.json",
+        "plugins/codex-frontend-design/.codex-plugin/plugin.json",
+        "docs/skills-governance.md"
+      ]
+    },
+    {
+      "id": "scheduled-tasks",
+      "nativeFeature": "Scheduled tasks, monitors, reminders, and later follow-up",
+      "decision": "replaced",
+      "localOverlap": "Repository pollers, retry daemons, and lifecycle hooks would duplicate native scheduling.",
+      "action": "Route explicitly recurring work to native automations and keep repository workflow engines absent.",
+      "evidence": [
+        "AGENTS.md",
+        "templates/global/AGENTS.md",
+        "templates/project/AGENTS.md"
+      ]
+    },
+    {
+      "id": "task-ergonomics",
+      "nativeFeature": "Task names, pins, sections, forks, and handoff",
+      "decision": "adopted",
+      "localOverlap": "Local status dashboards and handoff files duplicate native task state.",
+      "action": "Use native task ergonomics for long work only when the user requested the corresponding task boundary.",
+      "evidence": [
+        "AGENTS.md",
+        "templates/global/AGENTS.md",
+        "README.md"
+      ]
+    },
+    {
+      "id": "browser-developer-mode",
+      "nativeFeature": "Visible Browser with DOM, console, network, runtime, and profiling evidence",
+      "decision": "adopted",
+      "localOverlap": "Browser reset wrappers and silent headless acceptance duplicate or weaken native Browser control.",
+      "action": "Start visible interactive UI verification early and retain headless checks only as supplemental regression evidence.",
+      "evidence": [
+        "AGENTS.md",
+        "docs/interactive-development.md",
+        "README.md"
+      ]
+    },
+    {
+      "id": "record-and-replay",
+      "nativeFeature": "Record and Replay for demonstrated Computer Use workflows",
+      "decision": "permission-gated",
+      "localOverlap": "A repository recorder or browser macro would bypass native consent and availability gates.",
+      "action": "Offer only after a user demonstrates a repetitive workflow; never enable or simulate recording automatically.",
+      "evidence": [
+        "AGENTS.md",
+        "docs/framework-audit-2026-08-11.md"
+      ]
+    },
+    {
+      "id": "native-review",
+      "nativeFeature": "GitHub integration, codex review, and approval review",
+      "decision": "adopted",
+      "localOverlap": "General PR wrappers and an always-on custom reviewer duplicate native review surfaces.",
+      "action": "Use native review for routine work and reserve one read-only custom reviewer for high-risk falsification.",
+      "evidence": [
+        "AGENTS.md",
+        ".codex/agents/reviewer.toml",
+        "README.md"
+      ]
+    },
+    {
+      "id": "approval-review",
+      "nativeFeature": "Automatic approval review through --approve-for-me",
+      "decision": "permission-gated",
+      "localOverlap": "Framework-side auto-approval would weaken native sandbox and approval ownership.",
+      "action": "Use only when already enabled by the user for an eligible run; never set it from repository policy.",
+      "evidence": [
+        "AGENTS.md",
+        "README.md"
+      ]
+    },
+    {
+      "id": "native-agent-lifecycle",
+      "nativeFeature": "Native subagent lifecycle, model catalog, concurrency, and steering",
+      "decision": "removed",
+      "localOverlap": "Custom depth routing, forced routine model effort, and lifecycle hooks overrode native ownership.",
+      "action": "Remove the undocumented depth override and routine tester effort pin; retain only narrow architect/reviewer judgment profiles.",
+      "evidence": [
+        ".codex/config.toml",
+        ".codex/agents/tester.toml",
+        "docs/framework-audit-2026-08-11.md"
+      ]
+    },
+    {
+      "id": "external-agent-import",
+      "nativeFeature": "Native desktop and CLI import for supported agent setup and recent work",
+      "decision": "adopted",
+      "localOverlap": "A framework importer or conversation migration wrapper would duplicate native import and risk stale or duplicate state.",
+      "action": "Use native import only when the user chooses migration from a supported agent; keep repository bootstrap focused on tracked project configuration.",
+      "evidence": [
+        "README.md",
+        "templates/global/AGENTS.md"
+      ]
+    },
+    {
+      "id": "computer-history",
+      "nativeFeature": "Opt-in Computer History as a desktop recall and timeline source",
+      "decision": "permission-gated",
+      "localOverlap": "Memories or activity history cannot safely replace required repository instructions or current provider-visible environment identity.",
+      "action": "Allow Computer History only when natively available and user-enabled; treat it as optional recall and keep durable project authority in tracked instructions.",
+      "evidence": [
+        "README.md",
+        "templates/global/AGENTS.md"
+      ]
+    },
+    {
+      "id": "linux-desktop-preview",
+      "nativeFeature": "ChatGPT desktop app preview for supported Linux distributions",
+      "decision": "retained",
+      "localOverlap": "The framework's shared Desktop and CLI configuration contract remains valid while individual native capabilities vary by surface.",
+      "action": "Preserve one project configuration across surfaces and report unavailable Linux-preview capabilities explicitly instead of adding framework fallbacks.",
+      "evidence": [
+        "README.md",
+        "scripts/surface-parity-check.sh"
+      ]
+    },
+    {
+      "id": "daybreak-cyber-access",
+      "nativeFeature": "Daybreak Blue and separately approved Daybreak Red security access tiers",
+      "decision": "permission-gated",
+      "localOverlap": "Security skills must not choose restricted models, infer offensive authorization, or recreate trusted-access policy.",
+      "action": "Use an approved native tier only inside the exact authorized engagement; Blue approval does not grant Red, and model/access provisioning remains user, workspace, and organization owned.",
+      "evidence": [
+        "AGENTS.md",
+        "skills/security-audit/SKILL.md",
+        "skills/threat-modeling/SKILL.md"
+      ]
+    }
+  ]
+}

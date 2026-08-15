@@ -1,0 +1,4 @@
+interface:
+  display_name: "Design System Architecture"
+  short_description: "Design governed tokens, components, and adoption contracts"
+  default_prompt: "Design the requested design-system architecture from repository evidence, ownership, and consumer contracts."

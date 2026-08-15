@@ -1,0 +1,21 @@
+{
+  "name": "codex-frontend-design",
+  "version": "0.1.0",
+  "description": "Frontend design, accessibility, design-system, theme, and interface-consistency workflows.",
+  "author": {
+    "name": "Igor Nepipenko"
+  },
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "Codex Frontend Design",
+    "shortDescription": "Design and verify production web interfaces",
+    "longDescription": "Focused workflows for accessible frontend design direction, design systems, themes, implementation, and consistency review.",
+    "developerName": "Igor Nepipenko",
+    "category": "Developer Tools",
+    "capabilities": ["Read", "Write", "Interactive"],
+    "defaultPrompt": [
+      "Develop and interactively verify the frontend design direction.",
+      "Audit this interface for accessibility and design-system consistency."
+    ]
+  }
+}

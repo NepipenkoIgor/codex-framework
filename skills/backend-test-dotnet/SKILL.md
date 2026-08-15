@@ -4,7 +4,7 @@ description: Add .NET and ASP.NET Core unit, HTTP, persistence, auth, job, provi
 metadata:
   owner: codex-framework
   reviewed: "2026-07-27"
-  version: 1.1
+  version: 1.2
   domain: backend
   keywords: [dotnet, aspnet core, xunit, nunit, mstest, webapplicationfactory, ef core, integration test]
 ---
@@ -22,6 +22,6 @@ metadata:
 - Use an isolated database with the semantics required by the assertion. EF InMemory/SQLite may be suitable for behavior that does not depend on relational constraints, transactions or provider SQL; use the matching provider/container for migrations, constraints, locking and concurrency. No universal Testcontainers requirement.
 - Never call production databases or real external providers. Override endpoints/clients through repository seams, fail unhandled calls and isolate test credentials/config.
 - Preserve xUnit/NUnit/MSTest and existing assertions; bare framework asserts are not defects. Share factories/HttpClient only according to documented thread safety and test isolation, not blanket rules.
-- Seed actor, tenant and resource ownership. Cover unauthenticated, forbidden resource/tenant, invalid input, duplicate/concurrent mutation, concurrency-token conflict, rollback, cancellation and timeout-after-effect where relevant. Verify persisted outcome and idempotency, not only response status.
+- Seed actor, tenant and resource ownership. Cover unauthenticated, forbidden resource/tenant, invalid input, duplicate/concurrent mutation, concurrency-token conflict, rollback and cancellation. Whenever an external provider or job can accept a side effect before its response is lost, add an executable timeout-after-effect case that asserts reconciliation and retry/idempotency behavior; do not defer that case behind later inspection. Verify persisted outcome and idempotency, not only response status.
 
-Run focused and affected `dotnet` restore/build/test/analyzer/migration-contract commands from the repository. Report tests, installed harness/provider boundary, commands/results, cleanup and unverified deployment/provider risk.
+Run focused and affected `dotnet` restore/build/test/analyzer/migration-contract commands from the repository. Report the explicit invalid-input, unauthenticated, wrong-resource/tenant, duplicate/concurrent, conflict, rollback, cancellation, and timeout-after-effect coverage that is applicable, plus installed harness/provider boundary, commands/results, cleanup and unverified deployment/provider risk.

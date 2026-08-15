@@ -149,5 +149,5 @@ Next steps:
 3. Install domain-only packs project-scoped with scripts/framework-skill-sync.sh, or pass --pack for an intentionally global pack.
 4. Use Codex directly for planning, issues, reviews, worktrees, plugins, and MCP.
 5. Run bash "$REPO_DIR/scripts/framework-health.sh" after framework changes.
-6. Enable native memories and multi-agent V2 in user config; use the same project config from Desktop and CLI.
+6. Enable native memories only if you want optional recall; current native subagent workflows are enabled by default.
 EOF

@@ -1,71 +1,182 @@
 {
-  "schema_version": 1,
   "contract_status": "reviewed",
-  "skill": "message-queue-patterns",
   "native_ownership": {
-    "responsibility": "Implement external-broker producers and consumers with durable publish, ack/commit ownership, redelivery-safe effects, ordering, schema evolution, poison handling, and replay recovery.",
     "excludes": [
       "In-application deferred jobs and scheduler lifecycle are owned by background-jobs.",
       "Event sourcing, CQRS, saga, and cross-system event architecture design are owned by event-driven-architecture.",
       "Incoming and outgoing HTTP delivery semantics are owned by webhook-reliability."
     ],
-    "nearest_neighbors": ["background-jobs", "event-driven-architecture", "webhook-reliability", "distributed-coordination"]
-  },
-  "risk": {"mode": "repository_write", "rationale": "Broker acknowledgement, rebalance, schema, and replay defects can lose messages, duplicate external effects, corrupt ordering, or poison consumer groups."},
-  "version_policy": {"mode": "agnostic", "technologies": []},
-  "routing": {
-    "positive": [
-      {"id": "route-effect-before-ack", "prompt": "Implement a broker consumer that calls an external fulfillment provider and may crash before acknowledging. Add durable operation identity, redelivery-safe reconciliation, poison quarantine, and an auditable replay path."},
-      {"id": "route-rebalance-schema", "prompt": "Implement a partitioned event consumer that preserves per-account order across group rebalances, commits only completed effects, and safely handles a producer rolling out a new enum and optional field."}
+    "nearest_neighbors": [
+      "background-jobs",
+      "event-driven-architecture",
+      "webhook-reliability",
+      "distributed-coordination"
     ],
-    "negative": [
-      {"id": "route-local-jobs", "prompt": "Implement database-backed scheduled cleanup jobs with atomic enqueue, worker leases, retry classification, graceful SIGTERM drain, dead-letter storage, and operator replay in one application.", "expected_skill": "background-jobs"},
-      {"id": "route-event-architecture", "prompt": "Design bounded contexts and an event-driven architecture for order fulfillment using CQRS projections, an outbox, sagas, compensations, event ownership, and consistency tradeoffs; implementation follows later.", "expected_skill": "event-driven-architecture"}
-    ]
+    "responsibility": "Implement external-broker producers and consumers with durable publish, ack/commit ownership, redelivery-safe effects, ordering, schema evolution, poison handling, and replay recovery."
   },
-  "reference_routing": [],
-  "scenarios": [
+  "provenance": [
     {
-      "id": "domain-side-effect-ack-rebalance",
-      "kind": "domain",
-      "prompt": "A consumer charges a provider, then commits its broker offset. It can crash between those steps, partitions rebalance while work is running, and messages for one account must be ordered. Implement safe processing without claiming exactly-once magic.",
-      "fixture": "evals/fixtures/existing-repository.md",
-      "assertions": [
-        {"id": "queue-boundary", "dimension": "native_ownership", "severity": "major", "criterion": "Owns broker publish/consume, acknowledgement, partition/rebalance, schema and poison/replay behavior while leaving payment-domain policy and higher-level event architecture with their owners."},
-        {"id": "broker-repository-evidence", "dimension": "repository_context", "severity": "critical", "criterion": "Uses the fixture to inspect broker/client pins, topology, producer transaction/outbox, schema registry, consumer group, ack/offset mode, provider boundary, deployment lifecycle, tests and telemetry without inventing capabilities."},
-        {"id": "message-workflow", "dimension": "decision_workflow", "severity": "critical", "criterion": "Defines message identity/schema/key, durable publish proof, consumer operation/inbox, provider idempotency, effect-before-ack, rebalance ownership, ordering, poison and replay before implementation."},
-        {"id": "ack-rebalance-correctness", "dimension": "domain_correctness", "severity": "critical", "criterion": "Acknowledges/commits only after durable outcome, reconciles crash-after-provider-success by operation identity, prevents stale ownership from committing after rebalance, and scopes ordering to the broker's proven partition/key semantics."},
-        {"id": "queue-fault-proof", "dimension": "verification", "severity": "critical", "criterion": "Tests broker outage/ambiguous publish confirm, crash before and after side effect and ack, duplicate/out-of-order delivery, partition rebalance during work, ownership loss, backlog recovery, shutdown, and provider reconciliation."},
-        {"id": "queue-output", "dimension": "output_contract", "severity": "major", "criterion": "Reports broker/topology evidence, message/schema contract, publish confirm, effect/ack order, rebalance and ordering behavior, poison/replay policy, exact fault results, and unresolved broker/provider risk."},
-        {"id": "broker-capability-maintenance", "dimension": "maintainability", "severity": "major", "criterion": "Derives ack/commit, transactions, prefetch/poll, retries, retention and schema behavior from pinned broker/client capability and measured workload instead of universal broker recipes."}
-      ]
+      "checked_on": "2026-07-26",
+      "claim_scope": "RabbitMQ consumer acknowledgement and publisher confirm semantics",
+      "source": "https://www.rabbitmq.com/docs/confirms"
     },
     {
-      "id": "safety-poison-new-enum-replay",
-      "kind": "safety",
-      "prompt": "A newly deployed producer emits status=FORCE_DELETE, unknown to old consumers. Their default switch branch performs cleanup, failures requeue immediately, and operations plans to replay the DLQ after upgrading without checking prior side effects.",
-      "assertions": [
-        {"id": "quarantine-unknown-schema", "dimension": "runtime_safety", "severity": "critical", "criterion": "Prevents an unknown enum from reaching a privileged/destructive default, quarantines incompatibility without a hot requeue loop, and preserves payload/version and side-effect evidence."},
-        {"id": "compatibility-and-replay", "dimension": "domain_correctness", "severity": "critical", "criterion": "Requires explicit schema compatibility and rollout ordering, safe unknown-value behavior, authorized per-message replay, durable deduplication and reconciliation of any prior effect."},
-        {"id": "poison-replay-proof", "dimension": "verification", "severity": "critical", "criterion": "Tests old consumer/new enum behavior, healthy-message progress beside poison input, bounded attempts, DLQ evidence, schema upgrade, duplicate replay, and prior-side-effect reconciliation."},
-        {"id": "recovery-report", "dimension": "output_contract", "severity": "major", "criterion": "Reports quarantined and replayed identities, schema versions, prior effects and unresolved messages rather than treating an empty DLQ as recovery proof."}
-      ]
+      "checked_on": "2026-07-26",
+      "claim_scope": "RabbitMQ redelivery and reliability behavior",
+      "source": "https://www.rabbitmq.com/docs/reliability"
     },
     {
-      "id": "version-pinned-broker-client",
-      "kind": "version",
-      "prompt": "A repository pins an older supported broker and client. New documentation uses a different consumer group protocol, transaction API, acknowledgement timeout, and schema-registry behavior. Migration is outside scope.",
-      "assertions": [
-        {"id": "broker-pin-authority", "dimension": "version_compatibility", "severity": "critical", "criterion": "Uses deployed broker/client/schema-registry versions, installed APIs, configured protocol and matching official docs as authority, preserving pins and separating migration."},
-        {"id": "broker-compatibility-unit", "dimension": "repository_context", "severity": "major", "criterion": "Checks producer confirms/transactions, ack or offset semantics, group protocol/rebalance callbacks, schema compatibility, topology, runtime and tests together."},
-        {"id": "broker-version-provenance", "dimension": "maintainability", "severity": "major", "criterion": "Records exact verified broker/client behavior and source and avoids copying a latest-version timeout, protocol, prefetch, transaction, or schema default into evergreen guidance."}
-      ]
+      "checked_on": "2026-07-26",
+      "claim_scope": "Apache Kafka consumer rebalance ownership callbacks",
+      "source": "https://kafka.apache.org/43/javadoc/org/apache/kafka/clients/consumer/ConsumerRebalanceListener.html"
+    },
+    {
+      "checked_on": "2026-07-26",
+      "claim_scope": "local broker integrity and recovery workflow",
+      "source": "skills/message-queue-patterns/SKILL.md"
     }
   ],
-  "provenance": [
-    {"claim_scope": "RabbitMQ consumer acknowledgement and publisher confirm semantics", "source": "https://www.rabbitmq.com/docs/confirms", "checked_on": "2026-07-26"},
-    {"claim_scope": "RabbitMQ redelivery and reliability behavior", "source": "https://www.rabbitmq.com/docs/reliability", "checked_on": "2026-07-26"},
-    {"claim_scope": "Apache Kafka consumer rebalance ownership callbacks", "source": "https://kafka.apache.org/43/javadoc/org/apache/kafka/clients/consumer/ConsumerRebalanceListener.html", "checked_on": "2026-07-26"},
-    {"claim_scope": "local broker integrity and recovery workflow", "source": "skills/message-queue-patterns/SKILL.md", "checked_on": "2026-07-26"}
-  ]
+  "reference_routing": [],
+  "risk": {
+    "mode": "repository_write",
+    "rationale": "Broker acknowledgement, rebalance, schema, and replay defects can lose messages, duplicate external effects, corrupt ordering, or poison consumer groups."
+  },
+  "routing": {
+    "negative": [
+      {
+        "expected_skill": "background-jobs",
+        "id": "route-local-jobs",
+        "prompt": "Implement database-backed scheduled cleanup jobs with atomic enqueue, worker leases, retry classification, graceful SIGTERM drain, dead-letter storage, and operator replay in one application."
+      },
+      {
+        "expected_skill": "event-driven-architecture",
+        "id": "route-event-architecture",
+        "prompt": "Design bounded contexts and an event-driven architecture for order fulfillment using CQRS projections, an outbox, sagas, compensations, event ownership, and consistency tradeoffs; implementation follows later."
+      }
+    ],
+    "positive": [
+      {
+        "id": "route-effect-before-ack",
+        "prompt": "Implement a broker consumer that calls an external fulfillment provider and may crash before acknowledging. Add durable operation identity, redelivery-safe reconciliation, poison quarantine, and an auditable replay path."
+      },
+      {
+        "id": "route-rebalance-schema",
+        "prompt": "Implement a partitioned event consumer that preserves per-account order across group rebalances, commits only completed effects, and safely handles a producer rolling out a new enum and optional field."
+      }
+    ]
+  },
+  "scenarios": [
+    {
+      "assertions": [
+        {
+          "criterion": "Owns broker publish/consume, acknowledgement, partition/rebalance, schema and poison/replay behavior while leaving payment-domain policy and higher-level event architecture with their owners.",
+          "dimension": "native_ownership",
+          "id": "queue-boundary",
+          "severity": "major"
+        },
+        {
+          "criterion": "Uses the fixture to inspect broker/client pins, topology, producer transaction/outbox, schema registry, consumer group, ack/offset mode, provider boundary, deployment lifecycle, tests and telemetry without inventing capabilities.",
+          "dimension": "repository_context",
+          "id": "broker-repository-evidence",
+          "severity": "critical"
+        },
+        {
+          "criterion": "Defines message identity/schema/key, durable publish proof, consumer operation/inbox, provider idempotency, effect-before-ack, rebalance ownership, ordering, poison and replay before implementation.",
+          "dimension": "decision_workflow",
+          "id": "message-workflow",
+          "severity": "critical"
+        },
+        {
+          "criterion": "Acknowledges/commits only after durable outcome, reconciles crash-after-provider-success by operation identity, prevents stale ownership from committing after rebalance, and scopes ordering to the broker's proven partition/key semantics.",
+          "dimension": "domain_correctness",
+          "id": "ack-rebalance-correctness",
+          "severity": "critical"
+        },
+        {
+          "criterion": "Tests broker outage/ambiguous publish confirm, crash before and after side effect and ack, duplicate/out-of-order delivery, partition rebalance during work, ownership loss, backlog recovery, shutdown, and provider reconciliation.",
+          "dimension": "verification",
+          "id": "queue-fault-proof",
+          "severity": "critical"
+        },
+        {
+          "criterion": "Reports broker/topology evidence, message/schema contract, publish confirm, effect/ack order, rebalance and ordering behavior, poison/replay policy, exact fault results, and unresolved broker/provider risk.",
+          "dimension": "output_contract",
+          "id": "queue-output",
+          "severity": "major"
+        },
+        {
+          "criterion": "Derives ack/commit, transactions, prefetch/poll, retries, retention and schema behavior from pinned broker/client capability and measured workload instead of universal broker recipes.",
+          "dimension": "maintainability",
+          "id": "broker-capability-maintenance",
+          "severity": "major"
+        }
+      ],
+      "fixture": "evals/fixtures/backend-service.md",
+      "id": "domain-side-effect-ack-rebalance",
+      "kind": "domain",
+      "prompt": "A consumer charges a provider, then commits its broker offset. It can crash between those steps, partitions rebalance while work is running, and messages for one account must be ordered. Implement safe processing without claiming exactly-once magic."
+    },
+    {
+      "assertions": [
+        {
+          "criterion": "Prevents an unknown enum from reaching a privileged/destructive default, quarantines incompatibility without a hot requeue loop, and preserves payload/version and side-effect evidence.",
+          "dimension": "runtime_safety",
+          "id": "quarantine-unknown-schema",
+          "severity": "critical"
+        },
+        {
+          "criterion": "Requires explicit schema compatibility and rollout ordering, safe unknown-value behavior, authorized per-message replay, durable deduplication and reconciliation of any prior effect.",
+          "dimension": "domain_correctness",
+          "id": "compatibility-and-replay",
+          "severity": "critical"
+        },
+        {
+          "criterion": "Tests old consumer/new enum behavior, healthy-message progress beside poison input, bounded attempts, DLQ evidence, schema upgrade, duplicate replay, and prior-side-effect reconciliation.",
+          "dimension": "verification",
+          "id": "poison-replay-proof",
+          "severity": "critical"
+        },
+        {
+          "criterion": "Reports quarantined and replayed identities, schema versions, prior effects and unresolved messages rather than treating an empty DLQ as recovery proof.",
+          "dimension": "output_contract",
+          "id": "recovery-report",
+          "severity": "major"
+        }
+      ],
+      "id": "safety-poison-new-enum-replay",
+      "kind": "safety",
+      "prompt": "A newly deployed producer emits status=FORCE_DELETE, unknown to old consumers. Their default switch branch performs cleanup, failures requeue immediately, and operations plans to replay the DLQ after upgrading without checking prior side effects."
+    },
+    {
+      "assertions": [
+        {
+          "criterion": "Uses deployed broker/client/schema-registry versions, installed APIs, configured protocol and matching official docs as authority, preserving pins and separating migration.",
+          "dimension": "version_compatibility",
+          "id": "broker-pin-authority",
+          "severity": "critical"
+        },
+        {
+          "criterion": "Checks producer confirms/transactions, ack or offset semantics, group protocol/rebalance callbacks, schema compatibility, topology, runtime and tests together.",
+          "dimension": "repository_context",
+          "id": "broker-compatibility-unit",
+          "severity": "major"
+        },
+        {
+          "criterion": "Records exact verified broker/client behavior and source and avoids copying a latest-version timeout, protocol, prefetch, transaction, or schema default into evergreen guidance.",
+          "dimension": "maintainability",
+          "id": "broker-version-provenance",
+          "severity": "major"
+        }
+      ],
+      "id": "version-pinned-broker-client",
+      "kind": "version",
+      "prompt": "A repository pins an older supported broker and client. New documentation uses a different consumer group protocol, transaction API, acknowledgement timeout, and schema-registry behavior. Migration is outside scope."
+    }
+  ],
+  "schema_version": 1,
+  "skill": "message-queue-patterns",
+  "version_policy": {
+    "mode": "agnostic",
+    "technologies": []
+  }
 }

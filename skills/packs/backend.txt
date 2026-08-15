@@ -1,4 +1,4 @@
-# Backend architecture, integrations, data, and reliability
+# Backend core architecture and implementation
 account-verification
 api-design
 api-gateway-design
@@ -7,40 +7,7 @@ auth-security
 backend-architecture
 backend-debug
 backend-implement
-backend-implement-dotnet
-backend-implement-nestjs
-backend-implement-node
-backend-implement-python
 backend-refactor
 backend-review
 backend-test
-backend-test-dotnet
-backend-test-nestjs
-backend-test-node
-backend-test-python
-background-jobs
-caching-strategy
-data-modeling
-data-pipeline-engineering
-data-validation-design
-database-migration
-database-optimization
 ddd-patterns
-distributed-coordination
-email-notifications
-event-driven-architecture
-feature-flags
-file-upload-storage
-graphql-development
-load-testing
-message-queue-patterns
-microservice-communication
-multi-tenancy-design
-payment-integration
-rate-limiting
-resilience-patterns
-search-implementation
-serverless-patterns
-webhook-reliability
-websocket-realtime
-workflow-engine-design

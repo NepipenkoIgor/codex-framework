@@ -1,72 +1,187 @@
 {
-  "schema_version": 1,
   "contract_status": "reviewed",
-  "skill": "account-verification",
   "native_ownership": {
-    "responsibility": "Implement proof of control for email, phone, delivered challenges, TOTP enrollment, and recovery authenticators with bound state, enumeration resistance, atomic attempts and single-use effects.",
     "excludes": [
       "General login, session/token lifecycle and resource authorization are owned by auth-security.",
       "Product onboarding progress and activation journeys are owned by saas-onboarding.",
       "Government identity-document or biometric identity proofing is outside contact/authenticator verification."
     ],
-    "nearest_neighbors": ["auth-security", "saas-onboarding", "mobile-auth", "data-validation-design"]
-  },
-  "risk": {"mode": "repository_write", "rationale": "Verification and recovery races or enumeration leaks can enable account takeover, bind the wrong destination, or expose account existence."},
-  "version_policy": {"mode": "agnostic", "technologies": []},
-  "routing": {
-    "positive": [
-      {"id": "route-email-resend-race", "prompt": "Implement pending-email ownership verification with indistinguishable responses, normalized destination binding, atomic resend generations, delayed delivery handling, challenge-bound attempts, one winning submit, and provider reconciliation."},
-      {"id": "route-totp-recovery", "prompt": "Implement TOTP factor enrollment and account recovery. Bind the secret and challenge to the authenticated account, enforce single-use time-step/recovery state, handle clock policy, rotate affected sessions, and test concurrent recovery attempts."}
+    "nearest_neighbors": [
+      "auth-security",
+      "saas-onboarding",
+      "mobile-auth",
+      "data-validation-design"
     ],
-    "negative": [
-      {"id": "route-auth-session", "prompt": "Implement login, OAuth callback, cookie-session rotation, refresh-token reuse handling, CSRF scope, logout/revocation and tenant resource authorization for a web application.", "expected_skill": "auth-security"},
-      {"id": "route-onboarding-journey", "prompt": "Implement a resumable first-run product journey with workspace creation, checklist progress, optional steps, activation analytics, accessibility and cross-device continuation after signup.", "expected_skill": "saas-onboarding"}
-    ]
+    "responsibility": "Implement proof of control for email, phone, delivered challenges, TOTP enrollment, and recovery authenticators with bound state, enumeration resistance, atomic attempts and single-use effects."
   },
-  "reference_routing": [],
-  "scenarios": [
+  "provenance": [
     {
-      "id": "domain-channel-resend-attempt-binding",
-      "kind": "domain",
-      "prompt": "An email-change flow stores one six-digit code per user. Resend creates a new row while the old email can arrive later, attempts are counted by IP, and code verification updates the requested address in a second transaction. Implement safe state and evidence without fixed expiry or limits.",
-      "fixture": "evals/fixtures/existing-repository.md",
-      "assertions": [
-        {"id": "verification-boundary", "dimension": "native_ownership", "severity": "major", "criterion": "Owns proof of contact control and atomic challenge effect while leaving general sessions/authorization, onboarding and legal identity proof to their owning boundaries."},
-        {"id": "verification-repository-evidence", "dimension": "repository_context", "severity": "critical", "criterion": "Uses the fixture to inspect installed libraries/provider config, account/session and pending-destination model, normalization, challenge store, delivery/outbox, rate controls, templates, audit and tests without inventing details."},
-        {"id": "purpose-bound-workflow", "dimension": "decision_workflow", "severity": "critical", "criterion": "Defines proof purpose/assurance, subject and normalized destination, initiating actor/session, challenge generation, resend semantics, attempt policy, atomic consume/effect, provider reconciliation and post-change security before implementation."},
-        {"id": "resend-attempt-correctness", "dimension": "domain_correctness", "severity": "critical", "criterion": "Binds the secret to account, purpose, destination, initiation and generation; counts attempts atomically on that challenge/account; defines whether resend invalidates old generations; and atomically consumes one challenge with the address change under current authorization."},
-        {"id": "verification-race-proof", "dimension": "verification", "severity": "critical", "criterion": "Tests normalization aliases, delayed old delivery, concurrent resend/submit, two correct submits, expiry boundary, brute force across IPs, cross-account/purpose/destination use, provider timeout/duplicate and exactly one address transition."},
-        {"id": "verification-output", "dimension": "output_contract", "severity": "major", "criterion": "Reports proof purpose/assurance, challenge state/binding, enumeration and rate policy, delivery/resend reconciliation, consume/session behavior, test results, provider evidence and residual channel risk."},
-        {"id": "verification-policy-maintenance", "dimension": "maintainability", "severity": "major", "criterion": "Derives entropy/representation, expiry, attempts, sends, generations and provider APIs from threat/product policy and installed capability instead of fixed universal numbers."}
-      ]
+      "checked_on": "2026-07-26",
+      "claim_scope": "NIST OTP, authenticator, recovery and session guidance",
+      "source": "https://pages.nist.gov/800-63-4/sp800-63b/authenticators/"
     },
     {
-      "id": "safety-enumeration-recovery",
-      "kind": "safety",
-      "prompt": "Forgot-account returns 404 for unknown email and 202 for known email. Recovery accepts an emailed code to disable TOTP, changes the phone number, and preserves all active sessions. Resend can race with recovery submission.",
-      "assertions": [
-        {"id": "enumeration-and-recovery-safety", "dimension": "runtime_safety", "severity": "critical", "criterion": "Makes caller-visible status/body/timing and throttling behavior appropriately indistinguishable, treats recovery as high-risk authentication, binds it to exact effects, resolves resend races, and rotates/revokes or steps up affected sessions per policy."},
-        {"id": "mechanism-distinction", "dimension": "domain_correctness", "severity": "critical", "criterion": "Does not treat email delivery, phone ownership, TOTP knowledge and recovery as equivalent factors; separately authorizes disabling TOTP and changing the phone and notifies/audits security-sensitive changes."},
-        {"id": "takeover-counterexample-proof", "dimension": "verification", "severity": "critical", "criterion": "Defines executable tests for known/unknown enumeration including timing/rate behavior, stolen and replayed codes, concurrent resend/recovery, cross-effect token use, current authorization, session continuation/revocation and notifications, and makes rollout depend on those tests passing without inventing results."},
-        {"id": "recovery-report", "dimension": "output_contract", "severity": "major", "criterion": "Reports recovered factor/contact/session effects and unresolved delivery/support risk without exposing codes, tokens or account existence."}
-      ]
+      "checked_on": "2026-07-26",
+      "claim_scope": "TOTP validation and time-step policy",
+      "source": "https://www.rfc-editor.org/info/rfc6238/"
     },
     {
-      "id": "version-pinned-verification-stack",
-      "kind": "version",
-      "prompt": "The repository pins an older supported OTP/delivery library and provider API. Current examples use different challenge helpers, webhook status semantics and TOTP defaults. Migration is outside scope.",
-      "assertions": [
-        {"id": "verification-pin-authority", "dimension": "version_compatibility", "severity": "critical", "criterion": "Uses lockfile, installed types/config, provider version/capabilities and matching RFC/official docs as authority, preserving pins and treating migration separately."},
-        {"id": "verification-capability-unit", "dimension": "repository_context", "severity": "major", "criterion": "Checks randomness/comparison APIs, challenge storage, provider idempotency/webhooks, TOTP algorithm/window, runtime, database transaction and tests together."},
-        {"id": "verification-version-provenance", "dimension": "maintainability", "severity": "major", "criterion": "Records exact verified provider/library/RFC behavior and avoids copying current code length, expiry, attempts, TOTP window or resend default into evergreen guidance."}
-      ]
+      "checked_on": "2026-07-26",
+      "claim_scope": "forgot-password enumeration and token properties",
+      "source": "https://cheatsheetseries.owasp.org/cheatsheets/Forgot_Password_Cheat_Sheet.html"
+    },
+    {
+      "checked_on": "2026-07-26",
+      "claim_scope": "MFA OTP handling and recovery tradeoffs",
+      "source": "https://cheatsheetseries.owasp.org/cheatsheets/Multifactor_Authentication_Cheat_Sheet.html"
+    },
+    {
+      "checked_on": "2026-07-26",
+      "claim_scope": "local verification state and race workflow",
+      "source": "skills/account-verification/SKILL.md"
     }
   ],
-  "provenance": [
-    {"claim_scope": "NIST OTP, authenticator, recovery and session guidance", "source": "https://pages.nist.gov/800-63-4/sp800-63b/authenticators/", "checked_on": "2026-07-26"},
-    {"claim_scope": "TOTP validation and time-step policy", "source": "https://www.rfc-editor.org/info/rfc6238/", "checked_on": "2026-07-26"},
-    {"claim_scope": "forgot-password enumeration and token properties", "source": "https://cheatsheetseries.owasp.org/cheatsheets/Forgot_Password_Cheat_Sheet.html", "checked_on": "2026-07-26"},
-    {"claim_scope": "MFA OTP handling and recovery tradeoffs", "source": "https://cheatsheetseries.owasp.org/cheatsheets/Multifactor_Authentication_Cheat_Sheet.html", "checked_on": "2026-07-26"},
-    {"claim_scope": "local verification state and race workflow", "source": "skills/account-verification/SKILL.md", "checked_on": "2026-07-26"}
-  ]
+  "reference_routing": [],
+  "risk": {
+    "mode": "repository_write",
+    "rationale": "Verification and recovery races or enumeration leaks can enable account takeover, bind the wrong destination, or expose account existence."
+  },
+  "routing": {
+    "negative": [
+      {
+        "expected_skill": "auth-security",
+        "id": "route-auth-session",
+        "prompt": "Implement login, OAuth callback, cookie-session rotation, refresh-token reuse handling, CSRF scope, logout/revocation and tenant resource authorization for a web application."
+      },
+      {
+        "expected_skill": "saas-onboarding",
+        "id": "route-onboarding-journey",
+        "prompt": "Implement a resumable first-run product journey with workspace creation, checklist progress, optional steps, activation analytics, accessibility and cross-device continuation after signup."
+      }
+    ],
+    "positive": [
+      {
+        "id": "route-email-resend-race",
+        "prompt": "Implement pending-email ownership verification with indistinguishable responses, normalized destination binding, atomic resend generations, delayed delivery handling, challenge-bound attempts, one winning submit, and provider reconciliation."
+      },
+      {
+        "id": "route-totp-recovery",
+        "prompt": "Implement TOTP factor enrollment and account recovery. Bind the secret and challenge to the authenticated account, enforce single-use time-step/recovery state, handle clock policy, rotate affected sessions, and test concurrent recovery attempts."
+      }
+    ]
+  },
+  "scenarios": [
+    {
+      "assertions": [
+        {
+          "criterion": "Owns proof of contact control and atomic challenge effect while leaving general sessions/authorization, onboarding and legal identity proof to their owning boundaries.",
+          "dimension": "native_ownership",
+          "id": "verification-boundary",
+          "severity": "major"
+        },
+        {
+          "criterion": "Uses the fixture to inspect installed libraries/provider config, account/session and pending-destination model, normalization, challenge store, delivery/outbox, rate controls, templates, audit and tests without inventing details.",
+          "dimension": "repository_context",
+          "id": "verification-repository-evidence",
+          "severity": "critical"
+        },
+        {
+          "criterion": "Defines proof purpose/assurance, subject and normalized destination, initiating actor/session, challenge generation, resend semantics, attempt policy, atomic consume/effect, provider reconciliation and post-change security before implementation.",
+          "dimension": "decision_workflow",
+          "id": "purpose-bound-workflow",
+          "severity": "critical"
+        },
+        {
+          "criterion": "Binds the secret to account, purpose, destination, initiation and generation; counts attempts atomically on that challenge/account; defines whether resend invalidates old generations; and atomically consumes one challenge with the address change under current authorization.",
+          "dimension": "domain_correctness",
+          "id": "resend-attempt-correctness",
+          "severity": "critical"
+        },
+        {
+          "criterion": "Tests normalization aliases, delayed old delivery, concurrent resend/submit, two correct submits, expiry boundary, brute force across IPs, cross-account/purpose/destination use, provider timeout/duplicate and exactly one address transition.",
+          "dimension": "verification",
+          "id": "verification-race-proof",
+          "severity": "critical"
+        },
+        {
+          "criterion": "Reports proof purpose/assurance, challenge state/binding, enumeration and rate policy, delivery/resend reconciliation, consume/session behavior, test results, provider evidence and residual channel risk.",
+          "dimension": "output_contract",
+          "id": "verification-output",
+          "severity": "major"
+        },
+        {
+          "criterion": "Derives entropy/representation, expiry, attempts, sends, generations and provider APIs from threat/product policy and installed capability instead of fixed universal numbers.",
+          "dimension": "maintainability",
+          "id": "verification-policy-maintenance",
+          "severity": "major"
+        }
+      ],
+      "fixture": "evals/fixtures/backend-service.md",
+      "id": "domain-channel-resend-attempt-binding",
+      "kind": "domain",
+      "prompt": "An email-change flow stores one six-digit code per user. Resend creates a new row while the old email can arrive later, attempts are counted by IP, and code verification updates the requested address in a second transaction. Implement safe state and evidence without fixed expiry or limits."
+    },
+    {
+      "assertions": [
+        {
+          "criterion": "Makes caller-visible status/body/timing and throttling behavior appropriately indistinguishable, treats recovery as high-risk authentication, binds it to exact effects, resolves resend races, and rotates/revokes or steps up affected sessions per policy.",
+          "dimension": "runtime_safety",
+          "id": "enumeration-and-recovery-safety",
+          "severity": "critical"
+        },
+        {
+          "criterion": "Does not treat email delivery, phone ownership, TOTP knowledge and recovery as equivalent factors; separately authorizes disabling TOTP and changing the phone and notifies/audits security-sensitive changes.",
+          "dimension": "domain_correctness",
+          "id": "mechanism-distinction",
+          "severity": "critical"
+        },
+        {
+          "criterion": "Defines executable tests for known/unknown enumeration including timing/rate behavior, stolen and replayed codes, concurrent resend/recovery, cross-effect token use, current authorization, session continuation/revocation and notifications, and makes rollout depend on those tests passing without inventing results.",
+          "dimension": "verification",
+          "id": "takeover-counterexample-proof",
+          "severity": "critical"
+        },
+        {
+          "criterion": "Reports recovered factor/contact/session effects and unresolved delivery/support risk without exposing codes, tokens or account existence.",
+          "dimension": "output_contract",
+          "id": "recovery-report",
+          "severity": "major"
+        }
+      ],
+      "id": "safety-enumeration-recovery",
+      "kind": "safety",
+      "prompt": "Forgot-account returns 404 for unknown email and 202 for known email. Recovery accepts an emailed code to disable TOTP, changes the phone number, and preserves all active sessions. Resend can race with recovery submission."
+    },
+    {
+      "assertions": [
+        {
+          "criterion": "Uses lockfile, installed types/config, provider version/capabilities and matching RFC/official docs as authority, preserving pins and treating migration separately.",
+          "dimension": "version_compatibility",
+          "id": "verification-pin-authority",
+          "severity": "critical"
+        },
+        {
+          "criterion": "Checks randomness/comparison APIs, challenge storage, provider idempotency/webhooks, TOTP algorithm/window, runtime, database transaction and tests together.",
+          "dimension": "repository_context",
+          "id": "verification-capability-unit",
+          "severity": "major"
+        },
+        {
+          "criterion": "Records exact verified provider/library/RFC behavior and avoids copying current code length, expiry, attempts, TOTP window or resend default into evergreen guidance.",
+          "dimension": "maintainability",
+          "id": "verification-version-provenance",
+          "severity": "major"
+        }
+      ],
+      "id": "version-pinned-verification-stack",
+      "kind": "version",
+      "prompt": "The repository pins an older supported OTP/delivery library and provider API. Current examples use different challenge helpers, webhook status semantics and TOTP defaults. Migration is outside scope."
+    }
+  ],
+  "schema_version": 1,
+  "skill": "account-verification",
+  "version_policy": {
+    "mode": "agnostic",
+    "technologies": []
+  }
 }

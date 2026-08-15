@@ -4,13 +4,15 @@ description: Design AI-assisted automation that combines deterministic orchestra
 metadata:
   owner: codex-framework
   reviewed: "2026-07-26"
-  version: 2.0
+  version: 2.2
   argument-hint: "trigger, deterministic steps, model decisions, tools, risk, human review and recovery"
 ---
 
 # AI-Assisted Automation
 
-Generate project stack context and inspect manifests/lockfiles, installed model/provider adapter and types, workflow runtime, schema validator, checkpoint store, side-effect provider and matching official documentation as one capability chain. Existing pins are authority and migration is separate. Read [the full pattern guide](references/full-guide.md) when the task needs provider/tool, approval, checkpoint, replay or side-effect patterns; load only the relevant section and keep volatile provider mechanics behind the selected adapter.
+Generate project stack context and inspect manifests/lockfiles, installed model/provider adapter and types, workflow runtime, schema validator, checkpoint store, side-effect provider and matching official documentation as one capability chain. Verify the pinned SDK's exposed usage-reporting and accounting fields, units, terminal semantics and error/partial-response behavior from installed types plus matching documentation; if the SDK cannot report a required unit, keep the gap explicit and meter only from an authoritative external boundary rather than inventing usage. Existing pins are authority and migration is separate. Read [the full pattern guide](references/full-guide.md) when the task needs provider/tool, approval, checkpoint, replay or side-effect patterns; load only the relevant section and keep volatile provider mechanics behind the selected adapter.
+
+This skill owns the probabilistic boundary and read-only workflow design. When the requested deliverable is executable n8n nodes, credentials, deployment or runtime repair, hand implementation to `automation-n8n-implement` (or diagnosis to `automation-n8n-debug`) after preserving this design contract. If n8n is absent, state that evidence rather than silently absorbing neighboring ownership.
 
 ## Boundary Design
 
@@ -27,12 +29,12 @@ Generate project stack context and inspect manifests/lockfiles, installed model/
 2. Define input/output schemas, confidence/abstention rules, and human escalation.
 3. Before invoking the model, durably persist the accepted workflow identity, immutable input reference, authorization context and resumable checkpoint. Implement idempotent side effects and subsequent checkpoints before adding the model.
 4. Build a representative evaluation set including adversarial, ambiguous, empty, and provider-failure cases.
-5. Test replay, duplicate triggers, invalid output, tool failure, approval expiry, provider success followed by timeout/lost response, budget exhaustion, human rejection, current server-side authorization denial, and recovery from every durable checkpoint.
-6. Deploy with quality, latency, cost, abstention, and side-effect metrics plus a deterministic disable path. Keep confidence/quality thresholds in versioned product policy backed by the evaluation set, not in provider glue or reusable skill prose.
+5. Test replay, duplicate triggers, invalid output, tool failure, approval expiry, provider success followed by timeout/lost response, budget exhaustion, human rejection, current server-side authorization denial, and recovery from every durable checkpoint. Add executable cases that activate the deterministic disable control and verify its owner-authorized effect, then exercise the versioned rollback or recovery path and assert restored state without duplicating or losing accepted side effects; naming a switch or rollback owner without these cases is not evidence.
+6. Deploy with quality, latency, cost, abstention, and side-effect metrics plus a deterministic disable path and a versioned rollback or recovery strategy. Keep confidence/quality thresholds in versioned product policy backed by the evaluation set, not in provider glue or reusable skill prose.
 
 ## Output Contract
 
 - Deterministic state machine and model boundary
 - Schemas, confidence/escalation, security, and budget controls
-- Evaluation and failure-recovery evidence
+- Evaluation, disable-control, rollback, and failure-recovery evidence
 - Operational metrics and residual model risk

@@ -24,7 +24,7 @@ For an existing repository, run `python3 scripts/framework-stack-context.py proj
 
 1. Inventory scope, existing registrations, route ownership, browser matrix, manifest, cache prefixes, storage schemas, authentication/tenant boundaries, update behavior, and nearby tests.
 2. Classify each resource: immutable public asset, navigation shell, public API read, private read, mutation, or never-cache. Define offline freshness and invalidation from product requirements rather than generic durations.
-3. Define the worker lifecycle and rollback: install failure, waiting-version compatibility, activation, controlled cleanup, multi-tab update consent, unsaved work, and a kill switch.
+3. Define the worker lifecycle and rollback: identify and verify the exact active/old, waiting, and proposed worker versions before activation or queued-mutation replay; then cover install failure, waiting-version compatibility, activation, controlled cleanup, multi-tab update consent, unsaved work, and a kill switch.
 4. Implement the smallest compatible primitive: native service worker, installed framework integration, or current plugin verified against the installed framework line. Do not copy package names or configuration from memory.
 5. For offline mutations, persist an operation ID, authenticated subject/tenant, ordering key, dependency, payload schema/version, creation time, retry state, and visible status. Reauthorize on replay; use server-side idempotency; preserve required order; bound retries; surface permanent rejection and conflicts for user resolution. Logout or account switch must cancel/quarantine and purge subject-bound work.
 6. Treat Background Sync as an enhancement. Replay on foreground/resume when it is absent, denied, or delayed. Do not promise a delivery deadline.
@@ -43,7 +43,7 @@ For an existing repository, run `python3 scripts/framework-stack-context.py proj
 
 - Resource/data classification and cache ownership
 - Lifecycle, update compatibility, offline replay, auth/tenant, and logout contracts
-- Installed capability and official-documentation evidence
+- Installed capability plus the current official framework-plugin and browser documentation pages used for service-worker, Background Sync, install-prompt and related selected capabilities, or the exact required pages marked `Not available`
 - Tests and observed browser outcomes
 - Residual unsupported-browser, eviction, deployment, and external-delivery risks
 

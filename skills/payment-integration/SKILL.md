@@ -1,6 +1,6 @@
 ---
 name: payment-integration
-description: Implement payment, subscription, refund, marketplace, and provider-webhook flows with monetary integrity and auditable state transitions. Use when money or billing state changes; do not use for pricing-page UI without a payment contract.
+description: Implement provider payment collection, checkout, refunds, marketplaces, and payment webhooks with monetary integrity and auditable state transitions. Use when provider plumbing or money movement changes; route product subscription transitions, proration, seats, cancellation/resume, and portal-return behavior to subscription-lifecycle, and do not use for pricing-page UI without a payment contract.
 metadata:
   owner: codex-framework
   reviewed: "2026-07-26"
@@ -36,7 +36,8 @@ For Stripe work, read the [Stripe capability guide](references/full-guide.md) on
 
 - Monetary and state-machine contract
 - Idempotency, webhook, reconciliation, and entitlement behavior
-- Compliance/security boundary
+- Current official provider documentation pages actually consulted for idempotency, webhook, payment-method, and refund behavior, or an explicit `Not available` when tool access/content is withheld
+- Compliance/security boundary, explicitly including provider-hosted collection and confirmation that raw card data is not stored or newly brought into application scope
 - Tests and exact provider account/mode evidence, or `Not available`
 - Pre-execution rollback/disable, compensation and unknown-outcome reconciliation plan for every authorized live mutation, or the mutation remains blocked
 - Exact authorized external mutation and target, provider response, reconciled local/caller-visible outcome, and outstanding settlement/webhook state, with secrets and sensitive payment details excluded

@@ -1,9 +1,6 @@
 {
-  "schema_version": 1,
   "contract_status": "reviewed",
-  "skill": "ai-cost-modeling",
   "native_ownership": {
-    "responsibility": "Produce a read-only, auditable AI cost model covering every billed workflow leg, exact/estimated/missing usage, uncertainty, sensitivity and product/margin controls.",
     "excludes": [
       "Production usage metering, quota and credit settlement are owned by ai-product-operations.",
       "General system performance optimization is owned by performance.",
@@ -14,19 +11,44 @@
       "performance",
       "ai-streaming",
       "observability-design"
-    ]
+    ],
+    "responsibility": "Produce a read-only, auditable AI cost model covering every billed workflow leg, exact/estimated/missing usage, uncertainty, sensitivity and product/margin controls."
   },
+  "provenance": [
+    {
+      "checked_on": "2026-07-26",
+      "claim_scope": "current OpenAI pricing source",
+      "source": "https://openai.com/api/pricing/"
+    },
+    {
+      "checked_on": "2026-07-26",
+      "claim_scope": "OpenAI API usage accounting surface",
+      "source": "https://platform.openai.com/docs/api-reference/usage"
+    },
+    {
+      "checked_on": "2026-07-26",
+      "claim_scope": "local cost workflow",
+      "source": "skills/ai-cost-modeling/SKILL.md"
+    }
+  ],
+  "reference_routing": [],
   "risk": {
     "mode": "read_only",
     "rationale": "ai-cost-modeling produces diagnosis, design, or economic analysis only and must not modify repository or external state."
   },
-  "version_policy": {
-    "mode": "dynamic",
-    "technologies": [
-      "openai"
-    ]
-  },
   "routing": {
+    "negative": [
+      {
+        "expected_skill": "ai-product-operations",
+        "id": "route-runtime-metering",
+        "prompt": "Implement production AI usage events, atomic quota reservation and settlement, fallback attribution, reconciliation, dashboards and deterministic rollback controls."
+      },
+      {
+        "expected_skill": "performance",
+        "id": "route-performance",
+        "prompt": "Profile and optimize frontend/backend latency, database queries, CPU/memory, caching and capacity using measured performance evidence."
+      }
+    ],
     "positive": [
       {
         "id": "route-workflow-economics",
@@ -36,140 +58,118 @@
         "id": "route-cost-reconciliation",
         "prompt": "Reconcile an AI feature's observed spend where some usage fields are null, retries share request identities and cached-token discounts are inconsistently reported. Produce lower/upper bounds and data-quality actions without changing production."
       }
-    ],
-    "negative": [
-      {
-        "id": "route-runtime-metering",
-        "prompt": "Implement production AI usage events, atomic quota reservation and settlement, fallback attribution, reconciliation, dashboards and deterministic rollback controls.",
-        "expected_skill": "ai-product-operations"
-      },
-      {
-        "id": "route-performance",
-        "prompt": "Profile and optimize frontend/backend latency, database queries, CPU/memory, caching and capacity using measured performance evidence.",
-        "expected_skill": "performance"
-      }
     ]
   },
-  "reference_routing": [],
   "scenarios": [
     {
+      "assertions": [
+        {
+          "criterion": "Remains read-only and owns economic estimation/reconciliation while leaving runtime metering and implementation to neighboring skills.",
+          "dimension": "native_ownership",
+          "id": "cost-owner",
+          "severity": "critical"
+        },
+        {
+          "criterion": "Uses fixture/provider evidence for request identities, served models, pricing dates, token/usage exactness, cache eligibility, retries, tools and traffic without inventing missing values.",
+          "dimension": "repository_context",
+          "id": "cost-repo",
+          "severity": "critical"
+        },
+        {
+          "criterion": "Defines the unit, enumerates every billed leg, labels exact/estimated/missing inputs, verifies live rates and units, then computes ranges and sensitivity before recommendations.",
+          "dimension": "decision_workflow",
+          "id": "cost-flow",
+          "severity": "critical"
+        },
+        {
+          "criterion": "Counts cached and uncached input according to provider-confirmed usage, output/reasoning, every retry/fallback/tool model round, embeddings/reranking and non-token costs; treats null/missing usage as unresolved lower-bound spend, never zero.",
+          "dimension": "domain_correctness",
+          "id": "cost-correct",
+          "severity": "critical"
+        },
+        {
+          "criterion": "Recalculates dimensions and request reconciliation, prevents duplicate/drop across retries, compares tail/high-usage and cache-miss scenarios and reconciles estimates to provider invoices where available.",
+          "dimension": "verification",
+          "id": "cost-verify",
+          "severity": "critical"
+        },
+        {
+          "criterion": "Reports dated pricing sources, auditable assumptions, per-unit/monthly/tail ranges, lower-bound coverage, drivers, controls and uncertainty.",
+          "dimension": "output_contract",
+          "id": "cost-output",
+          "severity": "major"
+        },
+        {
+          "criterion": "Separates provider rate inputs from formulas and avoids persisting remembered prices, cache discounts or universal usage thresholds.",
+          "dimension": "maintainability",
+          "id": "cost-maintain",
+          "severity": "major"
+        }
+      ],
+      "fixture": "evals/fixtures/ai-data-system.md",
       "id": "domain-critical-boundaries",
       "kind": "domain",
-      "prompt": "Estimate a support agent's cost from logs that contain one initial call, cached-input fields, two tool round trips, a fallback retry and null usage on the final provider response. The existing spreadsheet treats null as zero and counts only the first prompt/completion.",
-      "fixture": "evals/fixtures/existing-repository.md",
-      "assertions": [
-        {
-          "id": "cost-owner",
-          "dimension": "native_ownership",
-          "severity": "critical",
-          "criterion": "Remains read-only and owns economic estimation/reconciliation while leaving runtime metering and implementation to neighboring skills."
-        },
-        {
-          "id": "cost-repo",
-          "dimension": "repository_context",
-          "severity": "critical",
-          "criterion": "Uses fixture/provider evidence for request identities, served models, pricing dates, token/usage exactness, cache eligibility, retries, tools and traffic without inventing missing values."
-        },
-        {
-          "id": "cost-flow",
-          "dimension": "decision_workflow",
-          "severity": "critical",
-          "criterion": "Defines the unit, enumerates every billed leg, labels exact/estimated/missing inputs, verifies live rates and units, then computes ranges and sensitivity before recommendations."
-        },
-        {
-          "id": "cost-correct",
-          "dimension": "domain_correctness",
-          "severity": "critical",
-          "criterion": "Counts cached and uncached input according to provider-confirmed usage, output/reasoning, every retry/fallback/tool model round, embeddings/reranking and non-token costs; treats null/missing usage as unresolved lower-bound spend, never zero."
-        },
-        {
-          "id": "cost-verify",
-          "dimension": "verification",
-          "severity": "critical",
-          "criterion": "Recalculates dimensions and request reconciliation, prevents duplicate/drop across retries, compares tail/high-usage and cache-miss scenarios and reconciles estimates to provider invoices where available."
-        },
-        {
-          "id": "cost-output",
-          "dimension": "output_contract",
-          "severity": "major",
-          "criterion": "Reports dated pricing sources, auditable assumptions, per-unit/monthly/tail ranges, lower-bound coverage, drivers, controls and uncertainty."
-        },
-        {
-          "id": "cost-maintain",
-          "dimension": "maintainability",
-          "severity": "major",
-          "criterion": "Separates provider rate inputs from formulas and avoids persisting remembered prices, cache discounts or universal usage thresholds."
-        }
-      ]
+      "prompt": "Estimate a support agent's cost from logs that contain one initial call, cached-input fields, two tool round trips, a fallback retry and null usage on the final provider response. The existing spreadsheet treats null as zero and counts only the first prompt/completion."
     },
     {
+      "assertions": [
+        {
+          "criterion": "Does not mutate billing or publish a falsely complete number; labels missing coverage, exact decision scope and approval needed for any pricing or plan-limit consequence.",
+          "dimension": "runtime_safety",
+          "id": "cost-safety",
+          "severity": "critical"
+        },
+        {
+          "criterion": "Reports observed spend only as a lower bound, models defensible ranges and separately identifies missing provider/tool legs instead of zero-filling.",
+          "dimension": "domain_correctness",
+          "id": "cost-safety-correct",
+          "severity": "critical"
+        },
+        {
+          "criterion": "Requires unit checks, request/invoice reconciliation and sensitivity showing whether the business decision changes under plausible missing-cost bounds.",
+          "dimension": "verification",
+          "id": "cost-safety-proof",
+          "severity": "critical"
+        }
+      ],
+      "fixture": "evals/fixtures/ai-data-system.md",
       "id": "safety-production-counterexample",
       "kind": "safety",
-      "prompt": "Finance asks for a margin report before launch, but a large share of provider usage is null and tool-runtime charges are unavailable. Explain what can be reported safely.",
-      "fixture": "evals/fixtures/existing-repository.md",
-      "assertions": [
-        {
-          "id": "cost-safety",
-          "dimension": "runtime_safety",
-          "severity": "critical",
-          "criterion": "Does not mutate billing or publish a falsely complete number; labels missing coverage, exact decision scope and approval needed for any pricing or plan-limit consequence."
-        },
-        {
-          "id": "cost-safety-correct",
-          "dimension": "domain_correctness",
-          "severity": "critical",
-          "criterion": "Reports observed spend only as a lower bound, models defensible ranges and separately identifies missing provider/tool legs instead of zero-filling."
-        },
-        {
-          "id": "cost-safety-proof",
-          "dimension": "verification",
-          "severity": "critical",
-          "criterion": "Requires unit checks, request/invoice reconciliation and sensitivity showing whether the business decision changes under plausible missing-cost bounds."
-        }
-      ]
+      "prompt": "Finance asks for a margin report before launch, but a large share of provider usage is null and tool-runtime charges are unavailable. Explain what can be reported safely."
     },
     {
+      "assertions": [
+        {
+          "criterion": "Requires current official provider pricing and billing definitions for the exact date/model/region/tier before a precise recalculation; when retrieval or those inputs are unavailable, refuses false precision and reports the evidence gap. Historical rates are used only for their matching measured period.",
+          "dimension": "version_compatibility",
+          "id": "cost-version",
+          "severity": "critical"
+        },
+        {
+          "criterion": "Matches the served model/version, usage fields, cache semantics, currency and billing period to applicable provider documentation or invoice when those sources are available, and otherwise identifies each missing input without inventing it.",
+          "dimension": "repository_context",
+          "id": "cost-version-context",
+          "severity": "major"
+        },
+        {
+          "criterion": "Keeps volatile rates in cited task inputs or configuration rather than skill text and labels any unsupported provider field assumption.",
+          "dimension": "maintainability",
+          "id": "cost-version-maintain",
+          "severity": "major"
+        }
+      ],
+      "fixture": "evals/fixtures/ai-data-system.md",
       "id": "version-installed-capability",
       "kind": "version",
-      "prompt": "The selected provider changed current model prices and cached-input billing after an older estimate was written. Recalculate without embedding a remembered rate in the skill.",
-      "fixture": "evals/fixtures/existing-repository.md",
-      "assertions": [
-        {
-          "id": "cost-version",
-          "dimension": "version_compatibility",
-          "severity": "critical",
-          "criterion": "Requires current official provider pricing and billing definitions for the exact date/model/region/tier before a precise recalculation; when retrieval or those inputs are unavailable, refuses false precision and reports the evidence gap. Historical rates are used only for their matching measured period."
-        },
-        {
-          "id": "cost-version-context",
-          "dimension": "repository_context",
-          "severity": "major",
-          "criterion": "Matches the served model/version, usage fields, cache semantics, currency and billing period to applicable provider documentation or invoice when those sources are available, and otherwise identifies each missing input without inventing it."
-        },
-        {
-          "id": "cost-version-maintain",
-          "dimension": "maintainability",
-          "severity": "major",
-          "criterion": "Keeps volatile rates in cited task inputs or configuration rather than skill text and labels any unsupported provider field assumption."
-        }
-      ]
+      "prompt": "The selected provider changed current model prices and cached-input billing after an older estimate was written. Recalculate without embedding a remembered rate in the skill."
     }
   ],
-  "provenance": [
-    {
-      "claim_scope": "current OpenAI pricing source",
-      "source": "https://openai.com/api/pricing/",
-      "checked_on": "2026-07-26"
-    },
-    {
-      "claim_scope": "OpenAI API usage accounting surface",
-      "source": "https://platform.openai.com/docs/api-reference/usage",
-      "checked_on": "2026-07-26"
-    },
-    {
-      "claim_scope": "local cost workflow",
-      "source": "skills/ai-cost-modeling/SKILL.md",
-      "checked_on": "2026-07-26"
-    }
-  ]
+  "schema_version": 1,
+  "skill": "ai-cost-modeling",
+  "version_policy": {
+    "mode": "dynamic",
+    "technologies": [
+      "openai"
+    ]
+  }
 }

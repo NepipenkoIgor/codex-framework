@@ -4,7 +4,7 @@ description: Design and implement product subscription transitions, proration pr
 metadata:
   owner: codex-framework
   reviewed: "2026-07-26"
-  version: 2.0
+  version: 2.1
   argument-hint: "transition, provider/API version, money representation, product policy, entitlement timing"
 ---
 
@@ -25,7 +25,7 @@ When the task mentions a provider-hosted portal, load [provider-hosted portal no
 
 ## Verification
 
-Test duplicate commands, stale preview, price/quantity change after preview, the same proration instant on preview and update—including provider test-mode preview/update results when that authorized environment is available—zero- and non-two-decimal currency handling, payment failure/pending update, timeout after provider commit, duplicate/out-of-order/missing webhooks, scheduled cancellation/resume, two concurrent transitions, seat reconciliation, malicious return URL, and portal return before webhook arrival. Before an upgrade mutation, define compensation/rollback or forward recovery for incorrect and partially applied transitions. Derive user polling/reconciliation attempt and elapsed-time bounds from provider event latency, operation state and product deadline, then expose durable pending/manual resolution after exhaustion.
+Test duplicate commands, stale preview, price/quantity change after preview, the same proration instant on preview and update—including type-checking both exact request constructions and provider test-mode preview/update results when that authorized environment is available—zero- and non-two-decimal currency handling, payment failure/pending update, timeout after provider commit, duplicate/out-of-order/missing webhooks, scheduled cancellation/resume, two concurrent transitions, seat reconciliation, malicious return URL, and portal return before webhook arrival. Before an upgrade mutation, define compensation/rollback or forward recovery for incorrect and partially applied transitions. Derive user polling/reconciliation attempt and elapsed-time bounds from provider event latency, operation state and product deadline, then expose durable pending/manual resolution after exhaustion.
 
 Assert persisted intent, provider object/invoice, reconciled subscription generation, money/currency, entitlements, and user-visible state. Label provider paths not exercised against the configured test environment.
 

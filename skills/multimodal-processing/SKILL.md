@@ -19,7 +19,7 @@ Implement the media-data pipeline in `$ARGUMENTS`.
 
 ## Workflow
 
-1. Generate project stack context and inspect input sources, trust boundary, MIME/signature validation, size/duration/dimension/frame constraints, embedded metadata, PII/biometric/sensitive-content classes, privacy and rights, storage/queue capacity and limits, installed runtime decoder/transcoder capability, existing processor adapters, provider SDK/model and region constraints, downstream consumer schema, and retention as one compatibility unit.
+1. Generate project stack context and inspect input sources, trust boundary, MIME/signature validation, size/duration/dimension/frame constraints, embedded metadata, PII/biometric/sensitive-content classes, privacy and rights, installed runtime decoder/transcoder capability, existing processor adapters, provider SDK/model and region constraints, downstream consumer schema, retention, and the exact queue payload/concurrency/backlog plus object-storage size/quota/lifecycle capacity limits as one compatibility unit. Provider support is not compatible unless the queue and storage boundaries can accept and retain the selected media contract.
 2. Define canonical media identity, accepted formats/capabilities, synchronous versus queued processing, idempotency, intermediate artifacts, provenance, moderation/quarantine, and failure/retry states.
 3. Isolate parsers/transcoders with least privilege, bounded CPU/memory/time/output, exact task-owned temporary paths, egress restrictions, malware/decompression-bomb defenses, and metadata minimization.
 4. Resolve current provider upload/request, media, duration, page/frame, token/context and output caps plus supported models/formats only when needed from installed SDKs and official documentation. Record consent, rights and source provenance for every outbound provider-processing action. Store the verified capability contract in a versioned processor adapter or runtime configuration that enforces the compatible subset before upload; keep provider model/cap/format matrices out of general application source and reusable skill prose.
@@ -28,4 +28,4 @@ Implement the media-data pipeline in `$ARGUMENTS`.
 
 ## Output
 
-Report media contracts, trust and rights assumptions, pipeline/state model, resource and safety bounds, provider capability evidence, storage/retention, executable fixtures and checks, quality results, and residual external risk.
+Report media contracts, trust and rights assumptions, pipeline/state model, resource and safety bounds, provider capability evidence, exact queue and storage capacity-limit decisions, storage/retention, executable fixtures and checks, quality results, and residual external risk.

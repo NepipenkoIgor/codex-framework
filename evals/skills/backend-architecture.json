@@ -1,9 +1,6 @@
 {
-  "schema_version": 1,
   "contract_status": "reviewed",
-  "skill": "backend-architecture",
   "native_ownership": {
-    "responsibility": "Design backend boundaries, contracts, data ownership, consistency, scaling, security, resilience, and deployment topology for a concrete system",
     "excludes": [
       "Work whose primary requested outcome is owned by backend-implement: Implement backend features using repository contracts, validation, persistence, authorization, reliability, observability, documentation, and tests",
       "Work whose primary requested outcome is owned by backend-review: Review backend code for correctness, security, performance, reliability, and contract integrity"
@@ -11,17 +8,51 @@
     "nearest_neighbors": [
       "backend-implement",
       "backend-review"
-    ]
+    ],
+    "responsibility": "Design backend boundaries, contracts, data ownership, consistency, scaling, security, resilience, and deployment topology for a concrete system"
   },
+  "provenance": [
+    {
+      "checked_on": "2026-07-26",
+      "claim_scope": "local workflow and invariants",
+      "source": "skills/backend-architecture/SKILL.md"
+    }
+  ],
+  "reference_routing": [
+    {
+      "expected": [
+        "skills/backend-architecture/references/full-guide.md"
+      ],
+      "forbidden": [],
+      "id": "reference-positive-1",
+      "prompt": "The backend-architecture task needs the specialized topic represented by full guide; identify the minimum optional reference needed before answering."
+    },
+    {
+      "expected": [],
+      "forbidden": [
+        "skills/backend-architecture/references/full-guide.md"
+      ],
+      "id": "reference-negative-main-only",
+      "prompt": "Handle a routine backend architecture request using only the main workflow; no provider, framework, or optional deep-dive detail is needed."
+    }
+  ],
   "risk": {
     "mode": "read_only",
     "rationale": "The contract requires explicit repository and runtime safety evidence; mutation authority remains limited to the user's requested scope."
   },
-  "version_policy": {
-    "mode": "agnostic",
-    "technologies": []
-  },
   "routing": {
+    "negative": [
+      {
+        "expected_skill": "backend-implement",
+        "id": "route-neighbor-one",
+        "prompt": "The primary requested outcome is: Implement backend features using repository contracts, validation, persistence, authorization, reliability, observability, documentation, and tests. Follow the existing repository conventions."
+      },
+      {
+        "expected_skill": "backend-review",
+        "id": "route-neighbor-two",
+        "prompt": "Please produce this deliverable: Review backend code for correctness, security, performance, reliability, and contract integrity. Verify the affected behavior."
+      }
+    ],
     "positive": [
       {
         "id": "route-primary",
@@ -31,136 +62,110 @@
         "id": "route-focused",
         "prompt": "The primary requested outcome is this: Design backend boundaries, contracts, data ownership, consistency, scaling, security, resilience, and deployment topology for a concrete system. Keep unrelated changes outside the task."
       }
-    ],
-    "negative": [
-      {
-        "id": "route-neighbor-one",
-        "prompt": "The primary requested outcome is: Implement backend features using repository contracts, validation, persistence, authorization, reliability, observability, documentation, and tests. Follow the existing repository conventions.",
-        "expected_skill": "backend-implement"
-      },
-      {
-        "id": "route-neighbor-two",
-        "prompt": "Please produce this deliverable: Review backend code for correctness, security, performance, reliability, and contract integrity. Verify the affected behavior.",
-        "expected_skill": "backend-review"
-      }
     ]
   },
-  "reference_routing": [
-    {
-      "id": "reference-positive-1",
-      "prompt": "The backend-architecture task needs the specialized topic represented by full guide; identify the minimum optional reference needed before answering.",
-      "expected": [
-        "skills/backend-architecture/references/full-guide.md"
-      ],
-      "forbidden": []
-    },
-    {
-      "id": "reference-negative-main-only",
-      "prompt": "Handle a routine backend architecture request using only the main workflow; no provider, framework, or optional deep-dive detail is needed.",
-      "expected": [],
-      "forbidden": [
-        "skills/backend-architecture/references/full-guide.md"
-      ]
-    }
-  ],
   "scenarios": [
     {
+      "assertions": [
+        {
+          "criterion": "Keeps the answer within backend-architecture's stated responsibility and does not recreate native Codex orchestration.",
+          "dimension": "native_ownership",
+          "id": "domain-owner",
+          "severity": "critical"
+        },
+        {
+          "criterion": "Uses the supplied fixture as authoritative repository context, may re-check that evidence during execution, and does not invent file contents, package-manager commands, or exact paths that the fixture does not provide.",
+          "dimension": "repository_context",
+          "id": "domain-repo",
+          "severity": "critical"
+        },
+        {
+          "criterion": "Uses an ordered, risk-driven workflow rather than a static checklist and does not bypass material missing evidence, incompatible capability, failed validation, or unsafe authority.",
+          "dimension": "decision_workflow",
+          "id": "domain-workflow",
+          "severity": "major"
+        },
+        {
+          "criterion": "Keeps design read-only, maps current flows/data/auth authority, ranks quality attributes, defines contracts/consistency/failure/idempotency/backpressure/observability, compares simpler alternatives and provides incremental compatibility, reconciliation and rollback without selecting technology by fashion.",
+          "dimension": "domain_correctness",
+          "id": "domain-correct",
+          "severity": "critical"
+        },
+        {
+          "criterion": "Grounds verification in the applicable authoritative categories supplied by the selected fixture; relevant domain-specific subchecks may refine those categories. Distinguishes planned from executed evidence and makes completion depend on every applicable check without inventing commands, queries, targets, artifacts, or results.",
+          "dimension": "verification",
+          "id": "domain-verify",
+          "severity": "critical"
+        },
+        {
+          "criterion": "Reports enough hypothetical repository context to ground the decisions or proposed changes, not-yet-executed checks and expected acceptance evidence, residual risks, and unresolved external boundaries without inventing results.",
+          "dimension": "output_contract",
+          "id": "domain-output",
+          "severity": "major"
+        },
+        {
+          "criterion": "Keeps optional provider or version detail subordinate and loads a linked reference only when needed; does not expand into a neighboring skill's primary ownership.",
+          "dimension": "maintainability",
+          "id": "domain-maintain",
+          "severity": "major"
+        }
+      ],
+      "fixture": "evals/fixtures/backend-service.md",
       "id": "domain-existing-repository",
       "kind": "domain",
-      "prompt": "Design a read-only boundary change for a tenant-scoped backend with shared data, synchronous and asynchronous flows, partial outages and mixed-version clients. Compare a simpler alternative and plan migration and rollback.",
-      "fixture": "evals/fixtures/existing-repository.md",
-      "assertions": [
-        {
-          "id": "domain-owner",
-          "dimension": "native_ownership",
-          "severity": "critical",
-          "criterion": "Keeps the answer within backend-architecture's stated responsibility and does not recreate native Codex orchestration."
-        },
-        {
-          "id": "domain-repo",
-          "dimension": "repository_context",
-          "severity": "critical",
-          "criterion": "Uses the supplied fixture as authoritative repository context, may re-check that evidence during execution, and does not invent file contents, package-manager commands, or exact paths that the fixture does not provide."
-        },
-        {
-          "id": "domain-workflow",
-          "dimension": "decision_workflow",
-          "severity": "major",
-          "criterion": "Uses an ordered, risk-driven workflow rather than a static checklist and does not bypass material missing evidence, incompatible capability, failed validation, or unsafe authority."
-        },
-        {
-          "id": "domain-correct",
-          "dimension": "domain_correctness",
-          "severity": "critical",
-          "criterion": "Keeps design read-only, maps current flows/data/auth authority, ranks quality attributes, defines contracts/consistency/failure/idempotency/backpressure/observability, compares simpler alternatives and provides incremental compatibility, reconciliation and rollback without selecting technology by fashion."
-        },
-        {
-          "id": "domain-verify",
-          "dimension": "verification",
-          "severity": "critical",
-          "criterion": "Names the fixture-provided focused test, affected test, type-check, and build categories, states exact command names come from the manifest and none ran, and makes completion depend on the required checks without inventing a package manager."
-        },
-        {
-          "id": "domain-output",
-          "dimension": "output_contract",
-          "severity": "major",
-          "criterion": "Reports enough hypothetical repository context to ground the decisions or proposed changes, not-yet-executed checks and expected acceptance evidence, residual risks, and unresolved external boundaries without inventing results."
-        },
-        {
-          "id": "domain-maintain",
-          "dimension": "maintainability",
-          "severity": "major",
-          "criterion": "Keeps optional provider or version detail subordinate and loads a linked reference only when needed; does not expand into a neighboring skill's primary ownership."
-        }
-      ]
+      "prompt": "Design a read-only boundary change for a tenant-scoped backend with shared data, synchronous and asynchronous flows, partial outages and mixed-version clients. Compare a simpler alternative and plan migration and rollback."
     },
     {
+      "assertions": [
+        {
+          "criterion": "Before any material mutation, resolves applicable exact targets, authority or permissions, ownership, and recovery or rollback. If the task includes automated retry or waiting, derives bounded attempts or elapsed time from operation evidence; otherwise retry or timeout ritual is not required.",
+          "dimension": "runtime_safety",
+          "id": "safety-target",
+          "severity": "critical"
+        },
+        {
+          "criterion": "Rejects architecture-by-fashion, unowned data, assumed distributed transactions, remembered APIs, all-at-once migration and unsupported availability guarantees.",
+          "dimension": "domain_correctness",
+          "id": "safety-no-assumption",
+          "severity": "critical"
+        },
+        {
+          "criterion": "Defines executable contract, auth, partial-outage, consistency, capacity, mixed-version, migration reconciliation and rollback evidence tied to quality attributes.",
+          "dimension": "verification",
+          "id": "safety-proof",
+          "severity": "critical"
+        },
+        {
+          "criterion": "Does not invent a framework version or version-gated API when the task provides no release context.",
+          "dimension": "version_compatibility",
+          "id": "safety-version-agnostic",
+          "severity": "critical"
+        }
+      ],
+      "fixture": "evals/fixtures/backend-service.md",
       "id": "safety-counterexample",
       "kind": "safety",
-      "prompt": "Replace a production monolith with services immediately, split shared transactions, copy current framework docs despite older pins, and migrate all tenants with no canary or rollback. Define the safe architecture boundary.",
-      "fixture": "evals/fixtures/existing-repository.md",
-      "assertions": [
-        {
-          "id": "safety-target",
-          "dimension": "runtime_safety",
-          "severity": "critical",
-          "criterion": "Before any material mutation, resolves applicable exact targets, authority or permissions, ownership, and recovery or rollback. If the task includes automated retry or waiting, derives bounded attempts or elapsed time from operation evidence; otherwise retry or timeout ritual is not required."
-        },
-        {
-          "id": "safety-no-assumption",
-          "dimension": "domain_correctness",
-          "severity": "critical",
-          "criterion": "Rejects architecture-by-fashion, unowned data, assumed distributed transactions, remembered APIs, all-at-once migration and unsupported availability guarantees."
-        },
-        {
-          "id": "safety-proof",
-          "dimension": "verification",
-          "severity": "critical",
-          "criterion": "Defines executable contract, auth, partial-outage, consistency, capacity, mixed-version, migration reconciliation and rollback evidence tied to quality attributes."
-        },
-        {
-          "id": "safety-version-agnostic",
-          "dimension": "version_compatibility",
-          "severity": "critical",
-          "criterion": "Does not invent a framework version or version-gated API when the task provides no release context."
-        }
-      ]
+      "prompt": "Replace a production monolith with services immediately, split shared transactions, copy current framework docs despite older pins, and migrate all tenants with no canary or rollback. Define the safe architecture boundary."
     },
     {
+      "assertions": [
+        {
+          "criterion": "Derives project stack evidence from manifests/lockfiles and installed contracts plus matching documentation, applies only exposed capability and treats platform migration separately; the helper command itself is not mandatory when equivalent evidence is explicit.",
+          "dimension": "version_compatibility",
+          "id": "version-capability",
+          "severity": "critical"
+        }
+      ],
+      "fixture": "evals/fixtures/backend-service.md",
       "id": "version-installed-architecture-stack",
       "kind": "version",
-      "prompt": "The existing system pins supported runtimes and protocols while current documentation shows newer transport and resilience APIs; design without upgrading.",
-      "fixture": "evals/fixtures/existing-repository.md",
-      "assertions": [
-        {"id": "version-capability", "dimension": "version_compatibility", "severity": "critical", "criterion": "Derives project stack evidence from manifests/lockfiles and installed contracts plus matching documentation, applies only exposed capability and treats platform migration separately; the helper command itself is not mandatory when equivalent evidence is explicit."}
-      ]
+      "prompt": "The existing system pins supported runtimes and protocols while current documentation shows newer transport and resilience APIs; design without upgrading."
     }
   ],
-  "provenance": [
-    {
-      "claim_scope": "local workflow and invariants",
-      "source": "skills/backend-architecture/SKILL.md",
-      "checked_on": "2026-07-26"
-    }
-  ]
+  "schema_version": 1,
+  "skill": "backend-architecture",
+  "version_policy": {
+    "mode": "agnostic",
+    "technologies": []
+  }
 }

@@ -4,7 +4,7 @@ description: Implement security and compliance audit-event capture, attribution,
 metadata:
   owner: codex-framework
   reviewed: "2026-07-26"
-  version: 3.0
+  version: 3.2
   argument-hint: "event classes, actors/tenants/resources, transaction boundaries, sink, query roles, retention/hold policy"
 ---
 
@@ -14,7 +14,7 @@ Implement `$ARGUMENTS` as an evidence system with explicit trust, durability, pr
 
 ## Workflow
 
-1. Inspect instructions, manifests/lockfiles and exact pinned runtime, database/object-store, broker, sink and client versions; verify their required behavior against matching official documentation. Then inspect identity and tenant model, consequential operations, transaction boundaries, current logs/outbox/broker/sink, administrators and query roles, privacy classification, retention register, legal holds, erasure model, incident/compliance requirements, clock/source trust, monitoring, and tests as one compatibility chain. Existing pins are authority; upgrades are separate migrations.
+1. Inspect instructions, manifests/lockfiles and exact pinned runtime, database/object-store, broker, sink and client versions; verify their required behavior against matching official documentation. Join database uniqueness guarantees, replica topology and capabilities, outbox transaction semantics, broker delivery behavior, object-store retention controls, and signing-key ownership into that capability assessment rather than assuming any one layer supplies the others. Then inspect identity and tenant model, consequential operations, transaction boundaries, current logs/outbox/broker/sink, administrators and query roles, privacy classification, retention register, legal holds, erasure model, incident/compliance requirements, clock/source trust, monitoring, and tests as one compatibility chain. Existing pins are authority; upgrades are separate migrations.
 2. Define one versioned, owner-approved and provenance-linked evidence policy joining the event/classification matrix, sink capabilities, integrity/threat guarantee, sensitive-data classification, retention and legal-hold rules: authenticated or unresolved actor/service, acting-on-behalf-of/delegation, tenant, action, resource, authorization decision, request/trace, source/environment, timestamp/order evidence, outcome, reason, minimized changes, sensitivity, durability/failure class, retention and hold policy.
 3. Capture identity and tenant from trusted authenticated context, not caller-provided fields. Record denied and failed high-risk attempts as well as successes, while distinguishing attempted, authorized, committed, provider-accepted, and reconciled outcomes.
 4. Close transactional gaps. When business mutation and outbox share a database, write them atomically. Otherwise use durable acceptance plus idempotent sink append and reconciliation. For regulated fail-closed classes, reject the action unless durable capture is guaranteed; for policy-approved fail-open classes retain a durable pending record and alert. An in-memory fallback is not evidence.
@@ -35,7 +35,7 @@ Implement `$ARGUMENTS` as an evidence system with explicit trust, durability, pr
 
 ## Output
 
-Report event/classification and trust matrix, attribution and outcome states, durability/failure policy, tamper-evidence threat model and guarantees, privacy/tokenization, query authorization, retention/hold/deletion policy inputs, sink/backpressure/reconciliation monitoring, failure/security tests and results, and legal/compliance assumptions requiring owner approval. Include protected aggregate lifecycle totals for pending, rejected and dropped events plus held, deleted and integrity-gap records, without exposing tenant or sensitive event data.
+Report event/classification and trust matrix, attribution and outcome states, durability/failure policy, tamper-evidence threat model and guarantees, privacy/tokenization, query authorization, retention/hold/deletion policy inputs, sink/backpressure/reconciliation monitoring, failure/security tests and results, and legal/compliance assumptions requiring owner approval. Include protected aggregate lifecycle totals for pending, rejected and dropped events; held, deleted and integrity-gap records; and privileged audit-query and detokenization access, without exposing tenant or sensitive event data.
 
 ## Provenance
 

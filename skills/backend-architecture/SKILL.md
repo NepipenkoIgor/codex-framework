@@ -1,6 +1,6 @@
 ---
 name: backend-architecture
-description: Design read-only backend boundaries, contracts, data ownership, consistency, scaling, security, resilience, and migration for a concrete system. Use for cross-cutting design or material boundary change; route scoped code implementation to backend-implement.
+description: Design read-only backend boundaries, contracts, data ownership, consistency, scaling, security, resilience, and migration for a concrete system. Use for cross-cutting design or material boundary change; route event-driven architecture, domain modeling, and scoped code implementation to their dedicated skills.
 metadata:
   owner: codex-framework
   reviewed: "2026-07-27"

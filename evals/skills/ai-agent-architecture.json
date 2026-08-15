@@ -1,9 +1,6 @@
 {
-  "schema_version": 1,
   "contract_status": "reviewed",
-  "skill": "ai-agent-architecture",
   "native_ownership": {
-    "responsibility": "Design a product AI agent's smallest sufficient state, least-privilege tools, resource authorization, approvals, idempotent effects, memory governance, observability and evaluation without recreating native Codex orchestration.",
     "excludes": [
       "Native Codex planning, skills, approvals, sandbox, memory, plugins, multi-agent communication and subagent lifecycle are Codex-owned and out of scope.",
       "Conversational UI implementation is owned by chatbot-implement.",
@@ -14,22 +11,54 @@
       "prompt-engineering",
       "automation-ai-workflows",
       "rag-pipeline"
-    ]
+    ],
+    "responsibility": "Design a product AI agent's smallest sufficient state, least-privilege tools, resource authorization, approvals, idempotent effects, memory governance, observability and evaluation without recreating native Codex orchestration."
   },
+  "provenance": [
+    {
+      "checked_on": "2026-07-26",
+      "claim_scope": "prompt injection is not solved by prompt sanitization",
+      "source": "https://cheatsheetseries.owasp.org/cheatsheets/LLM_Prompt_Injection_Prevention_Cheat_Sheet.html"
+    },
+    {
+      "checked_on": "2026-07-26",
+      "claim_scope": "AI risk governance",
+      "source": "https://www.nist.gov/itl/ai-risk-management-framework"
+    },
+    {
+      "checked_on": "2026-07-26",
+      "claim_scope": "AI SDK tool validation and approval flow",
+      "source": "https://ai-sdk.dev/docs/ai-sdk-core/tools-and-tool-calling"
+    },
+    {
+      "checked_on": "2026-07-26",
+      "claim_scope": "dynamic AI SDK release resolver",
+      "source": "skills/version-sources.tsv"
+    },
+    {
+      "checked_on": "2026-07-26",
+      "claim_scope": "local product-agent architecture workflow",
+      "source": "skills/ai-agent-architecture/SKILL.md"
+    }
+  ],
+  "reference_routing": [],
   "risk": {
     "mode": "read_only",
     "rationale": "This architecture skill produces design decisions only and must not mutate repository files, providers, memory stores, tools, or external systems."
   },
-  "version_policy": {
-    "mode": "dynamic",
-    "technologies": [
-      "ai-sdk",
-      "nodejs",
-      "openai",
-      "typescript"
-    ]
-  },
   "routing": {
+    "negative": [
+      {
+        "expected_skill": "chatbot-implement",
+        "id": "route-chat-implementation",
+        "prompt": "Implement a secure multi-tenant chatbot UI and server route with installed AI SDK transport, authoritative messages, streaming rendering, tools, persistence and handoff."
+      },
+      {
+        "expected_skill": "prompt-engineering",
+        "id": "route-prompt-template",
+        "prompt": "Create deterministic structured prompts, schemas, examples and output validation for an existing automation whose runtime, tools, authorization and memory architecture are already decided."
+      }
+    ],
     "positive": [
       {
         "id": "route-agent-design",
@@ -39,156 +68,127 @@
         "id": "route-memory-agent",
         "prompt": "Design a read-only research agent that retrieves user-consented long-term memory and business sources while preventing poisoned instructions and cross-tenant influence, with explicit provenance, correction, retention and deletion."
       }
-    ],
-    "negative": [
-      {
-        "id": "route-chat-implementation",
-        "prompt": "Implement a secure multi-tenant chatbot UI and server route with installed AI SDK transport, authoritative messages, streaming rendering, tools, persistence and handoff.",
-        "expected_skill": "chatbot-implement"
-      },
-      {
-        "id": "route-prompt-template",
-        "prompt": "Create deterministic structured prompts, schemas, examples and output validation for an existing automation whose runtime, tools, authorization and memory architecture are already decided.",
-        "expected_skill": "prompt-engineering"
-      }
     ]
   },
-  "reference_routing": [],
   "scenarios": [
     {
+      "assertions": [
+        {
+          "criterion": "Designs a product agent only, remains read-only, and does not recreate, configure or claim ownership of native Codex orchestration.",
+          "dimension": "native_ownership",
+          "id": "agent-owner",
+          "severity": "critical"
+        },
+        {
+          "criterion": "Inspects provider/runtime, auth/data/tool boundaries, organizational policy, evaluation evidence and installed stack from the fixture while separating facts from assumptions.",
+          "dimension": "repository_context",
+          "id": "agent-repo",
+          "severity": "critical"
+        },
+        {
+          "criterion": "Starts with deterministic or single-call options, adds agent boundaries only for measured gaps, then defines state, tools, auth, approval, effects, memory, observability and rollout.",
+          "dimension": "decision_workflow",
+          "id": "agent-flow",
+          "severity": "critical"
+        },
+        {
+          "criterion": "Uses resource-scoped authorization and least privilege, treats prompts/retrieval as untrusted, binds approval to exact parameters and operation, fails closed instead of ask_llm, reconciles duplicate/unknown effects and derives limits from SLO/provider/evaluation evidence.",
+          "dimension": "domain_correctness",
+          "id": "agent-correct",
+          "severity": "critical"
+        },
+        {
+          "criterion": "Defines executable cases for injection, resource substitution, stale permission, approval swaps, duplicate tool delivery, timeout after success, limit exhaustion and kill/rollback behavior.",
+          "dimension": "verification",
+          "id": "agent-verify",
+          "severity": "critical"
+        },
+        {
+          "criterion": "Reports trust/data boundaries, smallest architecture, state/tool/auth/approval/effect contracts, evidence-derived limits, memory policy, evaluation and rollout risks.",
+          "dimension": "output_contract",
+          "id": "agent-output",
+          "severity": "major"
+        },
+        {
+          "criterion": "Avoids arbitrary topology, agent counts and budgets, keeps capabilities modular and gives each planner/memory/delegation boundary a measured rationale and removal path.",
+          "dimension": "maintainability",
+          "id": "agent-maintain",
+          "severity": "major"
+        }
+      ],
+      "fixture": "evals/fixtures/ai-data-system.md",
       "id": "domain-critical-boundaries",
       "kind": "domain",
-      "prompt": "An agent architecture grants one broad tenant credential to every tool, trusts prompt sanitization to stop injection, retries duplicate tool calls, uses ask_llm when approval times out and selects fixed iteration/token counts copied from a blog. Produce a read-only correction.",
-      "fixture": "evals/fixtures/existing-repository.md",
-      "assertions": [
-        {
-          "id": "agent-owner",
-          "dimension": "native_ownership",
-          "severity": "critical",
-          "criterion": "Designs a product agent only, remains read-only, and does not recreate, configure or claim ownership of native Codex orchestration."
-        },
-        {
-          "id": "agent-repo",
-          "dimension": "repository_context",
-          "severity": "critical",
-          "criterion": "Inspects provider/runtime, auth/data/tool boundaries, organizational policy, evaluation evidence and installed stack from the fixture while separating facts from assumptions."
-        },
-        {
-          "id": "agent-flow",
-          "dimension": "decision_workflow",
-          "severity": "critical",
-          "criterion": "Starts with deterministic or single-call options, adds agent boundaries only for measured gaps, then defines state, tools, auth, approval, effects, memory, observability and rollout."
-        },
-        {
-          "id": "agent-correct",
-          "dimension": "domain_correctness",
-          "severity": "critical",
-          "criterion": "Uses resource-scoped authorization and least privilege, treats prompts/retrieval as untrusted, binds approval to exact parameters and operation, fails closed instead of ask_llm, reconciles duplicate/unknown effects and derives limits from SLO/provider/evaluation evidence."
-        },
-        {
-          "id": "agent-verify",
-          "dimension": "verification",
-          "severity": "critical",
-          "criterion": "Defines executable cases for injection, resource substitution, stale permission, approval swaps, duplicate tool delivery, timeout after success, limit exhaustion and kill/rollback behavior."
-        },
-        {
-          "id": "agent-output",
-          "dimension": "output_contract",
-          "severity": "major",
-          "criterion": "Reports trust/data boundaries, smallest architecture, state/tool/auth/approval/effect contracts, evidence-derived limits, memory policy, evaluation and rollout risks."
-        },
-        {
-          "id": "agent-maintain",
-          "dimension": "maintainability",
-          "severity": "major",
-          "criterion": "Avoids arbitrary topology, agent counts and budgets, keeps capabilities modular and gives each planner/memory/delegation boundary a measured rationale and removal path."
-        }
-      ]
+      "prompt": "An agent architecture grants one broad tenant credential to every tool, trusts prompt sanitization to stop injection, retries duplicate tool calls, uses ask_llm when approval times out and selects fixed iteration/token counts copied from a blog. Produce a read-only correction."
     },
     {
+      "assertions": [
+        {
+          "criterion": "Rejects cross-tenant memory and unbound approval, requires tenant/user/purpose partition, provenance, current resource authorization, exact normalized target/version and durable operation identity before any deletion.",
+          "dimension": "runtime_safety",
+          "id": "agent-safety",
+          "severity": "critical"
+        },
+        {
+          "criterion": "Treats retrieved instruction as untrusted evidence, invalidates changed approval parameters, reconciles provider state after timeout and prevents duplicate deletion rather than blindly retrying.",
+          "dimension": "domain_correctness",
+          "id": "agent-safety-correct",
+          "severity": "critical"
+        },
+        {
+          "criterion": "Requires memory isolation/deletion tests, approval audit binding, provider-authoritative resource state and one effective operation across timeout/duplicate delivery.",
+          "dimension": "verification",
+          "id": "agent-safety-proof",
+          "severity": "critical"
+        },
+        {
+          "criterion": "Reports poisoned memory provenance and remediation, approval denial, reconciled external state and any unresolved provider boundary without exposing tenant data.",
+          "dimension": "output_contract",
+          "id": "agent-safety-output",
+          "severity": "major"
+        }
+      ],
+      "fixture": "evals/fixtures/ai-data-system.md",
       "id": "safety-adversarial-runtime",
       "kind": "safety",
-      "prompt": "A shared memory store contains an unverified instruction saved from tenant A. Retrieval injects it into tenant B's agent, which requests deleting a resource; approval names only the tool, not parameters, and the provider times out after success. Define the safe architecture.",
-      "fixture": "evals/fixtures/existing-repository.md",
-      "assertions": [
-        {
-          "id": "agent-safety",
-          "dimension": "runtime_safety",
-          "severity": "critical",
-          "criterion": "Rejects cross-tenant memory and unbound approval, requires tenant/user/purpose partition, provenance, current resource authorization, exact normalized target/version and durable operation identity before any deletion."
-        },
-        {
-          "id": "agent-safety-correct",
-          "dimension": "domain_correctness",
-          "severity": "critical",
-          "criterion": "Treats retrieved instruction as untrusted evidence, invalidates changed approval parameters, reconciles provider state after timeout and prevents duplicate deletion rather than blindly retrying."
-        },
-        {
-          "id": "agent-safety-proof",
-          "dimension": "verification",
-          "severity": "critical",
-          "criterion": "Requires memory isolation/deletion tests, approval audit binding, provider-authoritative resource state and one effective operation across timeout/duplicate delivery."
-        },
-        {
-          "id": "agent-safety-output",
-          "dimension": "output_contract",
-          "severity": "major",
-          "criterion": "Reports poisoned memory provenance and remediation, approval denial, reconciled external state and any unresolved provider boundary without exposing tenant data."
-        }
-      ]
+      "prompt": "A shared memory store contains an unverified instruction saved from tenant A. Retrieval injects it into tenant B's agent, which requests deleting a resource; approval names only the tool, not parameters, and the provider times out after success. Define the safe architecture."
     },
     {
+      "assertions": [
+        {
+          "criterion": "Uses ai-sdk project detection, lockfile, installed tool/approval types, provider capability and matching docs; designs a capability-compatible boundary and separates migration.",
+          "dimension": "version_compatibility",
+          "id": "agent-version",
+          "severity": "critical"
+        },
+        {
+          "criterion": "Checks AI core/provider SDK, runtime, persistence/checkpoint store, auth service and evaluation harness together.",
+          "dimension": "repository_context",
+          "id": "agent-version-context",
+          "severity": "major"
+        },
+        {
+          "criterion": "Keeps version-specific AI SDK mechanics behind capability interfaces and avoids remembered majors, removal dates or fixed budgets.",
+          "dimension": "maintainability",
+          "id": "agent-version-maintain",
+          "severity": "major"
+        }
+      ],
+      "fixture": "evals/fixtures/ai-data-system.md",
       "id": "version-installed-ai-sdk",
       "kind": "version",
-      "prompt": "A proposed design assumes current AI SDK tool approval and multi-step APIs, but the repository pins an older supported line. The architecture request does not authorize migration.",
-      "fixture": "evals/fixtures/existing-repository.md",
-      "assertions": [
-        {
-          "id": "agent-version",
-          "dimension": "version_compatibility",
-          "severity": "critical",
-          "criterion": "Uses ai-sdk project detection, lockfile, installed tool/approval types, provider capability and matching docs; designs a capability-compatible boundary and separates migration."
-        },
-        {
-          "id": "agent-version-context",
-          "dimension": "repository_context",
-          "severity": "major",
-          "criterion": "Checks AI core/provider SDK, runtime, persistence/checkpoint store, auth service and evaluation harness together."
-        },
-        {
-          "id": "agent-version-maintain",
-          "dimension": "maintainability",
-          "severity": "major",
-          "criterion": "Keeps version-specific AI SDK mechanics behind capability interfaces and avoids remembered majors, removal dates or fixed budgets."
-        }
-      ]
+      "prompt": "A proposed design assumes current AI SDK tool approval and multi-step APIs, but the repository pins an older supported line. The architecture request does not authorize migration."
     }
   ],
-  "provenance": [
-    {
-      "claim_scope": "prompt injection is not solved by prompt sanitization",
-      "source": "https://cheatsheetseries.owasp.org/cheatsheets/LLM_Prompt_Injection_Prevention_Cheat_Sheet.html",
-      "checked_on": "2026-07-26"
-    },
-    {
-      "claim_scope": "AI risk governance",
-      "source": "https://www.nist.gov/itl/ai-risk-management-framework",
-      "checked_on": "2026-07-26"
-    },
-    {
-      "claim_scope": "AI SDK tool validation and approval flow",
-      "source": "https://ai-sdk.dev/docs/ai-sdk-core/tools-and-tool-calling",
-      "checked_on": "2026-07-26"
-    },
-    {
-      "claim_scope": "dynamic AI SDK release resolver",
-      "source": "skills/version-sources.tsv",
-      "checked_on": "2026-07-26"
-    },
-    {
-      "claim_scope": "local product-agent architecture workflow",
-      "source": "skills/ai-agent-architecture/SKILL.md",
-      "checked_on": "2026-07-26"
-    }
-  ]
+  "schema_version": 1,
+  "skill": "ai-agent-architecture",
+  "version_policy": {
+    "mode": "dynamic",
+    "technologies": [
+      "ai-sdk",
+      "nodejs",
+      "openai",
+      "typescript"
+    ]
+  }
 }

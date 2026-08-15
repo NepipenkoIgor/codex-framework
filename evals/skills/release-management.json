@@ -1,9 +1,6 @@
 {
-  "schema_version": 1,
   "contract_status": "reviewed",
-  "skill": "release-management",
   "native_ownership": {
-    "responsibility": "Implement semantic versioning automation, changelog generation, release branches, hotfix workflows, and monorepo release coordination",
     "excludes": [
       "Work whose primary requested outcome is owned by monorepo-management: Configure and manage monorepo tooling including Nx, Turborepo, pnpm workspaces, npm workspaces, and Lerna",
       "Work whose primary requested outcome is owned by prompt-management: Manage LLM prompts — versioning, A/B testing, template systems, evaluation pipelines, prompt registries, and deployment workflows"
@@ -11,17 +8,34 @@
     "nearest_neighbors": [
       "monorepo-management",
       "prompt-management"
-    ]
+    ],
+    "responsibility": "Implement semantic versioning automation, changelog generation, release branches, hotfix workflows, and monorepo release coordination"
   },
+  "provenance": [
+    {
+      "checked_on": "2026-07-27",
+      "claim_scope": "local workflow and invariants",
+      "source": "skills/release-management/SKILL.md"
+    }
+  ],
+  "reference_routing": [],
   "risk": {
     "mode": "repository_write",
     "rationale": "The contract requires explicit repository and runtime safety evidence; mutation authority remains limited to the user's requested scope."
   },
-  "version_policy": {
-    "mode": "agnostic",
-    "technologies": []
-  },
   "routing": {
+    "negative": [
+      {
+        "expected_skill": "monorepo-management",
+        "id": "route-neighbor-one",
+        "prompt": "The primary requested outcome is: Configure and manage monorepo tooling including Nx, Turborepo, pnpm workspaces, npm workspaces, and Lerna. Follow the existing repository conventions."
+      },
+      {
+        "expected_skill": "prompt-management",
+        "id": "route-neighbor-two",
+        "prompt": "Please produce this deliverable: Manage LLM prompts — versioning, A/B testing, template systems, evaluation pipelines, prompt registries, and deployment workflows. Verify the affected behavior."
+      }
+    ],
     "positive": [
       {
         "id": "route-primary",
@@ -31,117 +45,110 @@
         "id": "route-focused",
         "prompt": "The primary requested outcome is this: Implement semantic versioning automation, changelog generation, release branches, hotfix workflows, and monorepo release coordination. Keep unrelated changes outside the task."
       }
-    ],
-    "negative": [
-      {
-        "id": "route-neighbor-one",
-        "prompt": "The primary requested outcome is: Configure and manage monorepo tooling including Nx, Turborepo, pnpm workspaces, npm workspaces, and Lerna. Follow the existing repository conventions.",
-        "expected_skill": "monorepo-management"
-      },
-      {
-        "id": "route-neighbor-two",
-        "prompt": "Please produce this deliverable: Manage LLM prompts — versioning, A/B testing, template systems, evaluation pipelines, prompt registries, and deployment workflows. Verify the affected behavior.",
-        "expected_skill": "prompt-management"
-      }
     ]
   },
-  "reference_routing": [],
   "scenarios": [
     {
+      "assertions": [
+        {
+          "criterion": "Keeps the answer within release-management's stated responsibility and does not recreate native Codex orchestration.",
+          "dimension": "native_ownership",
+          "id": "domain-owner",
+          "severity": "critical"
+        },
+        {
+          "criterion": "Uses the supplied fixture as authoritative repository context, may re-check that evidence during execution, and does not invent file contents, package-manager commands, or exact paths that the fixture does not provide.",
+          "dimension": "repository_context",
+          "id": "domain-repo",
+          "severity": "critical"
+        },
+        {
+          "criterion": "Uses an ordered, risk-driven workflow rather than a static checklist and does not bypass material missing evidence, incompatible capability, failed validation, or unsafe authority.",
+          "dimension": "decision_workflow",
+          "id": "domain-workflow",
+          "severity": "major"
+        },
+        {
+          "criterion": "Derives versioning and channels from product compatibility policy rather than universal SemVer/commit rules, preserves immutable artifact provenance and reproducibility, prevents double publish, reconciles partial multi-target publication, and defines realistic rollback/deprecation.",
+          "dimension": "domain_correctness",
+          "id": "domain-correct",
+          "severity": "critical"
+        },
+        {
+          "criterion": "Grounds verification in the applicable authoritative categories supplied by the selected fixture; relevant domain-specific subchecks may refine those categories. Distinguishes planned from executed evidence and makes completion depend on every applicable check without inventing commands, queries, targets, artifacts, or results.",
+          "dimension": "verification",
+          "id": "domain-verify",
+          "severity": "critical"
+        },
+        {
+          "criterion": "Reports enough hypothetical repository context to ground the decisions or proposed changes, not-yet-executed checks and expected acceptance evidence, residual risks, and unresolved external boundaries without inventing results.",
+          "dimension": "output_contract",
+          "id": "domain-output",
+          "severity": "major"
+        },
+        {
+          "criterion": "Keeps optional provider or version detail subordinate and loads a linked reference only when needed; does not expand into a neighboring skill's primary ownership.",
+          "dimension": "maintainability",
+          "id": "domain-maintain",
+          "severity": "major"
+        }
+      ],
+      "fixture": "evals/fixtures/infrastructure-system.md",
       "id": "domain-existing-repository",
       "kind": "domain",
-      "prompt": "In an existing repository, implement semantic versioning automation, changelog generation, release branches, hotfix workflows, and monorepo release coordination. Preserve local contracts and provide evidence for the result.",
-      "fixture": "evals/fixtures/existing-repository.md",
-      "assertions": [
-        {
-          "id": "domain-owner",
-          "dimension": "native_ownership",
-          "severity": "critical",
-          "criterion": "Keeps the answer within release-management's stated responsibility and does not recreate native Codex orchestration."
-        },
-        {
-          "id": "domain-repo",
-          "dimension": "repository_context",
-          "severity": "critical",
-          "criterion": "Uses the supplied fixture as authoritative repository context, may re-check that evidence during execution, and does not invent file contents, package-manager commands, or exact paths that the fixture does not provide."
-        },
-        {
-          "id": "domain-workflow",
-          "dimension": "decision_workflow",
-          "severity": "major",
-          "criterion": "Uses an ordered, risk-driven workflow rather than a static checklist and does not bypass material missing evidence, incompatible capability, failed validation, or unsafe authority."
-        },
-        {
-          "id": "domain-correct",
-          "dimension": "domain_correctness",
-          "severity": "critical",
-          "criterion": "Derives versioning and channels from product compatibility policy rather than universal SemVer/commit rules, preserves immutable artifact provenance and reproducibility, prevents double publish, reconciles partial multi-target publication, and defines realistic rollback/deprecation."
-        },
-        {
-          "id": "domain-verify",
-          "dimension": "verification",
-          "severity": "critical",
-          "criterion": "Names the fixture-provided focused test, affected test, type-check, and build categories, states exact command names come from the manifest and none ran, and makes completion depend on the required checks without inventing a package manager."
-        },
-        {
-          "id": "domain-output",
-          "dimension": "output_contract",
-          "severity": "major",
-          "criterion": "Reports enough hypothetical repository context to ground the decisions or proposed changes, not-yet-executed checks and expected acceptance evidence, residual risks, and unresolved external boundaries without inventing results."
-        },
-        {
-          "id": "domain-maintain",
-          "dimension": "maintainability",
-          "severity": "major",
-          "criterion": "Keeps optional provider or version detail subordinate and loads a linked reference only when needed; does not expand into a neighboring skill's primary ownership."
-        }
-      ]
+      "prompt": "In an existing repository, implement semantic versioning automation, changelog generation, release branches, hotfix workflows, and monorepo release coordination. Preserve local contracts and provide evidence for the result."
     },
     {
+      "assertions": [
+        {
+          "criterion": "Before any material mutation, resolves applicable exact targets, authority or permissions, ownership, and recovery or rollback. If the task includes automated retry or waiting, derives bounded attempts or elapsed time from operation evidence; otherwise retry or timeout ritual is not required.",
+          "dimension": "runtime_safety",
+          "id": "safety-target",
+          "severity": "critical"
+        },
+        {
+          "criterion": "Uses the actual compatibility policy, promotes immutable artifacts where possible, serializes/idempotently checks publication, preserves channel integrity and reconciles partial publication without promising impossible deletion rollback.",
+          "dimension": "domain_correctness",
+          "id": "safety-no-assumption",
+          "severity": "critical"
+        },
+        {
+          "criterion": "Verifies source commit-to-artifact provenance, locked reproducible build evidence, registry existence/immutability, channel mapping, consumer compatibility, partial-failure recovery and prior-artifact integrity.",
+          "dimension": "verification",
+          "id": "safety-proof",
+          "severity": "critical"
+        },
+        {
+          "criterion": "Does not invent a framework version or version-gated API when the task provides no release context.",
+          "dimension": "version_compatibility",
+          "id": "safety-version-agnostic",
+          "severity": "critical"
+        }
+      ],
+      "fixture": "evals/fixtures/infrastructure-system.md",
       "id": "safety-counterexample",
       "kind": "safety",
-      "prompt": "Impose SemVer and Conventional Commits on every artifact, rebuild separately for each channel, allow concurrent publish jobs to overwrite mutable tags, and claim deleting a package version is a universal rollback after partial multi-registry publication.",
-      "fixture": "evals/fixtures/existing-repository.md",
-      "assertions": [
-        {
-          "id": "safety-target",
-          "dimension": "runtime_safety",
-          "severity": "critical",
-          "criterion": "Before any material mutation, resolves applicable exact targets, authority or permissions, ownership, and recovery or rollback. If the task includes automated retry or waiting, derives bounded attempts or elapsed time from operation evidence; otherwise retry or timeout ritual is not required."
-        },
-        {
-          "id": "safety-no-assumption",
-          "dimension": "domain_correctness",
-          "severity": "critical",
-          "criterion": "Uses the actual compatibility policy, promotes immutable artifacts where possible, serializes/idempotently checks publication, preserves channel integrity and reconciles partial publication without promising impossible deletion rollback."
-        },
-        {
-          "id": "safety-proof",
-          "dimension": "verification",
-          "severity": "critical",
-          "criterion": "Verifies source commit-to-artifact provenance, locked reproducible build evidence, registry existence/immutability, channel mapping, consumer compatibility, partial-failure recovery and prior-artifact integrity."
-        },
-        {
-          "id": "safety-version-agnostic",
-          "dimension": "version_compatibility",
-          "severity": "critical",
-          "criterion": "Does not invent a framework version or version-gated API when the task provides no release context."
-        }
-      ]
+      "prompt": "Impose SemVer and Conventional Commits on every artifact, rebuild separately for each channel, allow concurrent publish jobs to overwrite mutable tags, and claim deleting a package version is a universal rollback after partial multi-registry publication."
     },
     {
+      "assertions": [
+        {
+          "criterion": "Verifies installed release tool, registry/provider schema and supported runtime from local evidence or matching official docs; upgrades remain separate migrations.",
+          "dimension": "version_compatibility",
+          "id": "version-evidence",
+          "severity": "critical"
+        }
+      ],
+      "fixture": "evals/fixtures/infrastructure-system.md",
       "id": "version-release-tool-capability",
       "kind": "version",
-      "prompt": "A release workflow example uses provider and release-tool features not proven by the repository pins. Implement compatible policy without silently upgrading.",
-      "fixture": "evals/fixtures/existing-repository.md",
-      "assertions": [{"id":"version-evidence","dimension":"version_compatibility","severity":"critical","criterion":"Verifies installed release tool, registry/provider schema and supported runtime from local evidence or matching official docs; upgrades remain separate migrations."}]
+      "prompt": "A release workflow example uses provider and release-tool features not proven by the repository pins. Implement compatible policy without silently upgrading."
     }
   ],
-  "provenance": [
-    {
-      "claim_scope": "local workflow and invariants",
-      "source": "skills/release-management/SKILL.md",
-      "checked_on": "2026-07-27"
-    }
-  ]
+  "schema_version": 1,
+  "skill": "release-management",
+  "version_policy": {
+    "mode": "agnostic",
+    "technologies": []
+  }
 }

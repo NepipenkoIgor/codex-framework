@@ -1,6 +1,6 @@
 ---
 name: i18n-implementation
-description: Implement locale routing, translations, formatting, pluralization, directionality and localized metadata using the installed stack. Use for requested internationalization changes; do not use for translation-only copywriting.
+description: Implement locale routing, translations, formatting, pluralization, directionality and localized metadata using the installed stack. Use when application internationalization behavior is primary; route standalone localized SEO and general accessibility/directionality repairs to their dedicated skills, and do not use for translation-only copywriting.
 metadata:
   owner: codex-framework
   reviewed: "2026-07-26"

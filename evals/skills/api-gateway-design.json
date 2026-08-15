@@ -1,73 +1,177 @@
 {
-  "schema_version": 1,
   "contract_status": "reviewed",
-  "skill": "api-gateway-design",
   "native_ownership": {
-    "responsibility": "Design gateway or BFF topology and trust boundaries for routing, identity propagation, aggregation, cache partitioning, resource controls, upstream isolation, and bypass prevention.",
     "excludes": [
       "Endpoint resource schemas, pagination, and OpenAPI contracts are owned by api-design.",
       "Rate-limit algorithm and quota-store design without broader edge topology is owned by rate-limiting.",
       "Routine implementation with no unresolved gateway architecture decision is outside this design skill."
     ],
-    "nearest_neighbors": ["api-design", "rate-limiting", "microservice-communication", "backend-architecture"]
+    "nearest_neighbors": [
+      "api-design",
+      "rate-limiting",
+      "microservice-communication",
+      "backend-architecture"
+    ],
+    "responsibility": "Design gateway or BFF topology and trust boundaries for routing, identity propagation, aggregation, cache partitioning, resource controls, upstream isolation, and bypass prevention."
   },
+  "provenance": [
+    {
+      "checked_on": "2026-07-26",
+      "claim_scope": "API object/function authorization, authentication, resource, and configuration risks",
+      "source": "https://owasp.org/API-Security/editions/2023/en/0x11-t10/"
+    },
+    {
+      "checked_on": "2026-07-26",
+      "claim_scope": "HTTP cache and Retry-After semantics",
+      "source": "https://www.rfc-editor.org/rfc/rfc9110"
+    },
+    {
+      "checked_on": "2026-07-26",
+      "claim_scope": "local gateway trust and verification workflow",
+      "source": "skills/api-gateway-design/SKILL.md"
+    }
+  ],
+  "reference_routing": [],
   "risk": {
     "mode": "repository_write",
     "rationale": "Gateway trust, cache, and routing errors can expose protected services or cross-tenant data and can amplify dependency outages."
   },
-  "version_policy": {"mode": "agnostic", "technologies": []},
   "routing": {
-    "positive": [
-      {"id": "route-edge-trust", "prompt": "Design the edge path for public and internal APIs so caller identity headers cannot be forged, protected services reject direct bypass, tenant authorization remains enforceable upstream, and staged migration can prove every ingress path."},
-      {"id": "route-bff-aggregation-cache", "prompt": "Design a web BFF that aggregates account, orders, and alerts under one deadline. Specify per-resource authorization, bounded fan-out, partial-failure semantics, tenant-safe caching, circuit ownership, rollout, and rollback."}
-    ],
     "negative": [
-      {"id": "route-rest-contract", "prompt": "Design the resource URLs, request and response schemas, pagination cursor, error format, idempotency header, versioning policy, and OpenAPI contract for a new orders API.", "expected_skill": "api-design"},
-      {"id": "route-quota-algorithm", "prompt": "Choose a distributed rate-limit algorithm and counter-store model for per-user, per-tenant, and plan quotas, including burst semantics, atomic updates, fairness, and failure policy.", "expected_skill": "rate-limiting"}
+      {
+        "expected_skill": "api-design",
+        "id": "route-rest-contract",
+        "prompt": "Design the resource URLs, request and response schemas, pagination cursor, error format, idempotency header, versioning policy, and OpenAPI contract for a new orders API."
+      },
+      {
+        "expected_skill": "rate-limiting",
+        "id": "route-quota-algorithm",
+        "prompt": "Choose a distributed rate-limit algorithm and counter-store model for per-user, per-tenant, and plan quotas, including burst semantics, atomic updates, fairness, and failure policy."
+      }
+    ],
+    "positive": [
+      {
+        "id": "route-edge-trust",
+        "prompt": "Design the edge path for public and internal APIs so caller identity headers cannot be forged, protected services reject direct bypass, tenant authorization remains enforceable upstream, and staged migration can prove every ingress path."
+      },
+      {
+        "id": "route-bff-aggregation-cache",
+        "prompt": "Design a web BFF that aggregates account, orders, and alerts under one deadline. Specify per-resource authorization, bounded fan-out, partial-failure semantics, tenant-safe caching, circuit ownership, rollout, and rollback."
+      }
     ]
   },
-  "reference_routing": [],
   "scenarios": [
     {
+      "assertions": [
+        {
+          "criterion": "Owns gateway/BFF trust, routing, aggregation, cache, and upstream isolation decisions while leaving endpoint schemas and quota-algorithm details with neighboring owners.",
+          "dimension": "native_ownership",
+          "id": "gateway-design-boundary",
+          "severity": "major"
+        },
+        {
+          "criterion": "Uses the fixture to inspect all public/internal ingress, gateway and service configuration, issuers, headers, routes, cache/CDN, deployment topology, tests, and observability without inventing files or commands.",
+          "dimension": "repository_context",
+          "id": "topology-evidence",
+          "severity": "critical"
+        },
+        {
+          "criterion": "Maps every reachability path and identity provenance, then defines strip/rewrite, authenticated propagation, upstream authorization, bypass closure, aggregation, caching, resource policy, and staged verification with a stop condition for unknown ingress.",
+          "dimension": "decision_workflow",
+          "id": "trust-first-workflow",
+          "severity": "critical"
+        },
+        {
+          "criterion": "Requires removal of caller-supplied identity headers, authenticated gateway-to-upstream identity proof, upstream object/tenant authorization, rejection of direct forged calls, authorization-aware cache partitioning, and per-resource authorization in the aggregate.",
+          "dimension": "domain_correctness",
+          "id": "identity-cache-correctness",
+          "severity": "critical"
+        },
+        {
+          "criterion": "Tests forged headers, missing/expired identity, direct service access, cross-tenant objects and cache entries, route ambiguity, aggregation partial failure/fan-out, invalidation, drain/failover, and caller-visible results from external and internal paths.",
+          "dimension": "verification",
+          "id": "gateway-proof",
+          "severity": "critical"
+        },
+        {
+          "criterion": "Reports topology/trust evidence, route and policy table, identity/bypass contract, aggregation/cache/failure decisions, assumptions, staged rollout/rollback, executed checks, and remaining direct-path risk.",
+          "dimension": "output_contract",
+          "id": "gateway-output",
+          "severity": "major"
+        },
+        {
+          "criterion": "Expresses capabilities and policies independently of a remembered gateway product, plugin, header convention, timeout, threshold, or cache TTL and records volatile provider decisions with provenance.",
+          "dimension": "maintainability",
+          "id": "gateway-maintainability",
+          "severity": "major"
+        }
+      ],
+      "fixture": "evals/fixtures/backend-service.md",
       "id": "domain-identity-bypass-cache",
       "kind": "domain",
-      "prompt": "A gateway validates JWTs and forwards X-User-Id and X-Tenant-Id. Clients can also send those headers, an internal load balancer reaches services directly, and GET /dashboard caches by path while aggregating account and order data. Produce a safe design and migration evidence.",
-      "fixture": "evals/fixtures/existing-repository.md",
-      "assertions": [
-        {"id": "gateway-design-boundary", "dimension": "native_ownership", "severity": "major", "criterion": "Owns gateway/BFF trust, routing, aggregation, cache, and upstream isolation decisions while leaving endpoint schemas and quota-algorithm details with neighboring owners."},
-        {"id": "topology-evidence", "dimension": "repository_context", "severity": "critical", "criterion": "Uses the fixture to inspect all public/internal ingress, gateway and service configuration, issuers, headers, routes, cache/CDN, deployment topology, tests, and observability without inventing files or commands."},
-        {"id": "trust-first-workflow", "dimension": "decision_workflow", "severity": "critical", "criterion": "Maps every reachability path and identity provenance, then defines strip/rewrite, authenticated propagation, upstream authorization, bypass closure, aggregation, caching, resource policy, and staged verification with a stop condition for unknown ingress."},
-        {"id": "identity-cache-correctness", "dimension": "domain_correctness", "severity": "critical", "criterion": "Requires removal of caller-supplied identity headers, authenticated gateway-to-upstream identity proof, upstream object/tenant authorization, rejection of direct forged calls, authorization-aware cache partitioning, and per-resource authorization in the aggregate."},
-        {"id": "gateway-proof", "dimension": "verification", "severity": "critical", "criterion": "Tests forged headers, missing/expired identity, direct service access, cross-tenant objects and cache entries, route ambiguity, aggregation partial failure/fan-out, invalidation, drain/failover, and caller-visible results from external and internal paths."},
-        {"id": "gateway-output", "dimension": "output_contract", "severity": "major", "criterion": "Reports topology/trust evidence, route and policy table, identity/bypass contract, aggregation/cache/failure decisions, assumptions, staged rollout/rollback, executed checks, and remaining direct-path risk."},
-        {"id": "gateway-maintainability", "dimension": "maintainability", "severity": "major", "criterion": "Expresses capabilities and policies independently of a remembered gateway product, plugin, header convention, timeout, threshold, or cache TTL and records volatile provider decisions with provenance."}
-      ]
+      "prompt": "A gateway validates JWTs and forwards X-User-Id and X-Tenant-Id. Clients can also send those headers, an internal load balancer reaches services directly, and GET /dashboard caches by path while aggregating account and order data. Produce a safe design and migration evidence."
     },
     {
+      "assertions": [
+        {
+          "criterion": "Rejects stale authorization or permission-changing fallback, bounds retry amplification and fan-out, and requires explicit product semantics and observability for any partial response without hiding unavailable critical fields.",
+          "dimension": "runtime_safety",
+          "id": "no-unsafe-degradation",
+          "severity": "critical"
+        },
+        {
+          "criterion": "Assigns retry/breaker ownership per coherent call/dependency population, distinguishes instance readiness from optional dependency degradation, and prevents health coupling from removing otherwise serviceable instances.",
+          "dimension": "domain_correctness",
+          "id": "ownership-and-health",
+          "severity": "critical"
+        },
+        {
+          "criterion": "Requires stale-data authorization tests, partial-response contract tests, end-to-end attempt counts/deadlines, circuit/bulkhead fault injection, readiness behavior, and tenant isolation under outage.",
+          "dimension": "verification",
+          "id": "degradation-evidence",
+          "severity": "critical"
+        },
+        {
+          "criterion": "Labels rejected unsafe fallbacks, accepted degraded semantics, ownership, and unverified production behavior instead of promising availability from configuration alone.",
+          "dimension": "output_contract",
+          "id": "safe-design-report",
+          "severity": "major"
+        }
+      ],
       "id": "safety-auth-sensitive-aggregation",
       "kind": "safety",
-      "prompt": "To improve availability, a proposal serves stale cached authorization and billing data when upstreams fail, returns partial dashboard fields as HTTP success, retries every upstream call at both gateway and service, and marks the gateway unready when any dependency circuit opens.",
-      "assertions": [
-        {"id": "no-unsafe-degradation", "dimension": "runtime_safety", "severity": "critical", "criterion": "Rejects stale authorization or permission-changing fallback, bounds retry amplification and fan-out, and requires explicit product semantics and observability for any partial response without hiding unavailable critical fields."},
-        {"id": "ownership-and-health", "dimension": "domain_correctness", "severity": "critical", "criterion": "Assigns retry/breaker ownership per coherent call/dependency population, distinguishes instance readiness from optional dependency degradation, and prevents health coupling from removing otherwise serviceable instances."},
-        {"id": "degradation-evidence", "dimension": "verification", "severity": "critical", "criterion": "Requires stale-data authorization tests, partial-response contract tests, end-to-end attempt counts/deadlines, circuit/bulkhead fault injection, readiness behavior, and tenant isolation under outage."},
-        {"id": "safe-design-report", "dimension": "output_contract", "severity": "major", "criterion": "Labels rejected unsafe fallbacks, accepted degraded semantics, ownership, and unverified production behavior instead of promising availability from configuration alone."}
-      ]
+      "prompt": "To improve availability, a proposal serves stale cached authorization and billing data when upstreams fail, returns partial dashboard fields as HTTP success, retries every upstream call at both gateway and service, and marks the gateway unready when any dependency circuit opens."
     },
     {
+      "assertions": [
+        {
+          "criterion": "Uses deployed image/chart/module pins, generated configuration schema, plugin inventory, a release-matched validator available in the installed platform (such as schema, admission, controller or CLI validation), and matching official documentation as authority; treats adoption of newer behavior as a separate migration.",
+          "dimension": "version_compatibility",
+          "id": "installed-gateway-authority",
+          "severity": "critical"
+        },
+        {
+          "criterion": "Checks controller/runtime, proxy and auth plugins, route precedence, header transforms, cache behavior, deployment platform, tests, and rollback compatibility together.",
+          "dimension": "repository_context",
+          "id": "gateway-capability-unit",
+          "severity": "major"
+        },
+        {
+          "criterion": "Records exact verified capability/source near the deployment decision and keeps the reusable design free of a remembered current product version or universal plugin recipe.",
+          "dimension": "maintainability",
+          "id": "gateway-version-provenance",
+          "severity": "major"
+        }
+      ],
       "id": "version-installed-gateway",
       "kind": "version",
-      "prompt": "An existing deployment pins a gateway/controller version whose configured plugins and header-rewrite semantics differ from the newest documentation. A design change does not include a gateway upgrade.",
-      "assertions": [
-        {"id": "installed-gateway-authority", "dimension": "version_compatibility", "severity": "critical", "criterion": "Uses deployed image/chart/module pins, generated configuration schema, plugin inventory, a release-matched validator available in the installed platform (such as schema, admission, controller or CLI validation), and matching official documentation as authority; treats adoption of newer behavior as a separate migration."},
-        {"id": "gateway-capability-unit", "dimension": "repository_context", "severity": "major", "criterion": "Checks controller/runtime, proxy and auth plugins, route precedence, header transforms, cache behavior, deployment platform, tests, and rollback compatibility together."},
-        {"id": "gateway-version-provenance", "dimension": "maintainability", "severity": "major", "criterion": "Records exact verified capability/source near the deployment decision and keeps the reusable design free of a remembered current product version or universal plugin recipe."}
-      ]
+      "prompt": "An existing deployment pins a gateway/controller version whose configured plugins and header-rewrite semantics differ from the newest documentation. A design change does not include a gateway upgrade."
     }
   ],
-  "provenance": [
-    {"claim_scope": "API object/function authorization, authentication, resource, and configuration risks", "source": "https://owasp.org/API-Security/editions/2023/en/0x11-t10/", "checked_on": "2026-07-26"},
-    {"claim_scope": "HTTP cache and Retry-After semantics", "source": "https://www.rfc-editor.org/rfc/rfc9110", "checked_on": "2026-07-26"},
-    {"claim_scope": "local gateway trust and verification workflow", "source": "skills/api-gateway-design/SKILL.md", "checked_on": "2026-07-26"}
-  ]
+  "schema_version": 1,
+  "skill": "api-gateway-design",
+  "version_policy": {
+    "mode": "agnostic",
+    "technologies": []
+  }
 }

@@ -34,7 +34,7 @@ Implement `$ARGUMENTS` only after naming what is proved: control of an email add
 
 ## Output
 
-Report proof purpose and assurance, installed/provider evidence, challenge binding and state machine, enumeration/rate policy, delivery/resend reconciliation, atomic attempt/consume behavior, recovery/session effects, tests/results, external provider evidence, and residual account-takeover risk from channel interception, support recovery, or re-proofing processes.
+Report proof purpose and assurance, installed/provider evidence, challenge binding and state machine, enumeration/rate policy, delivery/resend reconciliation, atomic attempt/consume behavior, recovery/session effects, existing message-template compatibility and notification content evidence, tests/results, external provider evidence, and residual account-takeover risk from channel interception, support recovery, or re-proofing processes.
 
 Record the exact installed versions, official provider/library pages, applicable RFC section or behavior, and the resulting capability decision near the implementation or configuration. Do not substitute remembered defaults or a generic current-version claim.
 

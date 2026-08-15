@@ -13,6 +13,8 @@ metadata:
 
 Engineering patterns only. Legal counsel or the accountable privacy function owns applicability, lawful basis, exemptions, deadlines, retention, and notices.
 
+Treat supplied task and fixture facts as authoritative evidence. If they state that applicable repository or product evidence was inspected, use that inspection while keeping withheld file names, contents, commands, and results unavailable; never replace a supplied inspected-state fact with a blanket claim that no inspection occurred.
+
 ## Repository Discovery
 
 Start from the approved record of processing/data map. Trace identifiers and personal data across primary databases, identity systems, object storage, caches, search, analytics, data warehouse/lake, logs, backups, queues/dead letters, support tools, email/CRM, billing, and every processor/subprocessor. Record controller/processor ownership, region, purpose/legal basis, retention rule, deletion/export API, backup behavior, and evidence owner. A hard-coded table list is not proof of completeness.

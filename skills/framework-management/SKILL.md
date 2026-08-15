@@ -28,11 +28,13 @@ README.md                 public behavior and installation
 
 1. Read the relevant contract, files, maps, and checks before editing.
 2. Classify the request: audit, create, update, consolidate, deprecate, or validate.
-3. Check native capability ownership and semantic overlap before creating anything.
-4. Keep the parent responsible for contracts, shared writes, integration, and final reporting.
-5. Before a material mutation, resolve exact task-owned targets, write authority/permissions and ownership, then define a reversible diff or effect-appropriate recovery/rollback; preserve approval boundaries.
-6. Update affected skills, core/packs, maps, checks, and README together.
-7. Verify the actual diff and run the checks listed below.
+3. Read the current official Codex manual, the complete changelog delta since `docs/native-capability-ledger.json`, and the latest stable release notes. Run the live native-capability check; remembered release knowledge or the installed CLI alone is insufficient.
+4. For every relevant native delta, search local instructions, profiles, hooks, scripts, skills, plugins, and MCP configuration for overlap. Record one decision in the ledger: adopt, replace, remove, retain with a concrete native gap, or permission-gated.
+5. Apply evidence-backed replacements and removals in the same maintenance task when safe and in scope; do not stop at recommendations or recreate the native feature behind another wrapper.
+6. Keep the parent responsible for contracts, shared writes, integration, and final reporting.
+7. Before a material mutation, resolve exact task-owned targets, write authority/permissions and ownership, then define a reversible diff or effect-appropriate recovery/rollback; preserve approval boundaries.
+8. Update affected skills, core/packs, maps, checks, README, and the native-capability ledger together.
+9. Verify the actual diff and run the checks listed below.
 
 ## Skill Governance
 
@@ -58,7 +60,7 @@ Score each dimension from 1 to 10 and cite concrete files or executable evidence
 2. Routing: descriptions are precise, mutually distinguishable, and tested with positive and negative prompts.
 3. Skill design: small core workflow, progressive disclosure, repo-first decisions, no textbook dumps.
 4. Coordination: bounded delegation, explicit ownership, parent-held contracts, isolated parallel writers.
-5. Verification: structural, semantic, safety, reference, profile, staleness, and routing checks.
+5. Verification: use only the focused contract, affected-framework, native canary, source-digest, and release-evidence categories authorized by the inspected target. In this repository, affected checks may include structural, semantic, safety, reference, profile, staleness, and routing subcategories when the changed scope makes them applicable.
 6. Runtime safety: exact targets, task-owned cleanup, approvals preserved, no broad destructive recipes.
 7. Maintainability: owner, review date, upstream provenance, deprecation and replacement paths.
 
@@ -80,11 +82,12 @@ For consolidation, preserve unique invariants, remove repeated boilerplate, upda
 
 ## Verification
 
-Run after meaningful corpus changes:
+Resolve verification commands and paths from the inspected target checkout; never project this repository's layout onto another framework. In this repository, run the following after meaningful corpus changes only when the corresponding tracked files exist. In a different checkout, use its authoritative equivalents and report unavailable categories instead of inventing paths:
 
 For install/update collision handling, execute a task-owned fixture that attempts to collide with an existing user skill and prove the existing file remains byte-identical and the operation performs no write.
 
 ```bash
+python3 scripts/framework-native-capability-check.py --live
 bash scripts/framework-skill-governance.sh
 bash scripts/framework-version-drift-check.sh
 bash scripts/framework-skill-corpus-audit.sh
@@ -97,9 +100,7 @@ bash scripts/framework-skill-loader-live-eval.sh
 bash scripts/framework-release.sh
 ```
 
-Use `scripts/framework-live-eval.sh` when routing, profiles, or agent ownership changes and live Codex usage is acceptable.
-Use `scripts/framework-skill-routing-live-eval.sh` after skill descriptions, core/packs, consolidation, or retirement mappings change.
-Use `${CODEX_HOME:-$HOME/.codex}/bin/codex-framework-stack-context project <path>` before applying version-sensitive guidance to an existing project (or the repository script while developing this framework). Use `scripts/framework-version-drift-check.sh --live` after resolver or release-source changes; it exercises live channels without persisting a snapshot.
+When present in this repository, use `scripts/framework-live-eval.sh` when routing, profiles, or agent ownership changes and live Codex usage is acceptable, and use `scripts/framework-skill-routing-live-eval.sh` after skill descriptions, core/packs, consolidation, or retirement mappings change. Before applying version-sensitive guidance to an existing project, resolve the installed framework stack-context command or the target repository's documented equivalent; in this framework it is `${CODEX_HOME:-$HOME/.codex}/bin/codex-framework-stack-context project <path>`. Run the inspected live resolver check after resolver or release-source changes without persisting a remembered snapshot.
 
 ## Output Contract
 

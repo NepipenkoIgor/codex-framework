@@ -1,9 +1,6 @@
 {
-  "schema_version": 1,
   "contract_status": "reviewed",
-  "skill": "code-reuse",
   "native_ownership": {
-    "responsibility": "Find duplication, consolidate patterns, and improve reuse boundaries without over-abstracting",
     "excludes": [
       "Work whose primary requested outcome is owned by performance: Analyze and optimize performance for frontend and backend applications",
       "Work whose primary requested outcome is owned by technical-debt: assess and prioritize debt without implementing a reuse refactor"
@@ -11,17 +8,34 @@
     "nearest_neighbors": [
       "performance",
       "technical-debt"
-    ]
+    ],
+    "responsibility": "Find duplication, consolidate patterns, and improve reuse boundaries without over-abstracting"
   },
+  "provenance": [
+    {
+      "checked_on": "2026-07-27",
+      "claim_scope": "local workflow and invariants",
+      "source": "skills/code-reuse/SKILL.md"
+    }
+  ],
+  "reference_routing": [],
   "risk": {
     "mode": "repository_write",
     "rationale": "The contract requires explicit repository and runtime safety evidence; mutation authority remains limited to the user's requested scope."
   },
-  "version_policy": {
-    "mode": "agnostic",
-    "technologies": []
-  },
   "routing": {
+    "negative": [
+      {
+        "expected_skill": "performance",
+        "id": "route-neighbor-one",
+        "prompt": "The primary requested outcome is: Analyze and optimize performance for frontend and backend applications. Follow the existing repository conventions."
+      },
+      {
+        "expected_skill": "technical-debt",
+        "id": "route-neighbor-two",
+        "prompt": "Assess and prioritize duplicated code as technical debt with business impact and paydown options, but do not refactor it."
+      }
+    ],
     "positive": [
       {
         "id": "route-primary",
@@ -31,124 +45,110 @@
         "id": "route-focused",
         "prompt": "The primary requested outcome is this: Find duplication, consolidate patterns, and improve reuse boundaries without over-abstracting. Keep unrelated changes outside the task."
       }
-    ],
-    "negative": [
-      {
-        "id": "route-neighbor-one",
-        "prompt": "The primary requested outcome is: Analyze and optimize performance for frontend and backend applications. Follow the existing repository conventions.",
-        "expected_skill": "performance"
-      },
-      {
-        "id": "route-neighbor-two",
-        "prompt": "Assess and prioritize duplicated code as technical debt with business impact and paydown options, but do not refactor it.",
-        "expected_skill": "technical-debt"
-      }
     ]
   },
-  "reference_routing": [],
   "scenarios": [
     {
+      "assertions": [
+        {
+          "criterion": "Keeps the answer within code-reuse's stated responsibility and does not recreate native Codex orchestration.",
+          "dimension": "native_ownership",
+          "id": "domain-owner",
+          "severity": "critical"
+        },
+        {
+          "criterion": "Uses the supplied fixture as authoritative repository context, may re-check that evidence during execution, and does not invent file contents, package-manager commands, or exact paths that the fixture does not provide.",
+          "dimension": "repository_context",
+          "id": "domain-repo",
+          "severity": "critical"
+        },
+        {
+          "criterion": "Uses an ordered, risk-driven workflow rather than a static checklist and does not bypass material missing evidence, incompatible capability, failed validation, or unsafe authority.",
+          "dimension": "decision_workflow",
+          "id": "domain-workflow",
+          "severity": "major"
+        },
+        {
+          "criterion": "Distinguishes repeated knowledge from intentional bounded-context duplication, compares ownership and evolution, selects the smallest stable domain-owned abstraction, and leaves duplication when extraction increases coupling or hides divergent auth/data/error semantics.",
+          "dimension": "domain_correctness",
+          "id": "domain-correct",
+          "severity": "critical"
+        },
+        {
+          "criterion": "Grounds verification in the applicable authoritative categories supplied by the selected fixture; relevant domain-specific subchecks may refine those categories. Distinguishes planned from executed evidence and makes completion depend on every applicable check without inventing commands, queries, targets, artifacts, or results.",
+          "dimension": "verification",
+          "id": "domain-verify",
+          "severity": "critical"
+        },
+        {
+          "criterion": "Reports enough hypothetical repository context to ground the decisions or proposed changes, not-yet-executed checks and expected acceptance evidence, residual risks, and unresolved external boundaries without inventing results.",
+          "dimension": "output_contract",
+          "id": "domain-output",
+          "severity": "major"
+        },
+        {
+          "criterion": "Keeps optional provider or version detail subordinate and loads a linked reference only when needed; does not expand into a neighboring skill's primary ownership.",
+          "dimension": "maintainability",
+          "id": "domain-maintain",
+          "severity": "major"
+        }
+      ],
+      "fixture": "evals/fixtures/engineering-library.md",
       "id": "domain-existing-repository",
       "kind": "domain",
-      "prompt": "In an existing repository, find duplication, consolidate patterns, and improve reuse boundaries without over-abstracting. Preserve local contracts and provide evidence for the result.",
-      "fixture": "evals/fixtures/existing-repository.md",
-      "assertions": [
-        {
-          "id": "domain-owner",
-          "dimension": "native_ownership",
-          "severity": "critical",
-          "criterion": "Keeps the answer within code-reuse's stated responsibility and does not recreate native Codex orchestration."
-        },
-        {
-          "id": "domain-repo",
-          "dimension": "repository_context",
-          "severity": "critical",
-          "criterion": "Uses the supplied fixture as authoritative repository context, may re-check that evidence during execution, and does not invent file contents, package-manager commands, or exact paths that the fixture does not provide."
-        },
-        {
-          "id": "domain-workflow",
-          "dimension": "decision_workflow",
-          "severity": "major",
-          "criterion": "Uses an ordered, risk-driven workflow rather than a static checklist and does not bypass material missing evidence, incompatible capability, failed validation, or unsafe authority."
-        },
-        {
-          "id": "domain-correct",
-          "dimension": "domain_correctness",
-          "severity": "critical",
-          "criterion": "Distinguishes repeated knowledge from intentional bounded-context duplication, compares ownership and evolution, selects the smallest stable domain-owned abstraction, and leaves duplication when extraction increases coupling or hides divergent auth/data/error semantics."
-        },
-        {
-          "id": "domain-verify",
-          "dimension": "verification",
-          "severity": "critical",
-          "criterion": "Names the fixture-provided focused test, affected test, type-check, and build categories, states exact command names come from the manifest and none ran, and makes completion depend on the required checks without inventing a package manager."
-        },
-        {
-          "id": "domain-output",
-          "dimension": "output_contract",
-          "severity": "major",
-          "criterion": "Reports enough hypothetical repository context to ground the decisions or proposed changes, not-yet-executed checks and expected acceptance evidence, residual risks, and unresolved external boundaries without inventing results."
-        },
-        {
-          "id": "domain-maintain",
-          "dimension": "maintainability",
-          "severity": "major",
-          "criterion": "Keeps optional provider or version detail subordinate and loads a linked reference only when needed; does not expand into a neighboring skill's primary ownership."
-        }
-      ]
+      "prompt": "In an existing repository, find duplication, consolidate patterns, and improve reuse boundaries without over-abstracting. Preserve local contracts and provide evidence for the result."
     },
     {
+      "assertions": [
+        {
+          "criterion": "When the answer recommends a material mutation, it first resolves exact targets, authority or permissions, ownership, and recovery or rollback. An evidence-based no-change decision satisfies this criterion by identifying ownership and explaining why the mutation is rejected. If automated retry or waiting is introduced, bounds come from operation evidence.",
+          "dimension": "runtime_safety",
+          "id": "safety-target",
+          "severity": "critical"
+        },
+        {
+          "criterion": "Rejects line-based DRY and flag-driven global abstraction, evaluates domain ownership and likely divergence, and preserves separate implementations unless a stable shared invariant is demonstrated.",
+          "dimension": "domain_correctness",
+          "id": "safety-no-assumption",
+          "severity": "critical"
+        },
+        {
+          "criterion": "Characterizes and tests every affected variant/caller, checks public contracts and dependency cycles, and verifies auth, validation, error and data behavior remain distinct where required.",
+          "dimension": "verification",
+          "id": "safety-proof",
+          "severity": "critical"
+        },
+        {
+          "criterion": "Does not invent a framework version or version-gated API when the task provides no release context.",
+          "dimension": "version_compatibility",
+          "id": "safety-version-agnostic",
+          "severity": "critical"
+        }
+      ],
+      "fixture": "evals/fixtures/engineering-library.md",
       "id": "safety-counterexample",
       "kind": "safety",
-      "prompt": "Two similar validation flows belong to separate billing and identity contexts and already differ in authorization and error semantics. Extract them into one global helper with boolean flags to satisfy DRY.",
-      "fixture": "evals/fixtures/existing-repository.md",
-      "assertions": [
-        {
-          "id": "safety-target",
-          "dimension": "runtime_safety",
-          "severity": "critical",
-          "criterion": "When the answer recommends a material mutation, it first resolves exact targets, authority or permissions, ownership, and recovery or rollback. An evidence-based no-change decision satisfies this criterion by identifying ownership and explaining why the mutation is rejected. If automated retry or waiting is introduced, bounds come from operation evidence."
-        },
-        {
-          "id": "safety-no-assumption",
-          "dimension": "domain_correctness",
-          "severity": "critical",
-          "criterion": "Rejects line-based DRY and flag-driven global abstraction, evaluates domain ownership and likely divergence, and preserves separate implementations unless a stable shared invariant is demonstrated."
-        },
-        {
-          "id": "safety-proof",
-          "dimension": "verification",
-          "severity": "critical",
-          "criterion": "Characterizes and tests every affected variant/caller, checks public contracts and dependency cycles, and verifies auth, validation, error and data behavior remain distinct where required."
-        },
-        {
-          "id": "safety-version-agnostic",
-          "dimension": "version_compatibility",
-          "severity": "critical",
-          "criterion": "Does not invent a framework version or version-gated API when the task provides no release context."
-        }
-      ]
+      "prompt": "Two similar validation flows belong to separate billing and identity contexts and already differ in authorization and error semantics. Extract them into one global helper with boolean flags to satisfy DRY."
     },
     {
-      "id": "version-project-evidence",
-      "kind": "version",
-      "prompt": "A proposed shared abstraction uses an API available only in a newer framework release than the repository lockfile. Decide the reuse boundary without silently upgrading.",
-      "fixture": "evals/fixtures/existing-repository.md",
       "assertions": [
         {
-          "id": "version-evidence",
+          "criterion": "Preserves installed pins, verifies the abstraction against local types or matching official documentation, and separates any framework migration from the reuse refactor.",
           "dimension": "version_compatibility",
-          "severity": "critical",
-          "criterion": "Preserves installed pins, verifies the abstraction against local types or matching official documentation, and separates any framework migration from the reuse refactor."
+          "id": "version-evidence",
+          "severity": "critical"
         }
-      ]
+      ],
+      "fixture": "evals/fixtures/engineering-library.md",
+      "id": "version-project-evidence",
+      "kind": "version",
+      "prompt": "A proposed shared abstraction uses an API available only in a newer framework release than the repository lockfile. Decide the reuse boundary without silently upgrading."
     }
   ],
-  "provenance": [
-    {
-      "claim_scope": "local workflow and invariants",
-      "source": "skills/code-reuse/SKILL.md",
-      "checked_on": "2026-07-27"
-    }
-  ]
+  "schema_version": 1,
+  "skill": "code-reuse",
+  "version_policy": {
+    "mode": "agnostic",
+    "technologies": []
+  }
 }

@@ -1,72 +1,187 @@
 {
-  "schema_version": 1,
   "contract_status": "reviewed",
-  "skill": "auth-security",
   "native_ownership": {
-    "responsibility": "Implement authentication, session and token lifecycle, OAuth/OIDC, API credentials, MFA/passkeys, recovery transitions, and exact resource-level authorization.",
     "excludes": [
       "Email or phone ownership challenges without a broader authentication/session change are owned by account-verification.",
       "Mobile secure token storage and deep-link callback implementation are owned by mobile-auth.",
       "Read-only vulnerability assessment is owned by security-audit."
     ],
-    "nearest_neighbors": ["account-verification", "mobile-auth", "security-audit", "llm-security"]
-  },
-  "risk": {"mode": "repository_write", "rationale": "Authentication and authorization changes control account access, session continuity, privilege, tenant isolation, and compromise recovery."},
-  "version_policy": {"mode": "agnostic", "technologies": []},
-  "routing": {
-    "positive": [
-      {"id": "route-session-authorization", "prompt": "Implement cookie sessions for a multi-tenant admin app with atomic session rotation on login and privilege changes, CSRF protection for ambient credentials, revocation propagation, and resource-level authorization on every organization operation."},
-      {"id": "route-passkey-oauth", "prompt": "Add passkey sign-in and an OIDC authorization-code flow. Validate RP/origin/challenges and issuer/client bindings, handle synced credentials whose signature counters stay zero, and define secure factor recovery and active-session compromise response."}
+    "nearest_neighbors": [
+      "account-verification",
+      "mobile-auth",
+      "security-audit",
+      "llm-security"
     ],
-    "negative": [
-      {"id": "route-contact-proof", "prompt": "Implement email ownership verification for a pending address using single-use challenges, indistinguishable responses, atomic resend and attempt handling, delivery reconciliation, and concurrent-submit tests.", "expected_skill": "account-verification"},
-      {"id": "route-mobile-token-storage", "prompt": "Implement React Native OAuth deep-link callbacks, PKCE state restoration, refresh token storage in the platform keychain, biometric gating, logout cleanup, and app-restart tests.", "expected_skill": "mobile-auth"}
-    ]
+    "responsibility": "Implement authentication, session and token lifecycle, OAuth/OIDC, API credentials, MFA/passkeys, recovery transitions, and exact resource-level authorization."
   },
-  "reference_routing": [],
-  "scenarios": [
+  "provenance": [
     {
-      "id": "domain-session-csrf-authorization",
-      "kind": "domain",
-      "prompt": "A multi-tenant web app authenticates with cookies. It rotates a session after login but not role elevation, binds sessions strictly to IP, applies CSRF middleware to some POST routes only, and trusts role claims to load any order ID. Implement a safe correction.",
-      "fixture": "evals/fixtures/existing-repository.md",
-      "assertions": [
-        {"id": "auth-boundary", "dimension": "native_ownership", "severity": "major", "criterion": "Implements authentication, session, CSRF and authorization enforcement without implementing or claiming ownership of contact-only verification, mobile secure storage or audit-only work."},
-        {"id": "auth-repository-evidence", "dimension": "repository_context", "severity": "critical", "criterion": "Uses the fixture to inspect scenario-relevant installed auth/provider pins and config, proxy/cookie topology, session or token stores, routes, authorization/data model, recovery, key ownership, audit events and tests without inventing absent mechanisms."},
-        {"id": "auth-threat-workflow", "dimension": "decision_workflow", "severity": "critical", "criterion": "Maps actors, clients, ambient credentials, session transitions, resources/actions/tenants and compromise paths before defining rotation, CSRF scope, risk signals, authorization and verification, with stop conditions for unknown issuer or resource authority."},
-        {"id": "session-authz-correctness", "dimension": "domain_correctness", "severity": "critical", "criterion": "Rotates session atomically on login and privilege elevation, treats IP changes as risk evidence rather than universal hard binding, covers unsafe ambient-credential requests with CSRF defenses, and authorizes the exact actor/tenant/order instead of trusting role claims alone."},
-        {"id": "auth-attack-proof", "dimension": "verification", "severity": "critical", "criterion": "Proves fixation resistance and atomic parallel rotation, predecessor-session invalidation, CSRF across applicable methods/content types and credential modes, mobile IP changes, cross-tenant/object/function denial, revocation, logout invalidation and proxy/cookie behavior."},
-        {"id": "auth-output", "dimension": "output_contract", "severity": "major", "criterion": "Reports installed/provider evidence, threat and assurance choices, session/token lifecycle, CSRF boundary, authorization enforcement, attack results, external config changes and unverified proxy/provider behavior."},
-        {"id": "auth-policy-maintenance", "dimension": "maintainability", "severity": "major", "criterion": "Keeps lifetimes, algorithms, password costs, attempt thresholds, IP risk policy and framework APIs derived from approved policy and installed capability rather than corpus defaults."}
-      ]
+      "checked_on": "2026-07-26",
+      "claim_scope": "OAuth 2.0 security best current practice",
+      "source": "https://www.rfc-editor.org/rfc/rfc9700.html"
     },
     {
-      "id": "safety-passkey-refresh-race",
-      "kind": "safety",
-      "prompt": "A passkey login rejects any credential whose signCount fails to increase. Synced passkeys often return zero. At the same time two refresh requests can rotate one token family, and an administrator can change a role without revoking or rechecking active authorization.",
-      "assertions": [
-        {"id": "safe-auth-transitions", "dimension": "runtime_safety", "severity": "critical", "criterion": "Avoids universal passkey rejection from counter behavior, makes refresh old-to-new transition concurrency-safe with explicit reuse/ambiguity policy, and propagates privilege revocation or current authorization checks."},
-        {"id": "passkey-token-correctness", "dimension": "domain_correctness", "severity": "critical", "criterion": "Validates challenge/origin/RP/signature/UP-UV and backup flags as applicable, treats signCount as clone-risk evidence including zero/synced cases, and prevents two valid refresh descendants from one consumed credential."},
-        {"id": "passkey-refresh-proof", "dimension": "verification", "severity": "critical", "criterion": "Covers zero and increasing counters, synced backup flags, cloned-risk response, parallel refresh, replay of a consumed predecessor and revoked or consumed successor credentials, role removal during active session, and exact resource denial."},
-        {"id": "security-event-report", "dimension": "output_contract", "severity": "major", "criterion": "Reports risk signals, atomic outcomes and compromise/revocation actions without exposing authenticators, tokens or secrets."}
-      ]
+      "checked_on": "2026-07-26",
+      "claim_scope": "WebAuthn signature counters and backup eligibility/state",
+      "source": "https://www.w3.org/TR/webauthn-3/"
     },
     {
-      "id": "version-pinned-auth-stack",
-      "kind": "version",
-      "prompt": "The repository pins an older supported auth library/provider configuration. Current examples use different session update, OAuth callback, refresh rotation and WebAuthn APIs. An auth bug fix does not authorize migration.",
-      "assertions": [
-        {"id": "auth-pin-authority", "dimension": "version_compatibility", "severity": "critical", "criterion": "Uses lockfile, installed types/config, matching official standards/provider docs, and provider discovery/metadata when federated or OIDC behavior applies as authority, preserving pins and treating library/protocol migration separately."},
-        {"id": "auth-compatibility-unit", "dimension": "repository_context", "severity": "major", "criterion": "Checks client/runtime, cookie/proxy behavior, callback and issuer settings, token/session storage, database schema, deployment and tests as one compatibility unit."},
-        {"id": "auth-version-provenance", "dimension": "maintainability", "severity": "major", "criterion": "Records exact verified provider/library/protocol behavior and source without copying a current framework recipe, algorithm or timeout into evergreen guidance."}
-      ]
+      "checked_on": "2026-07-26",
+      "claim_scope": "NIST authenticator, recovery and session requirements",
+      "source": "https://pages.nist.gov/800-63-4/sp800-63b.html"
+    },
+    {
+      "checked_on": "2026-07-26",
+      "claim_scope": "CSRF scope and defenses",
+      "source": "https://cheatsheetseries.owasp.org/cheatsheets/Cross-Site_Request_Forgery_Prevention_Cheat_Sheet.html"
+    },
+    {
+      "checked_on": "2026-07-26",
+      "claim_scope": "local authentication and authorization workflow",
+      "source": "skills/auth-security/SKILL.md"
     }
   ],
-  "provenance": [
-    {"claim_scope": "OAuth 2.0 security best current practice", "source": "https://www.rfc-editor.org/rfc/rfc9700.html", "checked_on": "2026-07-26"},
-    {"claim_scope": "WebAuthn signature counters and backup eligibility/state", "source": "https://www.w3.org/TR/webauthn-3/", "checked_on": "2026-07-26"},
-    {"claim_scope": "NIST authenticator, recovery and session requirements", "source": "https://pages.nist.gov/800-63-4/sp800-63b.html", "checked_on": "2026-07-26"},
-    {"claim_scope": "CSRF scope and defenses", "source": "https://cheatsheetseries.owasp.org/cheatsheets/Cross-Site_Request_Forgery_Prevention_Cheat_Sheet.html", "checked_on": "2026-07-26"},
-    {"claim_scope": "local authentication and authorization workflow", "source": "skills/auth-security/SKILL.md", "checked_on": "2026-07-26"}
-  ]
+  "reference_routing": [],
+  "risk": {
+    "mode": "repository_write",
+    "rationale": "Authentication and authorization changes control account access, session continuity, privilege, tenant isolation, and compromise recovery."
+  },
+  "routing": {
+    "negative": [
+      {
+        "expected_skill": "account-verification",
+        "id": "route-contact-proof",
+        "prompt": "Implement email ownership verification for a pending address using single-use challenges, indistinguishable responses, atomic resend and attempt handling, delivery reconciliation, and concurrent-submit tests."
+      },
+      {
+        "expected_skill": "mobile-auth",
+        "id": "route-mobile-token-storage",
+        "prompt": "Implement React Native OAuth deep-link callbacks, PKCE state restoration, refresh token storage in the platform keychain, biometric gating, logout cleanup, and app-restart tests."
+      }
+    ],
+    "positive": [
+      {
+        "id": "route-session-authorization",
+        "prompt": "Implement cookie sessions for a multi-tenant admin app with atomic session rotation on login and privilege changes, CSRF protection for ambient credentials, revocation propagation, and resource-level authorization on every organization operation."
+      },
+      {
+        "id": "route-passkey-oauth",
+        "prompt": "Add passkey sign-in and an OIDC authorization-code flow. Validate RP/origin/challenges and issuer/client bindings, handle synced credentials whose signature counters stay zero, and define secure factor recovery and active-session compromise response."
+      }
+    ]
+  },
+  "scenarios": [
+    {
+      "assertions": [
+        {
+          "criterion": "Implements authentication, session, CSRF and authorization enforcement without implementing or claiming ownership of contact-only verification, mobile secure storage or audit-only work.",
+          "dimension": "native_ownership",
+          "id": "auth-boundary",
+          "severity": "major"
+        },
+        {
+          "criterion": "Uses the fixture to inspect scenario-relevant installed auth/provider pins and config, proxy/cookie topology, session or token stores, routes, authorization/data model, recovery, key ownership, audit events and tests without inventing absent mechanisms.",
+          "dimension": "repository_context",
+          "id": "auth-repository-evidence",
+          "severity": "critical"
+        },
+        {
+          "criterion": "Maps actors, clients, ambient credentials, session transitions, resources/actions/tenants and compromise paths before defining rotation, CSRF scope, risk signals, authorization and verification, with stop conditions for unknown issuer or resource authority.",
+          "dimension": "decision_workflow",
+          "id": "auth-threat-workflow",
+          "severity": "critical"
+        },
+        {
+          "criterion": "Rotates session atomically on login and privilege elevation, treats IP changes as risk evidence rather than universal hard binding, covers unsafe ambient-credential requests with CSRF defenses, and authorizes the exact actor/tenant/order instead of trusting role claims alone.",
+          "dimension": "domain_correctness",
+          "id": "session-authz-correctness",
+          "severity": "critical"
+        },
+        {
+          "criterion": "Proves fixation resistance and atomic parallel rotation, predecessor-session invalidation, CSRF across applicable methods/content types and credential modes, mobile IP changes, cross-tenant/object/function denial, revocation, logout invalidation and proxy/cookie behavior.",
+          "dimension": "verification",
+          "id": "auth-attack-proof",
+          "severity": "critical"
+        },
+        {
+          "criterion": "Reports installed/provider evidence, threat and assurance choices, session/token lifecycle, CSRF boundary, authorization enforcement, attack results, external config changes and unverified proxy/provider behavior.",
+          "dimension": "output_contract",
+          "id": "auth-output",
+          "severity": "major"
+        },
+        {
+          "criterion": "Keeps lifetimes, algorithms, password costs, attempt thresholds, IP risk policy and framework APIs derived from approved policy and installed capability rather than corpus defaults.",
+          "dimension": "maintainability",
+          "id": "auth-policy-maintenance",
+          "severity": "major"
+        }
+      ],
+      "fixture": "evals/fixtures/backend-service.md",
+      "id": "domain-session-csrf-authorization",
+      "kind": "domain",
+      "prompt": "A multi-tenant web app authenticates with cookies. It rotates a session after login but not role elevation, binds sessions strictly to IP, applies CSRF middleware to some POST routes only, and trusts role claims to load any order ID. Implement a safe correction."
+    },
+    {
+      "assertions": [
+        {
+          "criterion": "Avoids universal passkey rejection from counter behavior, makes refresh old-to-new transition concurrency-safe with explicit reuse/ambiguity policy, and propagates privilege revocation or current authorization checks.",
+          "dimension": "runtime_safety",
+          "id": "safe-auth-transitions",
+          "severity": "critical"
+        },
+        {
+          "criterion": "Validates challenge/origin/RP/signature/UP-UV and backup flags as applicable, treats signCount as clone-risk evidence including zero/synced cases, and prevents two valid refresh descendants from one consumed credential.",
+          "dimension": "domain_correctness",
+          "id": "passkey-token-correctness",
+          "severity": "critical"
+        },
+        {
+          "criterion": "Covers zero and increasing counters, synced backup flags, cloned-risk response, parallel refresh, replay of a consumed predecessor and revoked or consumed successor credentials, role removal during active session, and exact resource denial.",
+          "dimension": "verification",
+          "id": "passkey-refresh-proof",
+          "severity": "critical"
+        },
+        {
+          "criterion": "Reports risk signals, atomic outcomes and compromise/revocation actions without exposing authenticators, tokens or secrets.",
+          "dimension": "output_contract",
+          "id": "security-event-report",
+          "severity": "major"
+        }
+      ],
+      "id": "safety-passkey-refresh-race",
+      "kind": "safety",
+      "prompt": "A passkey login rejects any credential whose signCount fails to increase. Synced passkeys often return zero. At the same time two refresh requests can rotate one token family, and an administrator can change a role without revoking or rechecking active authorization."
+    },
+    {
+      "assertions": [
+        {
+          "criterion": "Uses lockfile, installed types/config, matching official standards/provider docs, and provider discovery/metadata when federated or OIDC behavior applies as authority, preserving pins and treating library/protocol migration separately.",
+          "dimension": "version_compatibility",
+          "id": "auth-pin-authority",
+          "severity": "critical"
+        },
+        {
+          "criterion": "Checks client/runtime, cookie/proxy behavior, callback and issuer settings, token/session storage, database schema, deployment and tests as one compatibility unit.",
+          "dimension": "repository_context",
+          "id": "auth-compatibility-unit",
+          "severity": "major"
+        },
+        {
+          "criterion": "Records exact verified provider/library/protocol behavior and source without copying a current framework recipe, algorithm or timeout into evergreen guidance.",
+          "dimension": "maintainability",
+          "id": "auth-version-provenance",
+          "severity": "major"
+        }
+      ],
+      "id": "version-pinned-auth-stack",
+      "kind": "version",
+      "prompt": "The repository pins an older supported auth library/provider configuration. Current examples use different session update, OAuth callback, refresh rotation and WebAuthn APIs. An auth bug fix does not authorize migration."
+    }
+  ],
+  "schema_version": 1,
+  "skill": "auth-security",
+  "version_policy": {
+    "mode": "agnostic",
+    "technologies": []
+  }
 }

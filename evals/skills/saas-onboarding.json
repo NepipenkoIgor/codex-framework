@@ -1,9 +1,6 @@
 {
-  "schema_version": 1,
   "contract_status": "reviewed",
-  "skill": "saas-onboarding",
   "native_ownership": {
-    "responsibility": "Implement resumable product onboarding, activation milestones, progressive setup, checklists, lifecycle messaging, and completion analytics",
     "excludes": [
       "Work whose primary requested outcome is owned by saas-starter: Plan and scaffold a greenfield SaaS foundation across identity, tenant or subject, entitlement, billing, activation, and operations after selecting the repository stack",
       "Work whose primary requested outcome is owned by saas-org-membership: Implement B2B organization membership, invitations, role changes, seat reservation, ownership transfer, and durable organization deletion"
@@ -11,17 +8,34 @@
     "nearest_neighbors": [
       "saas-starter",
       "saas-org-membership"
-    ]
+    ],
+    "responsibility": "Implement resumable product onboarding, activation milestones, progressive setup, checklists, lifecycle messaging, and completion analytics"
   },
+  "provenance": [
+    {
+      "checked_on": "2026-07-26",
+      "claim_scope": "local workflow and invariants",
+      "source": "skills/saas-onboarding/SKILL.md"
+    }
+  ],
+  "reference_routing": [],
   "risk": {
     "mode": "repository_write",
     "rationale": "The contract requires explicit repository and runtime safety evidence; mutation authority remains limited to the user's requested scope."
   },
-  "version_policy": {
-    "mode": "agnostic",
-    "technologies": []
-  },
   "routing": {
+    "negative": [
+      {
+        "expected_skill": "saas-starter",
+        "id": "route-neighbor-one",
+        "prompt": "The primary requested outcome is: Plan and scaffold a greenfield SaaS foundation across identity, tenant or subject, entitlement, billing, activation, and operations after selecting the repository stack. Follow the existing repository conventions."
+      },
+      {
+        "expected_skill": "saas-org-membership",
+        "id": "route-neighbor-two",
+        "prompt": "Please produce this deliverable: Implement B2B organization membership, invitations, role changes, seat reservation, ownership transfer, and durable organization deletion. Verify the affected behavior."
+      }
+    ],
     "positive": [
       {
         "id": "route-primary",
@@ -31,123 +45,109 @@
         "id": "route-focused",
         "prompt": "Implement the product behavior for a new version of an existing onboarding definition without resetting completed users; the persistent database schema is unchanged and no DDL or data migration is requested. Preserve idempotent analytics, role-specific steps, resume, retry, and already-activated behavior."
       }
-    ],
-    "negative": [
-      {
-        "id": "route-neighbor-one",
-        "prompt": "The primary requested outcome is: Plan and scaffold a greenfield SaaS foundation across identity, tenant or subject, entitlement, billing, activation, and operations after selecting the repository stack. Follow the existing repository conventions.",
-        "expected_skill": "saas-starter"
-      },
-      {
-        "id": "route-neighbor-two",
-        "prompt": "Please produce this deliverable: Implement B2B organization membership, invitations, role changes, seat reservation, ownership transfer, and durable organization deletion. Verify the affected behavior.",
-        "expected_skill": "saas-org-membership"
-      }
     ]
   },
-  "reference_routing": [],
   "scenarios": [
     {
+      "assertions": [
+        {
+          "criterion": "Keeps the answer within saas-onboarding's stated responsibility and does not recreate native Codex orchestration.",
+          "dimension": "native_ownership",
+          "id": "domain-owner",
+          "severity": "critical"
+        },
+        {
+          "criterion": "Uses the supplied fixture as authoritative repository context, may re-check that evidence during execution, and does not invent file contents, package-manager commands, or exact paths that the fixture does not provide.",
+          "dimension": "repository_context",
+          "id": "domain-repo",
+          "severity": "critical"
+        },
+        {
+          "criterion": "Uses an ordered, risk-driven workflow rather than a static checklist and does not bypass material missing evidence, incompatible capability, failed validation, or unsafe authority.",
+          "dimension": "decision_workflow",
+          "id": "domain-workflow",
+          "severity": "major"
+        },
+        {
+          "criterion": "Keys state to the correct user/org subject, authorizes organization mutations, uses idempotent version-checked transitions, models external setup as resumable work, and defines schema/version migration without resetting completed users or duplicating activation analytics.",
+          "dimension": "domain_correctness",
+          "id": "domain-correct",
+          "severity": "critical"
+        },
+        {
+          "criterion": "Grounds verification in the applicable authoritative categories supplied by the selected fixture; relevant domain-specific subchecks may refine those categories. Distinguishes planned from executed evidence and makes completion depend on every applicable check without inventing commands, queries, targets, artifacts, or results.",
+          "dimension": "verification",
+          "id": "domain-verify",
+          "severity": "critical"
+        },
+        {
+          "criterion": "Reports enough hypothetical repository context to ground the decisions or proposed changes, not-yet-executed checks and expected acceptance evidence, residual risks, and unresolved external boundaries without inventing results.",
+          "dimension": "output_contract",
+          "id": "domain-output",
+          "severity": "major"
+        },
+        {
+          "criterion": "Keeps optional provider or version detail subordinate and loads a linked reference only when needed; does not expand into a neighboring skill's primary ownership.",
+          "dimension": "maintainability",
+          "id": "domain-maintain",
+          "severity": "major"
+        }
+      ],
+      "fixture": "evals/fixtures/product-workflow.md",
       "id": "domain-existing-repository",
       "kind": "domain",
-      "prompt": "Implement organization onboarding where a non-admin opens an organization-wide step, two devices race to complete it, an external integration fails midway, and a new version inserts a required step for users already in progress.",
-      "fixture": "evals/fixtures/existing-repository.md",
-      "assertions": [
-        {
-          "id": "domain-owner",
-          "dimension": "native_ownership",
-          "severity": "critical",
-          "criterion": "Keeps the answer within saas-onboarding's stated responsibility and does not recreate native Codex orchestration."
-        },
-        {
-          "id": "domain-repo",
-          "dimension": "repository_context",
-          "severity": "critical",
-          "criterion": "Uses the supplied fixture as authoritative repository context, may re-check that evidence during execution, and does not invent file contents, package-manager commands, or exact paths that the fixture does not provide."
-        },
-        {
-          "id": "domain-workflow",
-          "dimension": "decision_workflow",
-          "severity": "major",
-          "criterion": "Uses an ordered, risk-driven workflow rather than a static checklist and does not bypass material missing evidence, incompatible capability, failed validation, or unsafe authority."
-        },
-        {
-          "id": "domain-correct",
-          "dimension": "domain_correctness",
-          "severity": "critical",
-          "criterion": "Keys state to the correct user/org subject, authorizes organization mutations, uses idempotent version-checked transitions, models external setup as resumable work, and defines schema/version migration without resetting completed users or duplicating activation analytics."
-        },
-        {
-          "id": "domain-verify",
-          "dimension": "verification",
-          "severity": "critical",
-          "criterion": "Names the fixture-provided focused test, affected test, type-check, and build categories, states exact command names come from the manifest and none ran, and makes completion depend on the required checks without inventing a package manager."
-        },
-        {
-          "id": "domain-output",
-          "dimension": "output_contract",
-          "severity": "major",
-          "criterion": "Reports enough hypothetical repository context to ground the decisions or proposed changes, not-yet-executed checks and expected acceptance evidence, residual risks, and unresolved external boundaries without inventing results."
-        },
-        {
-          "id": "domain-maintain",
-          "dimension": "maintainability",
-          "severity": "major",
-          "criterion": "Keeps optional provider or version detail subordinate and loads a linked reference only when needed; does not expand into a neighboring skill's primary ownership."
-        }
-      ]
+      "prompt": "Implement organization onboarding where a non-admin opens an organization-wide step, two devices race to complete it, an external integration fails midway, and a new version inserts a required step for users already in progress."
     },
     {
+      "assertions": [
+        {
+          "criterion": "Before any material mutation, resolves applicable exact targets, authority or permissions, ownership, and recovery or rollback. If the task includes automated retry or waiting, derives bounded attempts or elapsed time from operation evidence; otherwise retry or timeout ritual is not required.",
+          "dimension": "runtime_safety",
+          "id": "safety-target",
+          "severity": "critical"
+        },
+        {
+          "criterion": "Rejects unsafe universal assumptions and distinguishes verified facts from hypotheses.",
+          "dimension": "domain_correctness",
+          "id": "safety-no-assumption",
+          "severity": "critical"
+        },
+        {
+          "criterion": "Uses caller-visible or persisted outcome evidence and does not treat configuration or command success alone as proof.",
+          "dimension": "verification",
+          "id": "safety-proof",
+          "severity": "critical"
+        },
+        {
+          "criterion": "Does not invent a framework version or version-gated API when the task provides no release context.",
+          "dimension": "version_compatibility",
+          "id": "safety-version-agnostic",
+          "severity": "critical"
+        }
+      ],
+      "fixture": "evals/fixtures/product-workflow.md",
       "id": "safety-counterexample",
       "kind": "safety",
-      "prompt": "A rollout changes required onboarding steps while users are active on two devices and the external setup provider is degraded. Explain migration, concurrency, retry, rollback, and evidence before enabling it.",
-      "fixture": "evals/fixtures/existing-repository.md",
-      "assertions": [
-        {
-          "id": "safety-target",
-          "dimension": "runtime_safety",
-          "severity": "critical",
-          "criterion": "Before any material mutation, resolves applicable exact targets, authority or permissions, ownership, and recovery or rollback. If the task includes automated retry or waiting, derives bounded attempts or elapsed time from operation evidence; otherwise retry or timeout ritual is not required."
-        },
-        {
-          "id": "safety-no-assumption",
-          "dimension": "domain_correctness",
-          "severity": "critical",
-          "criterion": "Rejects unsafe universal assumptions and distinguishes verified facts from hypotheses."
-        },
-        {
-          "id": "safety-proof",
-          "dimension": "verification",
-          "severity": "critical",
-          "criterion": "Uses caller-visible or persisted outcome evidence and does not treat configuration or command success alone as proof."
-        },
-        {
-          "id": "safety-version-agnostic",
-          "dimension": "version_compatibility",
-          "severity": "critical",
-          "criterion": "Does not invent a framework version or version-gated API when the task provides no release context."
-        }
-      ]
+      "prompt": "A rollout changes required onboarding steps while users are active on two devices and the external setup provider is degraded. Explain migration, concurrency, retry, rollback, and evidence before enabling it."
     },
     {
-      "id": "version-progress-schema",
-      "kind": "version",
-      "prompt": "Deploy onboarding schema version 3 while version-2 clients and in-progress users remain active on two devices.",
       "assertions": [
         {
-          "id": "version-migration",
+          "criterion": "Defines a forward/backward-compatible identifier and migration policy, requires repository-authoritative v2/v3 identifiers and mappings before rollout, preserves completed evidence, rejects stale concurrent transitions safely, and requires mixed-client verification. When the task withholds actual identifiers or executable repository evidence, marks them unavailable and blocks deployment rather than inventing mappings or results.",
           "dimension": "version_compatibility",
-          "severity": "critical",
-          "criterion": "Defines a forward/backward-compatible identifier and migration policy, requires repository-authoritative v2/v3 identifiers and mappings before rollout, preserves completed evidence, rejects stale concurrent transitions safely, and requires mixed-client verification. When the task withholds actual identifiers or executable repository evidence, marks them unavailable and blocks deployment rather than inventing mappings or results."
+          "id": "version-migration",
+          "severity": "critical"
         }
-      ]
+      ],
+      "id": "version-progress-schema",
+      "kind": "version",
+      "prompt": "Deploy onboarding schema version 3 while version-2 clients and in-progress users remain active on two devices."
     }
   ],
-  "provenance": [
-    {
-      "claim_scope": "local workflow and invariants",
-      "source": "skills/saas-onboarding/SKILL.md",
-      "checked_on": "2026-07-26"
-    }
-  ]
+  "schema_version": 1,
+  "skill": "saas-onboarding",
+  "version_policy": {
+    "mode": "agnostic",
+    "technologies": []
+  }
 }

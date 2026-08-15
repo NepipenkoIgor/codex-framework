@@ -4,11 +4,13 @@ description: Implement provider-neutral product analytics from an approved track
 metadata:
   owner: codex-framework
   reviewed: "2026-07-26"
-  version: 2.0
+  version: 2.1
   argument-hint: "approved tracking plan, provider/transport, identity lifecycle, consent policy, verification access"
 ---
 
 # Analytics Implementation
+
+Before choosing APIs or changing code, generate repository stack context with `python3 scripts/framework-stack-context.py project <path>`. Treat manifests and lockfiles as authority for the installed analytics SDK, runtime, framework, compiler, test runner and deployment target. Check applicable engine ranges, peer dependencies, installed types/config schemas and cross-stack compatibility as one unit. Preserve supported pins; a newer stable release is evidence for a separate migration, not permission to upgrade. If the repository or command execution is unavailable, name the missing capability evidence and do not invent it.
 
 ## Workflow
 
@@ -30,8 +32,8 @@ Validate schema before enqueue and at ingestion; quarantine incompatible version
 
 Test duplicate source event, timeout-after-accept, out-of-order identity events, anonymous-to-known transition, logout/account/tenant switch, consent absent/withdrawn/changed, ad blockers/offline/background close, malformed or PII-bearing properties, server rollback, partial destination failure and schema evolution.
 
-Verify network/request payload, persisted outbox/delivery state, provider debugger or ingestion response, and downstream query/debug evidence where available. Report the highest boundary actually observed; do not claim delivery from a wrapper call or browser console alone. Use task-owned browser sessions and close only sessions started for this test.
+Verify network/request payload, persisted outbox/delivery state, provider debugger or ingestion response, and downstream query/debug evidence where available. Also map the result to every applicable repository or product review checklist item, traceable acceptance criterion, representative user/edge case, accessibility or design check, analytics validation and accountable stakeholder approval required by the supplied project contract. A missing required check or approval blocks completion; listing it as a future report field is not evidence that the gate passed. Report the highest boundary actually observed; do not claim delivery from a wrapper call or browser console alone. Use task-owned browser sessions and close only sessions started for this test.
 
 ## Output
 
-Report tracking-plan/version changes, event authority/schema, identity and consent transitions, minimization, provider adapter/dedupe, delivery evidence by boundary, executed checks, and unresolved legal/provider/data-quality risks.
+Report stack and compatibility evidence, tracking-plan/version changes, event authority/schema, identity and consent transitions, minimization, provider adapter/dedupe, delivery evidence by boundary, executed checks mapped to acceptance criteria, required approvals, and unresolved legal/provider/data-quality risks.

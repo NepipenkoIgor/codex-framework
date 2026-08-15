@@ -16,7 +16,7 @@ Start with a reproducible trace. Separate the failure into one or more boundarie
 
 1. Record the input, model/provider version, prompt hash, token counts, latency, finish reason, retrieval results, tool calls, and validation result. Redact sensitive content.
 2. Classify the failure: hallucination, no/wrong retrieval, stale embedding, injection, truncation, streaming, tool loop, schema failure, non-determinism, evaluation regression, or provider failure.
-3. Reproduce with the smallest fixture. Choose repeated trials from the observed nondeterminism and confidence needed to distinguish the regression; a security leak fails on any occurrence.
+3. Reproduce with the smallest fixture. Choose repeated trials from the observed nondeterminism and confidence needed to distinguish the regression. Make the verification gate explicit: any observed cross-tenant disclosure, secret exposure, prompt-injection side effect, or other security leak immediately fails the entire verification, regardless of aggregate quality metrics.
 4. Fix the causal boundary, not a symptom. Examples: re-index stale content, add store-level tenant filtering, reserve response tokens, validate structured output, or add a tool iteration limit.
 5. Add a regression case that proves the failed input is now safe and correct.
 
@@ -45,4 +45,5 @@ Start with a reproducible trace. Separate the failure into one or more boundarie
 - Failing boundary and root cause
 - Minimal remediation
 - Regression/eval evidence
+- Explicit confirmation that the any-security-leak fail-closed gate was applied
 - Remaining uncertainty or monitoring needed

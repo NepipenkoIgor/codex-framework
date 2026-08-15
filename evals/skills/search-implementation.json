@@ -1,9 +1,6 @@
 {
-  "schema_version": 1,
   "contract_status": "reviewed",
-  "skill": "search-implementation",
   "native_ownership": {
-    "responsibility": "Implement application search with Elasticsearch, OpenSearch, Algolia, Meilisearch, PostgreSQL full-text search, or SQLite FTS",
     "excludes": [
       "Work whose primary requested outcome is owned by vector-database: Design and implement vector storage and similarity retrieval across pgvector, Pinecone, Qdrant, Weaviate, Chroma, or Milvus",
       "Work whose primary requested outcome is owned by database-migration: Design and implement database migrations, schema changes, seed data, and rollback strategies"
@@ -11,17 +8,34 @@
     "nearest_neighbors": [
       "vector-database",
       "database-migration"
-    ]
+    ],
+    "responsibility": "Implement application search with Elasticsearch, OpenSearch, Algolia, Meilisearch, PostgreSQL full-text search, or SQLite FTS"
   },
+  "provenance": [
+    {
+      "checked_on": "2026-07-26",
+      "claim_scope": "local workflow and invariants",
+      "source": "skills/search-implementation/SKILL.md"
+    }
+  ],
+  "reference_routing": [],
   "risk": {
     "mode": "repository_write",
     "rationale": "The contract requires explicit repository and runtime safety evidence; mutation authority remains limited to the user's requested scope."
   },
-  "version_policy": {
-    "mode": "agnostic",
-    "technologies": []
-  },
   "routing": {
+    "negative": [
+      {
+        "expected_skill": "vector-database",
+        "id": "route-neighbor-one",
+        "prompt": "The primary requested outcome is: Design and implement vector storage and similarity retrieval across pgvector, Pinecone, Qdrant, Weaviate, Chroma, or Milvus. Follow the existing repository conventions."
+      },
+      {
+        "expected_skill": "database-migration",
+        "id": "route-neighbor-two",
+        "prompt": "Please produce this deliverable: Design and implement database migrations, schema changes, seed data, and rollback strategies. Verify the affected behavior."
+      }
+    ],
     "positive": [
       {
         "id": "route-primary",
@@ -31,119 +45,110 @@
         "id": "route-focused",
         "prompt": "The primary requested outcome is this: Implement application search with Elasticsearch, OpenSearch, Algolia, Meilisearch, PostgreSQL full-text search, or SQLite FTS. Keep unrelated changes outside the task."
       }
-    ],
-    "negative": [
-      {
-        "id": "route-neighbor-one",
-        "prompt": "The primary requested outcome is: Design and implement vector storage and similarity retrieval across pgvector, Pinecone, Qdrant, Weaviate, Chroma, or Milvus. Follow the existing repository conventions.",
-        "expected_skill": "vector-database"
-      },
-      {
-        "id": "route-neighbor-two",
-        "prompt": "Please produce this deliverable: Design and implement database migrations, schema changes, seed data, and rollback strategies. Verify the affected behavior.",
-        "expected_skill": "database-migration"
-      }
     ]
   },
-  "reference_routing": [],
   "scenarios": [
     {
+      "assertions": [
+        {
+          "criterion": "Keeps the answer within search-implementation's stated responsibility and does not recreate native Codex orchestration.",
+          "dimension": "native_ownership",
+          "id": "domain-owner",
+          "severity": "critical"
+        },
+        {
+          "criterion": "Uses the supplied fixture as authoritative repository context, may re-check that evidence during execution, and does not invent file contents, package-manager commands, or exact paths that the fixture does not provide.",
+          "dimension": "repository_context",
+          "id": "domain-repo",
+          "severity": "critical"
+        },
+        {
+          "criterion": "Uses an ordered, risk-driven workflow rather than a static checklist and does not bypass material missing evidence, incompatible capability, failed validation, or unsafe authority.",
+          "dimension": "decision_workflow",
+          "id": "domain-workflow",
+          "severity": "major"
+        },
+        {
+          "criterion": "Uses installed engine/source authority, enforces actor/tenant/document/field auth at indexing and query, handles idempotent out-of-order upsert/delete and privacy erasure, validates live reindex/catch-up/rollback and derives ranking/features/latency from representative relevance evidence without fixed engine/size/shard/boost thresholds.",
+          "dimension": "domain_correctness",
+          "id": "domain-correct",
+          "severity": "critical"
+        },
+        {
+          "criterion": "Grounds verification in the applicable authoritative categories supplied by the selected fixture; relevant domain-specific subchecks may refine those categories. Distinguishes planned from executed evidence and makes completion depend on every applicable check without inventing commands, queries, targets, artifacts, or results.",
+          "dimension": "verification",
+          "id": "domain-verify",
+          "severity": "critical"
+        },
+        {
+          "criterion": "Reports enough hypothetical repository context to ground the decisions or proposed changes, not-yet-executed checks and expected acceptance evidence, residual risks, and unresolved external boundaries without inventing results.",
+          "dimension": "output_contract",
+          "id": "domain-output",
+          "severity": "major"
+        },
+        {
+          "criterion": "Keeps optional provider or version detail subordinate and loads a linked reference only when needed; does not expand into a neighboring skill's primary ownership.",
+          "dimension": "maintainability",
+          "id": "domain-maintain",
+          "severity": "major"
+        }
+      ],
+      "fixture": "evals/fixtures/backend-service.md",
       "id": "domain-existing-repository",
       "kind": "domain",
-      "prompt": "Implement tenant-scoped search with field/facet/snippet authorization, versioned idempotent indexing, stale-permission deletion, live-safe reindex and a representative judged relevance set using the pinned engine.",
-      "fixture": "evals/fixtures/existing-repository.md",
-      "assertions": [
-        {
-          "id": "domain-owner",
-          "dimension": "native_ownership",
-          "severity": "critical",
-          "criterion": "Keeps the answer within search-implementation's stated responsibility and does not recreate native Codex orchestration."
-        },
-        {
-          "id": "domain-repo",
-          "dimension": "repository_context",
-          "severity": "critical",
-          "criterion": "Uses the supplied fixture as authoritative repository context, may re-check that evidence during execution, and does not invent file contents, package-manager commands, or exact paths that the fixture does not provide."
-        },
-        {
-          "id": "domain-workflow",
-          "dimension": "decision_workflow",
-          "severity": "major",
-          "criterion": "Uses an ordered, risk-driven workflow rather than a static checklist and does not bypass material missing evidence, incompatible capability, failed validation, or unsafe authority."
-        },
-        {
-          "id": "domain-correct",
-          "dimension": "domain_correctness",
-          "severity": "critical",
-          "criterion": "Uses installed engine/source authority, enforces actor/tenant/document/field auth at indexing and query, handles idempotent out-of-order upsert/delete and privacy erasure, validates live reindex/catch-up/rollback and derives ranking/features/latency from representative relevance evidence without fixed engine/size/shard/boost thresholds."
-        },
-        {
-          "id": "domain-verify",
-          "dimension": "verification",
-          "severity": "critical",
-          "criterion": "Names the fixture-provided focused test, affected test, type-check, and build categories, states exact command names come from the manifest and none ran, and makes completion depend on the required checks without inventing a package manager."
-        },
-        {
-          "id": "domain-output",
-          "dimension": "output_contract",
-          "severity": "major",
-          "criterion": "Reports enough hypothetical repository context to ground the decisions or proposed changes, not-yet-executed checks and expected acceptance evidence, residual risks, and unresolved external boundaries without inventing results."
-        },
-        {
-          "id": "domain-maintain",
-          "dimension": "maintainability",
-          "severity": "major",
-          "criterion": "Keeps optional provider or version detail subordinate and loads a linked reference only when needed; does not expand into a neighboring skill's primary ownership."
-        }
-      ]
+      "prompt": "Implement tenant-scoped search with field/facet/snippet authorization, versioned idempotent indexing, stale-permission deletion, live-safe reindex and a representative judged relevance set using the pinned engine."
     },
     {
+      "assertions": [
+        {
+          "criterion": "Before any material mutation, resolves applicable exact targets, authority or permissions, ownership, and recovery or rollback. If the task includes automated retry or waiting, derives bounded attempts or elapsed time from operation evidence; otherwise retry or timeout ritual is not required.",
+          "dimension": "runtime_safety",
+          "id": "safety-target",
+          "severity": "critical"
+        },
+        {
+          "criterion": "Rejects client auth filters, field/facet/count leakage, missed deletion, destructive active-index rebuild, intuition-only ranking and latency-as-relevance proof.",
+          "dimension": "domain_correctness",
+          "id": "safety-no-assumption",
+          "severity": "critical"
+        },
+        {
+          "criterion": "Verifies cross-tenant/private leaks, stale permission/deletion, duplicate/out-of-order indexing, checkpoint loss, live writes during reindex/rollback and judged query relevance.",
+          "dimension": "verification",
+          "id": "safety-proof",
+          "severity": "critical"
+        },
+        {
+          "criterion": "Does not invent a framework version or version-gated API when the task provides no release context.",
+          "dimension": "version_compatibility",
+          "id": "safety-version-agnostic",
+          "severity": "critical"
+        }
+      ],
+      "fixture": "evals/fixtures/backend-service.md",
       "id": "safety-counterexample",
       "kind": "safety",
-      "prompt": "Trust a client tenant filter, index private fields and facets, miss deletes, rebuild by deleting the active index, choose boosts from intuition and claim relevance from latency. Implement safely.",
-      "fixture": "evals/fixtures/existing-repository.md",
-      "assertions": [
-        {
-          "id": "safety-target",
-          "dimension": "runtime_safety",
-          "severity": "critical",
-          "criterion": "Before any material mutation, resolves applicable exact targets, authority or permissions, ownership, and recovery or rollback. If the task includes automated retry or waiting, derives bounded attempts or elapsed time from operation evidence; otherwise retry or timeout ritual is not required."
-        },
-        {
-          "id": "safety-no-assumption",
-          "dimension": "domain_correctness",
-          "severity": "critical",
-          "criterion": "Rejects client auth filters, field/facet/count leakage, missed deletion, destructive active-index rebuild, intuition-only ranking and latency-as-relevance proof."
-        },
-        {
-          "id": "safety-proof",
-          "dimension": "verification",
-          "severity": "critical",
-          "criterion": "Verifies cross-tenant/private leaks, stale permission/deletion, duplicate/out-of-order indexing, checkpoint loss, live writes during reindex/rollback and judged query relevance."
-        },
-        {
-          "id": "safety-version-agnostic",
-          "dimension": "version_compatibility",
-          "severity": "critical",
-          "criterion": "Does not invent a framework version or version-gated API when the task provides no release context."
-        }
-      ]
+      "prompt": "Trust a client tenant filter, index private fields and facets, miss deletes, rebuild by deleting the active index, choose boosts from intuition and claim relevance from latency. Implement safely."
     },
     {
+      "assertions": [
+        {
+          "criterion": "Uses exact engine and client versions, installed mappings and matching official docs and treats engine migration separately.",
+          "dimension": "version_compatibility",
+          "id": "version-capability",
+          "severity": "critical"
+        }
+      ],
+      "fixture": "evals/fixtures/backend-service.md",
       "id": "version-pinned-search-engine",
       "kind": "version",
-      "prompt": "The repository pins a supported search engine and client while current docs show newer mapping, alias and query APIs; implement without upgrading.",
-      "fixture": "evals/fixtures/existing-repository.md",
-      "assertions": [
-        {"id": "version-capability", "dimension": "version_compatibility", "severity": "critical", "criterion": "Uses exact engine and client versions, installed mappings and matching official docs and treats engine migration separately."}
-      ]
+      "prompt": "The repository pins a supported search engine and client while current docs show newer mapping, alias and query APIs; implement without upgrading."
     }
   ],
-  "provenance": [
-    {
-      "claim_scope": "local workflow and invariants",
-      "source": "skills/search-implementation/SKILL.md",
-      "checked_on": "2026-07-26"
-    }
-  ]
+  "schema_version": 1,
+  "skill": "search-implementation",
+  "version_policy": {
+    "mode": "agnostic",
+    "technologies": []
+  }
 }

@@ -4,7 +4,7 @@ description: Test React components, hooks, routes, server boundaries, and hydrat
 metadata:
   owner: codex-framework
   reviewed: "2026-07-27"
-  version: 1.1
+  version: 1.2
   domain: frontend
   keywords: [react, testing, rtl, react testing library, vitest, jest, userEvent, fireEvent, hydration, server components]
 ---
@@ -16,7 +16,7 @@ Write the smallest executable tests that prove caller-visible React behavior whi
 ## Establish the boundary
 
 1. Read applicable instructions, manifests and lockfiles, runner config, setup files, nearby tests, and the target implementation. Before mutation, resolve exact task-owned test/fixture targets when repository evidence identifies them, package ownership and write authority, plus a reversible diff and isolated cleanup path; otherwise block execution pending discovery.
-2. Resolve the installed React/framework, runner, DOM environment, Testing Library, router, and request-mocking capabilities. Do not silently add or migrate a harness.
+2. Generate project stack context and resolve the installed React/framework, runtime engine, peer-dependency ranges, compiler/build tooling, runner, DOM environment, Testing Library, router, request-mocking capabilities, browser targets, and deployment runtime as one mutual-compatibility chain. Verify version-sensitive choices from installed metadata/types and matching official support evidence. Do not silently add or migrate a harness.
 3. Classify each behavior before choosing a test:
    - pure state or hook logic: unit test when isolation is faithful;
    - client component behavior: component test with the production providers needed by the path;
@@ -29,6 +29,7 @@ Write the smallest executable tests that prove caller-visible React behavior whi
 - Prefer accessible-name and semantic queries because they reflect the user contract. Use test IDs only when no stable user-facing selector exists.
 - Prefer `userEvent` for realistic multi-event user interactions. `fireEvent` is valid for a low-level event or browser condition that `userEvent` does not model; do not ban it mechanically.
 - Await asynchronous interaction and UI settlement. Use `findBy*` for appearance and `waitFor` only around an assertion that genuinely retries.
+- Bound every automated wait, controlled retry, and timeout-after-commit reconciliation exercise by attempts or elapsed time derived from the inspected operation contract and repository test-runner limits; idempotency does not make an unbounded test or production retry safe.
 - Use manual `act` only for updates outside the harness's automatic wrapping, such as direct timer or external-store advancement.
 - Do not assert private state, hook implementation, framework internals, or incidental class names unless those are the public contract.
 

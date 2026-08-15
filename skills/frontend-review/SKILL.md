@@ -30,7 +30,7 @@ Review `$ARGUMENTS` read-only. Findings must identify a behavior-changing defect
 
 - Report CSP only from an authoritative deployed/header policy, repository policy test, or explicit target. Inline styles are not universally invalid; nonces/hashes, framework behavior, CSP directives, and browser support determine impact. Never recommend `'unsafe-inline'` as a routine fix.
 - Treat hardcoded values as defects only when they violate an authoritative token/component contract or cause observable inconsistency.
-- Verify exact framework/runtime/package capability from project pins and installed artifacts before making version-sensitive claims.
+- Verify exact framework/runtime/package capability from project pins and installed artifacts before making version-sensitive claims. Determine and check every applicable cross-stack boundary exposed by the repository—runtime engine ranges, peer dependencies, compiler/framework coupling, test tooling, native/build tooling and deployment runtime—and explicitly mark absent or unavailable dimensions instead of silently omitting them.
 - A passing unit test, screenshot, or build does not prove authenticated, persisted, hydration, accessibility, or production behavior outside its boundary.
 - When acting authority, resource ownership, idempotency or effect recovery/rollback remains unresolved on a material mutation path, report that missing boundary as a blocker rather than assuming safety.
 

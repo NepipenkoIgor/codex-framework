@@ -1,0 +1,4 @@
+interface:
+  display_name: "Dark Mode"
+  short_description: "Implement accessible theme and color-scheme behavior"
+  default_prompt: "Implement this theme behavior using the repository design system and verify both schemes interactively."

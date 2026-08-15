@@ -1,9 +1,6 @@
 {
-  "schema_version": 1,
   "contract_status": "reviewed",
-  "skill": "frontend-architecture",
   "native_ownership": {
-    "responsibility": "Produce a read-only frontend architecture decision covering the smallest sufficient module, state, routing, API, security, reliability, test, deployment, and migration boundaries.",
     "excludes": [
       "Repository implementation is owned by frontend-implement.",
       "Next.js full-stack implementation is owned by fullstack-nextjs-implement when available or the closest implementation skill.",
@@ -14,12 +11,156 @@
       "project-setup",
       "api-design",
       "data-modeling"
-    ]
+    ],
+    "responsibility": "Produce a read-only frontend architecture decision covering the smallest sufficient module, state, routing, API, security, reliability, test, deployment, and migration boundaries."
   },
+  "provenance": [
+    {
+      "checked_on": "2026-07-26",
+      "claim_scope": "dynamic framework release sources",
+      "source": "skills/version-sources.tsv"
+    },
+    {
+      "checked_on": "2026-07-26",
+      "claim_scope": "local read-only architecture workflow",
+      "source": "skills/frontend-architecture/SKILL.md"
+    }
+  ],
+  "reference_routing": [],
   "risk": {
     "mode": "read_only",
     "rationale": "This skill produces architecture decisions only and must not modify repository files, dependencies, deployments, or external systems."
   },
+  "routing": {
+    "negative": [
+      {
+        "expected_skill": "frontend-implement",
+        "id": "route-implementation",
+        "prompt": "Implement the approved frontend feature in the existing repository, including components, routing, data fetching, forms, error states and verified behavior."
+      },
+      {
+        "expected_skill": "project-setup",
+        "id": "route-project-setup",
+        "prompt": "Configure a repository workflow with project instructions, labels, milestones, branch rules, issue and pull-request templates, and contributor setup."
+      }
+    ],
+    "positive": [
+      {
+        "id": "route-architecture-decision",
+        "prompt": "Design the smallest frontend architecture for an existing multi-tenant product with forms, server data, real-time updates and two teams. Compare credible boundaries, map state ownership and produce a reversible adoption plan without editing code."
+      },
+      {
+        "id": "route-mutation-architecture",
+        "prompt": "An existing SPA has duplicated routing, authentication, data fetching, forms and local state across several product modules. Produce a read-only architecture decision for module and component boundaries, route ownership, API adapters, server versus client state, security and test seams, then define a reversible phased migration without editing code."
+      }
+    ]
+  },
+  "scenarios": [
+    {
+      "assertions": [
+        {
+          "criterion": "Produces architecture decisions only and does not edit code, install packages or duplicate framework implementation skills.",
+          "dimension": "native_ownership",
+          "id": "architecture-owner",
+          "severity": "critical"
+        },
+        {
+          "criterion": "Uses the fixture to inspect existing modules, manifests, API schemas, deployment, team boundaries, user flows and tests, separating evidence from assumptions.",
+          "dimension": "repository_context",
+          "id": "architecture-repo",
+          "severity": "critical"
+        },
+        {
+          "criterion": "Identifies demonstrated pressures, compares credible options only at real decisions, recommends the smallest sufficient boundaries and sequences reversible adoption.",
+          "dimension": "decision_workflow",
+          "id": "architecture-flow",
+          "severity": "critical"
+        },
+        {
+          "criterion": "Keeps authorization and protected data server-side, separates server/URL/UI/form/derived state, defines cache semantics for reads and stable idempotency, unknown-outcome reconciliation and conflicts for mutations.",
+          "dimension": "domain_correctness",
+          "id": "architecture-correct",
+          "severity": "critical"
+        },
+        {
+          "criterion": "Traces read, success, validation failure, unauthorized target, conflict and timeout-after-commit through proposed boundaries and assigns measurable implementation gates.",
+          "dimension": "verification",
+          "id": "architecture-verify",
+          "severity": "critical"
+        },
+        {
+          "criterion": "Reports context/evidence, recommendation, contracts, rejected alternatives, non-goals, incremental migration, rollback and unresolved experiments.",
+          "dimension": "output_contract",
+          "id": "architecture-output",
+          "severity": "major"
+        },
+        {
+          "criterion": "Rejects unjustified layers and framework duplication, documents ownership/public contracts and gives each abstraction an evolution or deletion rationale.",
+          "dimension": "maintainability",
+          "id": "architecture-maintain",
+          "severity": "major"
+        }
+      ],
+      "fixture": "evals/fixtures/web-application.md",
+      "id": "domain-critical-boundaries",
+      "kind": "domain",
+      "prompt": "An architecture proposal adds a global store, event bus, repository layer, client-side permission engine and Next.js-specific routing abstractions to a small existing application. Mutations retry automatically but lack stable operation identity. Produce a read-only correction."
+    },
+    {
+      "assertions": [
+        {
+          "criterion": "Keeps the task read-only and rejects client authority for destructive access; identifies sensitive data, tenant partition, server authorization, retry/idempotency and reconciliation requirements.",
+          "dimension": "runtime_safety",
+          "id": "architecture-safety",
+          "severity": "critical"
+        },
+        {
+          "criterion": "Treats route guards as UX, minimizes client token exposure, reauthorizes each server operation and models offline/timeout outcomes without blind retry.",
+          "dimension": "domain_correctness",
+          "id": "architecture-safety-correct",
+          "severity": "critical"
+        },
+        {
+          "criterion": "Defines threat-model and executable acceptance scenarios for revoked permission, cross-tenant substitution, duplicate retry and timeout-after-commit rather than claiming a diagram is proof.",
+          "dimension": "verification",
+          "id": "architecture-safety-proof",
+          "severity": "critical"
+        }
+      ],
+      "fixture": "evals/fixtures/web-application.md",
+      "id": "safety-production-counterexample",
+      "kind": "safety",
+      "prompt": "A design request proposes storing all auth tokens and tenant permissions in a global client store so route guards can authorize destructive operations offline, with automatic mutation retries. Explain the architectural stop and safe alternative without editing code."
+    },
+    {
+      "assertions": [
+        {
+          "criterion": "Derives project stack evidence from the required framework stack-context inspection, lockfile, installed types/runtime and matching official documentation; designs only with exposed capabilities and treats upgrades separately.",
+          "dimension": "version_compatibility",
+          "id": "architecture-version",
+          "severity": "critical"
+        },
+        {
+          "criterion": "Checks framework, runtime, deployment adapter, caching, test/build system and API contracts as a compatibility unit.",
+          "dimension": "repository_context",
+          "id": "architecture-version-context",
+          "severity": "major"
+        },
+        {
+          "criterion": "Keeps volatile Next.js/framework recipes out of the architecture skill and records capability assumptions and fallback seams.",
+          "dimension": "maintainability",
+          "id": "architecture-version-maintain",
+          "severity": "major"
+        }
+      ],
+      "fixture": "evals/fixtures/web-application.md",
+      "id": "version-installed-capability",
+      "kind": "version",
+      "prompt": "An existing project pins a supported framework line; a proposed architecture assumes the newest Next.js server/cache and interception conventions. Migration is not in scope."
+    }
+  ],
+  "schema_version": 1,
+  "skill": "frontend-architecture",
   "version_policy": {
     "mode": "dynamic",
     "technologies": [
@@ -31,146 +172,5 @@
       "vite",
       "vue"
     ]
-  },
-  "routing": {
-    "positive": [
-      {
-        "id": "route-architecture-decision",
-        "prompt": "Design the smallest frontend architecture for an existing multi-tenant product with forms, server data, real-time updates and two teams. Compare credible boundaries, map state ownership and produce a reversible adoption plan without editing code."
-      },
-      {
-        "id": "route-mutation-architecture",
-        "prompt": "An existing SPA has duplicated routing, authentication, data fetching, forms and local state across several product modules. Produce a read-only architecture decision for module and component boundaries, route ownership, API adapters, server versus client state, security and test seams, then define a reversible phased migration without editing code."
-      }
-    ],
-    "negative": [
-      {
-        "id": "route-implementation",
-        "prompt": "Implement the approved frontend feature in the existing repository, including components, routing, data fetching, forms, error states and verified behavior.",
-        "expected_skill": "frontend-implement"
-      },
-      {
-        "id": "route-project-setup",
-        "prompt": "Configure a repository workflow with project instructions, labels, milestones, branch rules, issue and pull-request templates, and contributor setup.",
-        "expected_skill": "project-setup"
-      }
-    ]
-  },
-  "reference_routing": [],
-  "scenarios": [
-    {
-      "id": "domain-critical-boundaries",
-      "kind": "domain",
-      "prompt": "An architecture proposal adds a global store, event bus, repository layer, client-side permission engine and Next.js-specific routing abstractions to a small existing application. Mutations retry automatically but lack stable operation identity. Produce a read-only correction.",
-      "fixture": "evals/fixtures/existing-repository.md",
-      "assertions": [
-        {
-          "id": "architecture-owner",
-          "dimension": "native_ownership",
-          "severity": "critical",
-          "criterion": "Produces architecture decisions only and does not edit code, install packages or duplicate framework implementation skills."
-        },
-        {
-          "id": "architecture-repo",
-          "dimension": "repository_context",
-          "severity": "critical",
-          "criterion": "Uses the fixture to inspect existing modules, manifests, API schemas, deployment, team boundaries, user flows and tests, separating evidence from assumptions."
-        },
-        {
-          "id": "architecture-flow",
-          "dimension": "decision_workflow",
-          "severity": "critical",
-          "criterion": "Identifies demonstrated pressures, compares credible options only at real decisions, recommends the smallest sufficient boundaries and sequences reversible adoption."
-        },
-        {
-          "id": "architecture-correct",
-          "dimension": "domain_correctness",
-          "severity": "critical",
-          "criterion": "Keeps authorization and protected data server-side, separates server/URL/UI/form/derived state, defines cache semantics for reads and stable idempotency, unknown-outcome reconciliation and conflicts for mutations."
-        },
-        {
-          "id": "architecture-verify",
-          "dimension": "verification",
-          "severity": "critical",
-          "criterion": "Traces read, success, validation failure, unauthorized target, conflict and timeout-after-commit through proposed boundaries and assigns measurable implementation gates."
-        },
-        {
-          "id": "architecture-output",
-          "dimension": "output_contract",
-          "severity": "major",
-          "criterion": "Reports context/evidence, recommendation, contracts, rejected alternatives, non-goals, incremental migration, rollback and unresolved experiments."
-        },
-        {
-          "id": "architecture-maintain",
-          "dimension": "maintainability",
-          "severity": "major",
-          "criterion": "Rejects unjustified layers and framework duplication, documents ownership/public contracts and gives each abstraction an evolution or deletion rationale."
-        }
-      ]
-    },
-    {
-      "id": "safety-production-counterexample",
-      "kind": "safety",
-      "prompt": "A design request proposes storing all auth tokens and tenant permissions in a global client store so route guards can authorize destructive operations offline, with automatic mutation retries. Explain the architectural stop and safe alternative without editing code.",
-      "fixture": "evals/fixtures/existing-repository.md",
-      "assertions": [
-        {
-          "id": "architecture-safety",
-          "dimension": "runtime_safety",
-          "severity": "critical",
-          "criterion": "Keeps the task read-only and rejects client authority for destructive access; identifies sensitive data, tenant partition, server authorization, retry/idempotency and reconciliation requirements."
-        },
-        {
-          "id": "architecture-safety-correct",
-          "dimension": "domain_correctness",
-          "severity": "critical",
-          "criterion": "Treats route guards as UX, minimizes client token exposure, reauthorizes each server operation and models offline/timeout outcomes without blind retry."
-        },
-        {
-          "id": "architecture-safety-proof",
-          "dimension": "verification",
-          "severity": "critical",
-          "criterion": "Defines threat-model and executable acceptance scenarios for revoked permission, cross-tenant substitution, duplicate retry and timeout-after-commit rather than claiming a diagram is proof."
-        }
-      ]
-    },
-    {
-      "id": "version-installed-capability",
-      "kind": "version",
-      "prompt": "An existing project pins a supported framework line; a proposed architecture assumes the newest Next.js server/cache and interception conventions. Migration is not in scope.",
-      "fixture": "evals/fixtures/existing-repository.md",
-      "assertions": [
-        {
-          "id": "architecture-version",
-          "dimension": "version_compatibility",
-          "severity": "critical",
-          "criterion": "Derives project stack evidence from the lockfile, installed types/runtime and matching official documentation; designs only with exposed capabilities and treats upgrades separately, without requiring a particular helper command."
-        },
-        {
-          "id": "architecture-version-context",
-          "dimension": "repository_context",
-          "severity": "major",
-          "criterion": "Checks framework, runtime, deployment adapter, caching, test/build system and API contracts as a compatibility unit."
-        },
-        {
-          "id": "architecture-version-maintain",
-          "dimension": "maintainability",
-          "severity": "major",
-          "criterion": "Keeps volatile Next.js/framework recipes out of the architecture skill and records capability assumptions and fallback seams."
-        }
-      ]
-    }
-  ],
-  "provenance": [
-    {
-      "claim_scope": "dynamic framework release sources",
-      "source": "skills/version-sources.tsv",
-      "checked_on": "2026-07-26"
-    },
-    {
-      "claim_scope": "local read-only architecture workflow",
-      "source": "skills/frontend-architecture/SKILL.md",
-      "checked_on": "2026-07-26"
-    }
-  ]
+  }
 }

@@ -30,4 +30,4 @@ metadata:
 
 Run repository-authoritative focused tests and affected type/lint/build/integration/migration checks. Cover global bootstrap parity, invalid input, 401, 403/wrong tenant or resource, duplicate/concurrent requests, conflict, provider timeout-after-effect and rollback. Verify persisted outcomes, not only controller calls or status codes.
 
-Report installed capability, module/contract changes, validation/auth/transaction/idempotency choices, commands/results, and untested deployment/provider risk.
+Report installed capability, module/contract changes, validation/auth/transaction/idempotency choices, provider lifetime for every request/tenant mutable value (never an unbounded singleton), and the database uniqueness constraint or equivalent database-enforced single-claim mechanism used for consequential idempotency. Include commands/results and untested deployment/provider risk.

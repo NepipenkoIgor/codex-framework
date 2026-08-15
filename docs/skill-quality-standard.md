@@ -1,6 +1,6 @@
 # Skill quality standard
 
-`10/10` is a release gate, not an average or a keyword score. A maintained skill passes only when every applicable dimension below has direct evidence. A critical failure in native ownership, routing, safety, version compatibility, or verification makes the skill fail regardless of other strengths.
+`10/10` is a release gate, not an average or a keyword score. A maintained skill passes only when every applicable assertion, case, and dimension below has direct evidence. `critical` and `major` classify review priority; both block certification when failed. A critical failure in native ownership, routing, safety, version compatibility, or verification remains the highest-priority defect and cannot be offset by other strengths.
 
 ## Ten dimensions
 
@@ -29,9 +29,13 @@ Every local skill must have:
 6. a successful live routing run after routing metadata changes;
 7. one independent falsification pass for high-risk corpus or evaluator changes.
 
+Across the complete corpus, fixture-backed scenarios must use at least eight authoritative domain profiles and no one profile may exceed 35% of fixture-backed cases. A fixture states only observed hypothetical evidence relevant to its domain; it must not impose one web/build/test checklist on infrastructure, product, external-provider, read-only, mobile, AI/data, or framework work.
+
 Evidence lives under `evals/`; it is not embedded in skill prompts. A gate must validate actual coverage and expected outcomes, not merely the presence of words such as “workflow”, “test”, or “output”.
 
-`scripts/framework-skill-contract-scaffold.py` creates contracts with `contract_status: scaffold`; a scaffold is never certification evidence. Domain-specific human review must replace circular assertions and set `reviewed` before `certify` will accept model-backed evidence. `framework-skill-quality.py routing-live`, `semantic-live`, and `certify` produce and validate the evidence without retrying a failed case to green.
+`scripts/framework-skill-contract-scaffold.py` creates contracts with `contract_status: scaffold`, no assumed repository fixture, and no certification authority. Domain-specific human review must select only an applicable fixture, replace circular assertions, and set `reviewed` before `certify` will accept model-backed evidence. Fixtures must resolve under `evals/fixtures`. Model evaluators run from a neutral home and working directory with repository/user config and rules ignored; skill, task, fixture, catalog, and criteria are passed explicitly. Before the independent judge sees an answer, the solver performs exactly one bounded, assertion-blind self-falsification/revision against the supplied skill and task fixture. Hidden contract assertions are never supplied to that revision, and a judged failure is never retried to green. `framework-skill-quality.py routing-live`, `semantic-live`, `full-live`, and `certify` produce and validate this evidence.
+
+Corpus-wide routing batches at most 32 cases only when their complete catalog and topology are identical; this amortizes repeated catalog context while retaining exact per-case IDs, three fresh independent trials, strict coverage, and recomputed majority status. `full-live` runs semantic skills with bounded concurrency (default four) and writes one immutable run manifest containing the model, effort, CLI, routing artifact hash, and all 155 semantic source/evaluator digests before model work begins. Every child verifies its assigned digest before and after model calls, and the parent verifies the complete snapshot again before certification; source drift aborts the run instead of producing mixed-revision evidence. Every model call also writes a receipt bound to the exact prompt, output bytes, output schema, model, effort, and CLI. Certification re-parses the raw JSON, requires exact case/assertion coverage, recomputes verdicts and dimension summaries, and rejects missing, duplicated, mutated, external, or unmanifested evidence. A fresh run rejects pre-existing semantic artifacts. `--resume` requires the same run manifest and accepts only artifacts whose current semantic/routing digests, evaluator identity, skill/contract hashes, receipt set, raw evidence, and rebuilt result all validate; stale, failed, forged, incomplete, or mixed-revision evidence stops the run.
 
 ## Scoring and release policy
 

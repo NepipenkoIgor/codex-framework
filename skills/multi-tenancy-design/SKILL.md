@@ -4,7 +4,7 @@ description: Design tenant isolation across trusted identity, database, cache, j
 metadata:
   owner: codex-framework
   reviewed: "2026-07-27"
-  version: 1.3
+  version: 1.4
   argument-hint: "tenant threat model, identity source, data planes, residency/restore/noisy-neighbor requirements, migration scope"
 ---
 
@@ -16,7 +16,7 @@ Design `$ARGUMENTS` read-only. Implementation, schema mutation, migration, proje
 
 1. Define the protected tenant/security boundary, actors and adversaries, support/control-plane privileges, residency, restore granularity, noisy-neighbor tolerance, and incident blast radius.
 2. Inventory every data path: identity/session, API, database/ORM/search, cache, queue/job/retry/DLQ, object keys/presigned URLs, realtime rooms, analytics/export, logs/traces, backups/restores, provisioning/deletion, and migrations.
-3. Resolve tenant context from a server-validated identity and authorized membership/resource relationship. A client header, subdomain, route/body field, JWT claim without current authorization, or ambient global is not sufficient authority.
+3. Resolve tenant context from a server-validated identity and authorized membership/resource relationship. A client header, subdomain, route/body field, JWT claim without current authorization, or ambient global is not sufficient authority. Refer to any caller-supplied tenant field generically until the inspected repository contract supplies its exact identifier; never invent a conventional header, claim, route, or column name.
 4. Propagate immutable context explicitly across request, transaction, job, and event envelopes; reject missing, conflicting, stale, or unauthorized context.
 
 ## Isolation contract

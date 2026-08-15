@@ -14,14 +14,14 @@ Optimize `$ARGUMENTS` from captured workload evidence and the exact engine/versi
 
 ## Workflow
 
-1. Inspect instructions, engine/version/extensions, schema/indexes/statistics, query fingerprints and bind values, plans, table/index sizes and bloat, locks/waits, I/O/cache/CPU, connection pools and transaction duration, replicas, configuration ownership, deployment/migration path, SLOs, and representative baseline telemetry.
+1. Inspect instructions, engine/version/extensions, schema/indexes/statistics, query fingerprints and bind values, plans, table/index sizes and bloat, locks/waits, I/O/cache/CPU, connection pools and transaction duration, replicas, configuration ownership, deployment/migration path, SLOs, and representative baseline telemetry. For every version-sensitive planner, index, statistics, pool, or configuration capability used, record the exact verified official documentation source matching the installed engine/provider version; a generic compatibility claim is not provenance.
 2. Localize the bottleneck before proposing a change: planning/cardinality error, scan/join/sort, N+1 or round trips, lock/contention, transaction scope, connection exhaustion, I/O/cache, vacuum/maintenance, replica lag, or application demand. Separate symptoms from causes.
 3. Capture plain plans safely first. `EXPLAIN ANALYZE` executes the statement; never run it on production writes or an unbounded expensive query without exact authority and a proven containment/rollback boundary. Deferred/external side effects can survive naïve transaction rollback.
 4. Evaluate query rewrites and indexes against real predicates, joins, ordering, projections, data distribution, operator classes/collations, write amplification, storage, and maintenance. Equality-first or “most selective first” is not a universal multicolumn-index rule; planner behavior depends on the full access pattern and engine.
 5. Create or change indexes through the migration workflow after checking installed online/concurrent capability, lock mode, invalid-index recovery, uniqueness timing, WAL/disk, replicas, and write impact. Do not remove an index from a short observation window; prove duplicate/unused status across workload cycles, constraints, failover/replica use, and rollback.
 6. Tune statistics or configuration only when evidence identifies the parameter and owner. Do not issue `ALTER SYSTEM`, server restart/reload, or managed-provider setting changes without explicit external authority, change control, exact scope, rollback, and workload validation.
 7. Size application and proxy pools from total database connection budget, instance count/autoscaling, transaction duration, workload mix, reserved operational capacity, and pooler semantics. More connections can worsen contention; no corpus-wide pool number or utilization threshold is safe.
-8. Compare before/after on representative data and concurrency using latency distribution, throughput, rows and loops, buffers/I/O, locks, CPU, temp/WAL, error rate, pool wait, and replica lag. Check plan stability across important bind values and statistics states, then run repository or executable compatibility/regression tests for the affected query and application boundary.
+8. Compare before/after on representative data and concurrency using latency distribution, throughput, rows and loops, buffers/I/O, locks, CPU, memory, active and idle connection counts, temp/WAL, error rate, pool wait, and replica lag. Check plan stability across important bind values and statistics states, then run repository or executable compatibility/regression tests for the affected query and application boundary.
 9. Roll out one attributable reversible change at a time where possible, with canary/observation, regression and abort criteria. Verify caller-visible SLO plus production database evidence; a faster isolated plan is not enough.
 
 ## Required counterexamples
@@ -34,7 +34,7 @@ Optimize `$ARGUMENTS` from captured workload evidence and the exact engine/versi
 
 ## Output
 
-Report engine/workload and baseline evidence, localized cause, candidate and rejected hypotheses, exact query/index/statistics/pool/config changes, lock/migration/authority implications, before/after measurements, rollout/rollback, production verification, and residual plan/data-distribution risk.
+Report engine/workload and baseline evidence, exact version-matched official capability sources, localized cause, candidate and rejected hypotheses, exact query/index/statistics/pool/config changes, lock/migration/authority implications, before/after measurements, rollout/rollback, production verification, and residual plan/data-distribution risk.
 
 ## Provenance
 

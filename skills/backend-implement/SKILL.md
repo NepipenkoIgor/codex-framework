@@ -4,7 +4,7 @@ description: Implement backend behavior when no sharper language or framework sp
 metadata:
   owner: codex-framework
   reviewed: "2026-07-27"
-  version: 3.1
+  version: 3.2
   argument-hint: "feature/acceptance, runtime/framework, API/event and persistence contracts, auth/tenant and failure model"
 ---
 
@@ -17,7 +17,7 @@ Use `backend-implement-node`, `backend-implement-nestjs`, `backend-implement-pyt
 ## Workflow
 
 1. Read instructions, manifests/lockfiles/runtime files, target and callers, API/event schemas, validation/errors, persistence/migrations, auth/tenant model, jobs/providers, telemetry, tests and deployment commands.
-2. Generate stack context and preserve repository runtime/framework/language/package manager and installed capability. Do not choose a framework, validator, ORM, logger, architecture or latest version by default.
+2. Generate stack context and preserve repository runtime/framework/language/package manager and installed capability. Before applying version-sensitive guidance, verify the pinned runtime/engine, peer-dependency graph, compiler/framework line, test runner, and deployment runtime as one mutual-compatibility chain against installed metadata and matching official support evidence. Do not choose a framework, validator, ORM, logger, architecture or latest version by default.
 3. Define caller-visible success/error behavior and durable invariants across invalid input, authentication, target-resource authorization, duplicate/concurrent mutation, conflict, retry, cancellation and timeout-after-effect.
 4. Implement the smallest vertical change with existing boundaries and update authoritative schemas/docs when contracts change.
 

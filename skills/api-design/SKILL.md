@@ -22,7 +22,7 @@ Design `$ARGUMENTS` read-only.
 - Authenticate and authorize actor, tenant and target resource per operation; object IDs, hidden fields and client-provided tenant IDs are not authority.
 - Version only when compatibility requires it. Define additive/breaking rules, tolerant consumers, deprecation/sunset, mixed-version rollout and generated schema/client checks; URL versioning is not universal.
 - Pagination must define stable deterministic ordering and cursor/filter/sort snapshot semantics under concurrent inserts/deletes. Offset, cursor, page sizes and totals are use-case decisions, not fixed defaults.
-- Consequential retryable mutations need stable client operation identity, server-side idempotency scope/retention, request-fingerprint conflict behavior and timeout-after-commit reconciliation. POST is not automatically non-retryable or idempotent.
+- Consequential retryable mutations need stable client operation identity, server-side idempotency scope/retention, request-fingerprint conflict behavior and timeout-after-commit reconciliation. Whenever any client, intermediary, SDK, worker, or server will retry automatically, also derive and state bounded attempts and bounded total elapsed time from the operation/provider evidence and caller deadline; idempotency alone is not a retry bound. POST is not automatically non-retryable or idempotent.
 - Before a material mutation is implemented, resolve exact targets, authority/permissions and ownership, then define effect-appropriate rollback, compensation, disablement or forward recovery; an API schema rollback alone cannot undo an external or monetary effect.
 - Define optimistic concurrency/version preconditions where lost updates matter.
 - Webhooks need authenticated integrity, replay protection, stable event ID/version, at-least-once duplicates, ordering scope, retries, timeout, disable/recovery, endpoint rotation, SSRF-safe registration and consumer reconciliation.
@@ -32,4 +32,4 @@ Design `$ARGUMENTS` read-only.
 
 Test schema compatibility, unknown fields, auth/resource enumeration, pagination under mutation, duplicate/concurrent idempotency, conflict/timeout reconciliation, webhook forgery/replay/duplicates/reorder and deprecation with real consumer fixtures.
 
-Output resource/action and schema contracts, auth matrix, errors, pagination/concurrency/idempotency/webhooks, compatibility/version lifecycle, examples/OpenAPI changes, verification plan, alternatives and residual risk.
+Output resource/action and schema contracts, auth matrix, errors, pagination/concurrency/idempotency/webhooks, any automated-retry owner plus its evidence-derived attempt/elapsed bound, compatibility/version lifecycle, examples/OpenAPI changes, verification plan, alternatives and residual risk.

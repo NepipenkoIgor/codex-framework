@@ -22,7 +22,7 @@ Use native GitHub integration for GitHub state when available and requested; do 
 
 Create only workflow artifacts that encode real team behavior: focused project instructions, verified commands, issue/PR templates, ownership, release/branch guidance and security/reporting paths. Preserve existing conventions and avoid ceremonial labels, milestones, boards, hooks or agent profiles. Never commit secrets, tokens, user-specific absolute paths or environment values.
 
-For version-sensitive starter configuration, use `scripts/framework-stack-context.py` to resolve supported stable frameworks and production LTS runtimes dynamically. After generation and dependency resolution, the new manifest and lockfile become authority. Existing project pins remain authority and upgrades are separate migrations.
+For version-sensitive starter configuration, use `scripts/framework-stack-context.py` to resolve supported stable frameworks and production LTS runtimes dynamically from official distribution channels. Validate every resolved framework/runtime version against its exact official release, support, or distribution source and record those sources before generation; do not accept remembered majors or an unspecified resolver source as evidence. After generation and dependency resolution, the new manifest and lockfile become authority. Existing project pins remain authority and upgrades are separate migrations.
 
 ## Verification and output
 

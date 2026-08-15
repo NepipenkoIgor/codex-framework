@@ -16,7 +16,7 @@ Read repository instructions, manifests and lockfiles, native project files, bui
 
 Preserve installed pins. Verify commands and version-gated behavior from installed CLI help, generated configuration/types, or matching official documentation. For a new toolchain only, use `scripts/framework-stack-context.py`; an incident is not authority to upgrade dependencies.
 
-Reproduce the smallest failing path and capture the first causal error, symbolicated native/JS/Dart stack, logs, network/storage/lifecycle state, and a non-failing comparison where available. Separate app code, native integration, dependency/toolchain, provider/backend, and device/OS hypotheses. Falsify each with a focused observation.
+Boot or attach to a visible repository-configured simulator, emulator, or device, launch the app early, and reproduce the smallest failing path interactively. Capture the first causal error, symbolicated native/JS/Dart stack, logs, network/storage/lifecycle state, and a non-failing comparison where available. Separate app code, native integration, dependency/toolchain, provider/backend, and device/OS hypotheses. Falsify each with a focused observation.
 
 ## Safe diagnosis
 
@@ -34,4 +34,4 @@ Before mutation, define a reversible patch/config rollback and any persisted-dat
 
 Add a regression check at the lowest layer that reproduces the defect. Then run repository-authoritative focused and affected checks. Where the bug depends on native/runtime behavior, verify the relevant simulator/emulator or physical-device path, background/foreground or process-death transition, release/profile configuration, and caller-visible result. Rerun after any failed check.
 
-Report reproduction, evidence and localized cause, changed files, installed stack/capability evidence, checks and device matrix actually run, cleanup performed, and unverified external/device boundaries. A successful build or cache clear is not proof of the user-visible fix.
+Report reproduction, evidence and localized cause, changed files, installed stack/capability evidence, visible device interactions and device matrix actually run, exact task-owned cleanup, and unverified external/device boundaries. Headless checks, a successful build, or a cache clear are not proof of the user-visible fix.

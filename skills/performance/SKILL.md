@@ -1,6 +1,6 @@
 ---
 name: performance
-description: Diagnose and optimize measured frontend, backend, database, network, memory, startup, and build performance without changing correctness or privacy. Use when performance is the primary requested outcome.
+description: Diagnose and optimize measured end-to-end frontend, backend, network, memory, startup, and build performance without changing correctness or privacy. Use when measured application performance is primary; route database query/index design and AI operating-cost estimation to their dedicated skills.
 metadata:
   owner: codex-framework
   reviewed: "2026-07-27"

@@ -4,14 +4,14 @@ description: Add behavior-focused Angular unit, component, harness, signal, HTTP
 metadata:
   owner: codex-framework
   reviewed: "2026-07-26"
-  version: 2.0
+  version: 2.2
   domain: frontend
   keywords: [angular, testing, testbed, vitest, jasmine, karma, signal, harness, http]
 ---
 
 # Frontend Test — Angular
 
-Run `python3 scripts/framework-stack-context.py project <path>` and inspect `angular.json`, package/lock files, Angular core, TypeScript, test target/builder, Zone-versus-zoneless configuration, setup, installed DOM emulator, existing spies/timers, the target's production HTTP/provider configuration and nearby tests as one compatibility unit. Preserve the installed runner and conventions, and verify version-sensitive APIs against installed types plus matching Angular and runner documentation. Current new Angular CLI projects use Vitest, but an existing Karma/Jasmine, Jest, Web Test Runner or other supported setup is authority; migration is separate scope.
+Run `python3 scripts/framework-stack-context.py project <path>` and inspect `angular.json`, package/lock files, Angular core, TypeScript, every applicable base/app/test `tsconfig`, test target/builder, Zone-versus-zoneless configuration, setup, installed DOM emulator, existing spies/timers, HTTP client/testing providers and their ordering, the target's production HTTP/provider configuration, and nearby tests as one compatibility unit. Checking the installed HTTP testing providers and ordering is unconditional even when the requested behavior has no HTTP boundary; that check does not by itself require adding an HTTP test. Preserve the installed runner and conventions, and verify version-sensitive APIs against installed types plus matching Angular and runner documentation. Current new Angular CLI projects use Vitest, but an existing Karma/Jasmine, Jest, Web Test Runner or other supported setup is authority; migration is separate scope.
 
 ## Test Contract
 
@@ -32,7 +32,7 @@ Run `python3 scripts/framework-stack-context.py project <path>` and inspect `ang
 ## Verification
 
 - Tests fail for the intended regression before/falsification fixture where safe and pass after the implementation under test.
-- No live network or leaked timers/subscriptions/fixtures; HTTP controller and runner cleanup pass.
+- No live network or leaked timers/subscriptions/fixtures: explicitly destroy each Angular fixture or reset TestBed through the installed supported lifecycle, verify `HttpTestingController` has no pending requests, drain/verify timers, and prove no fixture/provider state leaks into the next test.
 - Signal/effect/resource behavior is synchronized through installed supported APIs, including stale async completion and destruction.
 - OnPush/default/zoneless behavior, accessibility-facing output and error paths are observed rather than inferred from internals.
 

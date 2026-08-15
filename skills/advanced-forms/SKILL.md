@@ -4,13 +4,13 @@ description: Implement complex forms with schema-driven state, conditional field
 metadata:
   owner: codex-framework
   reviewed: "2026-07-26"
-  version: 2.0
+  version: 2.1
   argument-hint: "form workflow, data sensitivity, server contract, draft policy, upload types, mutation consequences"
 ---
 
 # Advanced Forms
 
-Generate repository stack context with `python3 scripts/framework-stack-context.py project <path>`, then inspect the framework, TypeScript/compiler, form and schema libraries/adapters, runtime versions, server validation and field/form error contract, authorization model, storage policy, design system, and tests as one compatibility unit before choosing APIs. Existing pins are authority; verify matching official documentation and installed declarations, and treat an upgrade as separate scope. For greenfield work use `python3 scripts/framework-stack-context.py latest <technologies...>`, then verify generated manifests, resolved lockfiles, installed types, and official documentation.
+Generate repository stack context with `python3 scripts/framework-stack-context.py project <path>`, then inspect the framework, TypeScript/compiler, form and schema libraries/adapters, runtime versions, server validation and field/form error contract, authorization model, storage policy, design system components/tokens, mutation side effects and provider boundaries, and tests as one compatibility unit before choosing APIs. Explicitly report the design-system and mutation-side-effect capability evidence or keep the API choice blocked; do not silently treat either as inapplicable because the immediate screen or test omits it. Existing pins are authority; verify matching official documentation and installed declarations, and treat an upgrade as separate scope. For greenfield work use `python3 scripts/framework-stack-context.py latest <technologies...>`, then verify generated manifests, resolved lockfiles, installed types, and official documentation.
 
 This skill owns the form workflow and its direct server integration. Organization-wide validation architecture and generic upload/storage platform capabilities remain with their dedicated owners unless the request explicitly expands scope.
 
@@ -24,7 +24,7 @@ This skill owns the form workflow and its direct server integration. Organizatio
 
 ## Workflow
 
-1. Map steps, state transitions, canonical schema, server errors, permissions, side effects, retry/idempotency semantics, accessibility requirements, sensitive fields, draft retention, uploads, and abandonment.
+1. Map every step and transition as an explicit state-transition table or equivalent typed model. For each transition name its source, trigger, guard/permission, target, validation, mutation or other side effect, pending state, error outcome, and recovery/rollback behavior; a list of `saved`/`pending`/`error` labels is not a transition model. Join that map to the canonical schema, server errors, retry/idempotency semantics, accessibility requirements, sensitive fields, draft retention, uploads, and abandonment.
 2. Keep one typed form state and an explicit transformation to the API payload. Model conditional branches and cross-field rules in the schema; avoid duplicated component-level validation.
 3. Choose validation timing by cost and consequence. Preserve user input across recoverable errors; focus and summarize errors accessibly without moving focus on every keystroke.
 4. Make async validation cancellable and race-safe. Derive any debounce from measured interaction/provider behavior and product policy, not a reusable constant. A successful availability check is not a reservation; the server checks again transactionally on submit.
