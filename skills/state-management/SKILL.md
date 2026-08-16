@@ -1,6 +1,6 @@
 ---
 name: state-management
-description: Design frontend state ownership, server materialization, optimistic operations, offline behavior, persistence and conflict recovery. Use for an unresolved state architecture decision; do not use for routine local component state implementation.
+description: Design frontend state ownership, server materialization, optimistic operations, local persistence, and bounded client recovery. Use for an unresolved application-state architecture decision; route durable multi-device offline replicas, outboxes, tombstones, and synchronization conflicts to offline-sync-design, and do not use for routine local component state implementation.
 metadata:
   owner: codex-framework
   reviewed: "2026-07-26"

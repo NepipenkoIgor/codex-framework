@@ -1,7 +1,7 @@
 {
   "name": "ai-codex-framework",
-  "version": "1.0.0",
-  "description": "Portable deterministic safety hooks for the native AI Codex Framework.",
+  "version": "1.0.1",
+  "description": "Portable deterministic shell safety hooks for the native AI Codex Framework.",
   "author": {
     "name": "Igor Nepipenko",
     "url": "https://github.com/NepipenkoIgor"
@@ -12,7 +12,7 @@
   "interface": {
     "displayName": "AI Codex Framework",
     "shortDescription": "Portable safety hooks for Codex engineering.",
-    "longDescription": "Deterministic destructive-command and closeout checks that complement native Codex orchestration without injecting context or replacing built-in agents.",
+    "longDescription": "Deterministic destructive-command checks that complement native Codex orchestration without injecting context, scanning unrelated worktree changes, or replacing built-in agents.",
     "developerName": "Igor Nepipenko",
     "category": "Developer Tools",
     "capabilities": ["Hooks"],

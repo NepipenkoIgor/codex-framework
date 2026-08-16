@@ -4,7 +4,7 @@ description: Design an API gateway or backend-for-frontend trust boundary across
 metadata:
   owner: codex-framework
   reviewed: "2026-07-26"
-  version: 2.0
+  version: 2.1
   argument-hint: "clients, exposed routes, trust boundaries, identity, upstreams, aggregation, cache, failure policy"
 ---
 
@@ -15,7 +15,7 @@ Design `$ARGUMENTS` from the deployed trust and request paths rather than from a
 ## Workflow
 
 1. Inspect repository and infrastructure instructions, gateway/proxy configuration, public and internal ingress, DNS/load balancers, service discovery, auth issuers, route inventories, API contracts, cache/CDN layers, observability, and deployment topology. Identify every path that can reach an upstream, including service, pod, private load balancer, webhook, admin, and debug routes; stop when any relevant ingress or reachability path remains unknown. Generate project stack context and treat deployed gateway/runtime pins, generated configuration schema, plugin inventory, release-matched validator and matching official documentation as capability authority; adopting behavior from a newer line is a separate migration.
-2. Define gateway ownership and exclusions: routing and policy enforcement at the edge; domain authorization and invariants remain with the owning service. Decide whether a BFF is justified by a distinct client contract, server-held token/session boundary, or aggregation need—not by a universal per-client rule.
+2. Define gateway ownership and exclusions: routing and policy enforcement at the edge; domain authorization and invariants remain with the owning service. Endpoint request/response schema design belongs to the endpoint/API owner, and quota-algorithm design belongs to the rate-limiting/capacity owner; the gateway consumes their versioned contracts and may enforce them, but must not silently invent or redefine either. Decide whether a BFF is justified by a distinct client contract, server-held token/session boundary, or aggregation need—not by a universal per-client rule.
 3. Establish identity provenance. Strip all caller-supplied identity, role, tenant, scope, forwarding, and internal-auth headers before writing gateway-derived values. Bind propagated identity cryptographically or through an authenticated network/workload channel; upstreams must reject direct or unverifiable identity injection.
 4. Apply authentication at the appropriate edge and authorize exact operation/resource/tenant in trusted upstream code. A validated token or gateway-injected header is not object- or function-level authorization. Public and bypass routes are explicit, narrowly matched, reviewed, and tested.
 5. Define deterministic route precedence, method/host/path matching, rewrite behavior, request/body/header limits, timeout/deadline budgets, retry eligibility, and drain/failover behavior from upstream contracts. Reject ambiguous or shadowed routes before rollout.

@@ -4,7 +4,7 @@ description: Design a product AI-agent system with least-privilege tools, explic
 metadata:
   owner: codex-framework
   reviewed: "2026-07-26"
-  version: 3.0
+  version: 3.1
   argument-hint: "business outcome, users/tenants, tools and side effects, approval authority, memory policy, evaluation and runtime constraints"
 ---
 
@@ -54,9 +54,11 @@ Approval is a durable, auditable authorization record binding approver identity/
 ## Output Contract
 
 - Outcome, trust/data diagram and smallest recommended architecture
+- Executed AI SDK project-detection/stack-context command and result, or the exact `python3 scripts/framework-stack-context.py project <path>` step marked `Not available` when repository/tool execution is withheld
 - State, tool/auth, approval and side-effect contracts
 - Memory consent/partition/provenance/retention/deletion policy
 - Limits derived from evidence, observability and evaluation plan
+- Executable kill/disable and rollback cases with trigger/action and asserted outcomes: new work is rejected or deterministically diverted, while accepted or unknown work safely completes, cancels, or reaches a visible reconciled state
 - Options, tradeoffs, rollout/rollback and unresolved provider risks
 
 Official guidance: [OWASP LLM Prompt Injection Prevention](https://cheatsheetseries.owasp.org/cheatsheets/LLM_Prompt_Injection_Prevention_Cheat_Sheet.html), [NIST AI RMF](https://www.nist.gov/itl/ai-risk-management-framework), and [AI SDK tool calling](https://ai-sdk.dev/docs/ai-sdk-core/tools-and-tool-calling).

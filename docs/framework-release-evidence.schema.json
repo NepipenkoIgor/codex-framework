@@ -2,27 +2,19 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "title": "Codex Framework Release Evidence",
   "type": "object",
-  "required": [
-    "schemaVersion",
-    "generatedAt",
-    "sourceDigest",
-    "codexVersion",
-    "corpus",
-    "gates",
-    "gateReceiptSha256",
-    "changedSkillEvidence",
-    "artifactPolicy"
-  ],
+  "additionalProperties": false,
+  "required": ["schemaVersion", "generatedAt", "sourceDigest", "gitHeadAtGeneration", "codexVersion", "corpus", "gateEvidence", "skillCorpusAttestation", "artifactPolicy"],
   "properties": {
-    "schemaVersion": {"const": 1},
+    "schemaVersion": {"const": 3},
     "generatedAt": {"type": "string", "format": "date-time"},
-    "sourceDigest": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
-    "gitHeadAtGeneration": {"type": ["string", "null"]},
-    "codexVersion": {"type": ["string", "null"]},
+    "sourceDigest": {"$ref": "#/$defs/sha256"},
+    "gitHeadAtGeneration": {"type": "string", "pattern": "^[a-f0-9]{40}$"},
+    "codexVersion": {"type": "string", "minLength": 1},
+    "artifactPolicy": {"const": "compact-validator-attestation-v1"},
     "corpus": {
       "type": "object",
-      "required": ["skills", "skillMainLines", "skillDescriptionCharacters", "largestSkillBytes", "references", "versionResolvers"],
       "additionalProperties": false,
+      "required": ["skills", "skillMainLines", "skillDescriptionCharacters", "largestSkillBytes", "references", "versionResolvers"],
       "properties": {
         "skills": {"type": "integer", "minimum": 1},
         "skillMainLines": {"type": "integer", "minimum": 1},
@@ -32,47 +24,47 @@
         "versionResolvers": {"type": "integer", "minimum": 1}
       }
     },
-    "changedSkillEvidence": {
-      "type": "object",
-      "required": ["skill", "routingPassed", "routingTotal", "certified", "routingArtifactSha256", "qualityArtifactSha256", "routingDigest", "semanticDigest", "contractSha256", "skillSha256"],
-      "additionalProperties": false,
-      "properties": {
-        "skill": {"const": "framework-management"},
-        "routingPassed": {"type": "integer", "minimum": 1},
-        "routingTotal": {"type": "integer", "minimum": 1},
-        "certified": {"const": 1}
-        ,"routingArtifactSha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"}
-        ,"qualityArtifactSha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"}
-        ,"routingDigest": {"type": "string", "pattern": "^[a-f0-9]{64}$"}
-        ,"semanticDigest": {"type": "string", "pattern": "^[a-f0-9]{64}$"}
-        ,"contractSha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"}
-        ,"skillSha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"}
+    "gateEvidence": {
+      "type": "array",
+      "minItems": 6,
+      "maxItems": 6,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["name", "command", "exitCode", "output", "outputSha256"],
+        "properties": {
+          "name": {"enum": ["deterministicHealth", "effectiveInstallDoctor", "nativeSkillLoaderCanary", "liveVersionResolution", "nativeCapabilityCurrency", "skillCorpusCertification"]},
+          "command": {"type": "array", "minItems": 2, "items": {"type": "string", "minLength": 1}},
+          "exitCode": {"const": 0},
+          "output": {"type": "string", "minLength": 1},
+          "outputSha256": {"$ref": "#/$defs/sha256"}
+        }
       }
     },
-    "gateReceiptSha256": {
-      "type": "object",
-      "required": ["deterministicHealth", "effectiveInstallDoctor", "nativeSkillLoaderCanary", "liveVersionResolution"],
-      "additionalProperties": false,
-      "properties": {
-        "deterministicHealth": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
-        "effectiveInstallDoctor": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
-        "nativeSkillLoaderCanary": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
-        "liveVersionResolution": {"type": "string", "pattern": "^[a-f0-9]{64}$"}
+    "skillCorpusAttestation": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["skill", "skillSha256", "contractSha256", "routingDigest", "semanticDigest", "rawEvidenceDigest", "model", "reasoningEffort", "codexVersion", "caseCount", "verdict"],
+        "properties": {
+          "skill": {"type": "string", "minLength": 1},
+          "skillSha256": {"$ref": "#/$defs/sha256"},
+          "contractSha256": {"$ref": "#/$defs/sha256"},
+          "routingDigest": {"$ref": "#/$defs/sha256"},
+          "semanticDigest": {"$ref": "#/$defs/sha256"},
+          "rawEvidenceDigest": {"$ref": "#/$defs/sha256"},
+          "model": {"type": "string", "minLength": 1},
+          "reasoningEffort": {"type": "string", "minLength": 1},
+          "codexVersion": {"type": "string", "minLength": 1},
+          "caseCount": {"type": "integer", "minimum": 1},
+          "verdict": {"const": "pass"}
+        }
       }
-    },
-    "gates": {
-      "type": "object",
-      "required": ["deterministicHealth", "effectiveInstallDoctor", "nativeSkillLoaderCanary", "changedSkillCertification", "liveVersionResolution"],
-      "additionalProperties": false,
-      "properties": {
-        "deterministicHealth": {"enum": ["pass", "pending"]},
-        "effectiveInstallDoctor": {"enum": ["pass", "pending"]},
-        "nativeSkillLoaderCanary": {"enum": ["pass", "pending"]},
-        "changedSkillCertification": {"enum": ["pass", "pending"]},
-        "liveVersionResolution": {"enum": ["pass", "pending"]}
-      }
-    },
-    "artifactPolicy": {"type": "string"}
+    }
   },
-  "additionalProperties": false
+  "$defs": {
+    "sha256": {"type": "string", "pattern": "^(?!0{64}$)[a-f0-9]{64}$"}
+  }
 }

@@ -1,9 +1,6 @@
 {
-  "schema_version": 1,
   "contract_status": "reviewed",
-  "skill": "animation-motion",
   "native_ownership": {
-    "responsibility": "Implement purposeful UI animation and enter/leave lifecycle with installed capability, reduced-motion equivalence, CSP-safe code, interruption cleanup and measured performance.",
     "excludes": [
       "General frontend feature implementation is owned by frontend-implement.",
       "Broad accessibility remediation is owned by accessibility-implement.",
@@ -14,50 +11,43 @@
       "accessibility-implement",
       "visual-regression",
       "performance"
-    ]
-  },
-  "risk": {
-    "mode": "repository_write",
-    "rationale": "animation-motion implements repository behavior; edits remain limited to the authorized scope and require affected-path verification."
-  },
-  "version_policy": {
-    "mode": "dynamic",
-    "technologies": [
-      "angular",
-      "nuxt",
-      "react",
-      "typescript",
-      "vue"
-    ]
-  },
-  "routing": {
-    "positive": [
-      {
-        "id": "route-angular-motion",
-        "prompt": "Migrate one Angular component's legacy enter/leave animation on an installed line that supports the new compiler primitives, preserving reduced-motion removal, focus, callbacks and tests without mixing systems in the component."
-      },
-      {
-        "id": "route-view-transition",
-        "prompt": "Implement a capability-gated route transition with identical URL/history/focus/final DOM fallback, safe interruption, reduced motion, unique transition names and CSP that forbids unsafe evaluation."
-      }
     ],
-    "negative": [
-      {
-        "id": "route-frontend-feature",
-        "prompt": "Implement a new interactive frontend workflow with components, routes, data fetching, forms, authorization states and error handling; motion is incidental.",
-        "expected_skill": "frontend-implement"
-      },
-      {
-        "id": "route-accessibility-fix",
-        "prompt": "Repair keyboard navigation, form semantics, headings, live announcements, focus management, contrast and reduced-motion defects across a user flow.",
-        "expected_skill": "accessibility-implement"
-      }
-    ]
+    "responsibility": "Implement purposeful UI animation and enter/leave lifecycle with installed capability, reduced-motion equivalence, CSP-safe code, interruption cleanup and measured performance."
   },
+  "provenance": [
+    {
+      "checked_on": "2026-07-26",
+      "claim_scope": "Angular animations deprecation and migration from 20.2",
+      "source": "https://angular.dev/guide/animations/migration"
+    },
+    {
+      "checked_on": "2026-07-26",
+      "claim_scope": "Angular animate enter and leave lifecycle",
+      "source": "https://angular.dev/guide/animations"
+    },
+    {
+      "checked_on": "2026-07-26",
+      "claim_scope": "Web Animations lifecycle",
+      "source": "https://www.w3.org/TR/web-animations-1/"
+    },
+    {
+      "checked_on": "2026-07-26",
+      "claim_scope": "View Transitions capability",
+      "source": "https://www.w3.org/TR/css-view-transitions-1/"
+    },
+    {
+      "checked_on": "2026-07-26",
+      "claim_scope": "dynamic framework release sources",
+      "source": "skills/version-sources.tsv"
+    },
+    {
+      "checked_on": "2026-07-26",
+      "claim_scope": "local workflow and routed references",
+      "source": "skills/animation-motion/SKILL.md"
+    }
+  ],
   "reference_routing": [
     {
-      "id": "reference-1-angular-animations-md",
-      "prompt": "A pinned Angular application must decide whether to retain legacy triggers or migrate a component to animate.enter and animate.leave while preserving leave completion and test behavior.",
       "expected": [
         "skills/animation-motion/references/angular-animations.md"
       ],
@@ -67,11 +57,11 @@
         "skills/animation-motion/references/svelte-transitions.md",
         "skills/animation-motion/references/view-transitions-api.md",
         "skills/animation-motion/references/vue-transitions.md"
-      ]
+      ],
+      "id": "reference-1-angular-animations-md",
+      "prompt": "A pinned Angular application must decide whether to retain legacy triggers or migrate a component to animate.enter and animate.leave while preserving leave completion and test behavior."
     },
     {
-      "id": "reference-2-framer-motion-md",
-      "prompt": "A React project already pins Motion and needs keyed presence, layout continuity and interruption-safe reduced motion for a swapping panel.",
       "expected": [
         "skills/animation-motion/references/framer-motion.md"
       ],
@@ -81,11 +71,11 @@
         "skills/animation-motion/references/svelte-transitions.md",
         "skills/animation-motion/references/view-transitions-api.md",
         "skills/animation-motion/references/vue-transitions.md"
-      ]
+      ],
+      "id": "reference-2-framer-motion-md",
+      "prompt": "A React project already pins Motion and needs keyed presence, layout continuity and interruption-safe reduced motion for a swapping panel."
     },
     {
-      "id": "reference-3-gsap-md",
-      "prompt": "An installed GSAP timeline coordinates a complex scroll sequence and must clean all triggers on route change, honor runtime reduced motion and keep strict CSP.",
       "expected": [
         "skills/animation-motion/references/gsap.md"
       ],
@@ -95,11 +85,11 @@
         "skills/animation-motion/references/svelte-transitions.md",
         "skills/animation-motion/references/view-transitions-api.md",
         "skills/animation-motion/references/vue-transitions.md"
-      ]
+      ],
+      "id": "reference-3-gsap-md",
+      "prompt": "An installed GSAP timeline coordinates a complex scroll sequence and must clean all triggers on route change, honor runtime reduced motion and keep strict CSP."
     },
     {
-      "id": "reference-4-svelte-transitions-md",
-      "prompt": "A pinned SvelteKit list needs keyed reorder and enter/leave transitions whose reduced-motion path preserves outro removal and navigation cleanup.",
       "expected": [
         "skills/animation-motion/references/svelte-transitions.md"
       ],
@@ -109,39 +99,39 @@
         "skills/animation-motion/references/gsap.md",
         "skills/animation-motion/references/view-transitions-api.md",
         "skills/animation-motion/references/vue-transitions.md"
-      ]
+      ],
+      "id": "reference-4-svelte-transitions-md",
+      "prompt": "A pinned SvelteKit list needs keyed reorder and enter/leave transitions whose reduced-motion path preserves outro removal and navigation cleanup."
     },
     {
+      "expected": [
+        "skills/animation-motion/references/view-transitions-api.md"
+      ],
+      "forbidden": [
+        "skills/animation-motion/references/angular-animations.md",
+        "skills/animation-motion/references/framer-motion.md",
+        "skills/animation-motion/references/gsap.md",
+        "skills/animation-motion/references/svelte-transitions.md",
+        "skills/animation-motion/references/vue-transitions.md"
+      ],
       "id": "reference-5-view-transitions-api-md",
-      "prompt": "Add a progressively enhanced same-document route transition with unique names, failure and rapid-navigation handling, stable history/focus and an unsupported-browser fallback.",
+      "prompt": "Add a progressively enhanced same-document route transition with unique names, failure and rapid-navigation handling, stable history/focus and an unsupported-browser fallback."
+    },
+    {
       "expected": [
-        "skills/animation-motion/references/view-transitions-api.md"
+        "skills/animation-motion/references/vue-transitions.md"
       ],
       "forbidden": [
         "skills/animation-motion/references/angular-animations.md",
         "skills/animation-motion/references/framer-motion.md",
         "skills/animation-motion/references/gsap.md",
         "skills/animation-motion/references/svelte-transitions.md",
-        "skills/animation-motion/references/vue-transitions.md"
-      ]
-    },
-    {
+        "skills/animation-motion/references/view-transitions-api.md"
+      ],
       "id": "reference-6-vue-transitions-md",
-      "prompt": "A Vue TransitionGroup list needs named-property CSS transitions, stable keys, cancellation cleanup and correct reduced-motion completion under rapid reorder.",
-      "expected": [
-        "skills/animation-motion/references/vue-transitions.md"
-      ],
-      "forbidden": [
-        "skills/animation-motion/references/angular-animations.md",
-        "skills/animation-motion/references/framer-motion.md",
-        "skills/animation-motion/references/gsap.md",
-        "skills/animation-motion/references/svelte-transitions.md",
-        "skills/animation-motion/references/view-transitions-api.md"
-      ]
+      "prompt": "A Vue TransitionGroup list needs named-property CSS transitions, stable keys, cancellation cleanup and correct reduced-motion completion under rapid reorder."
     },
     {
-      "id": "reference-main-only",
-      "prompt": "Handle a routine animation motion request using the main workflow only; no framework, library, image, navigation, table, utility, or other optional deep dive is needed.",
       "expected": [],
       "forbidden": [
         "skills/animation-motion/references/angular-animations.md",
@@ -150,143 +140,153 @@
         "skills/animation-motion/references/svelte-transitions.md",
         "skills/animation-motion/references/view-transitions-api.md",
         "skills/animation-motion/references/vue-transitions.md"
-      ]
+      ],
+      "id": "reference-main-only",
+      "prompt": "Handle a routine animation motion request using the main workflow only; no framework, library, image, navigation, table, utility, or other optional deep dive is needed."
     }
   ],
+  "risk": {
+    "mode": "repository_write",
+    "rationale": "animation-motion implements repository behavior; edits remain limited to the authorized scope and require affected-path verification."
+  },
+  "routing": {
+    "negative": [
+      {
+        "expected_skill": "frontend-implement",
+        "id": "route-frontend-feature",
+        "prompt": "Implement a new interactive frontend workflow with components, routes, data fetching, forms, authorization states and error handling; motion is incidental."
+      },
+      {
+        "expected_skill": "accessibility-implement",
+        "id": "route-accessibility-fix",
+        "prompt": "Repair keyboard navigation, form semantics, headings, live announcements, focus management, contrast and reduced-motion defects across a user flow."
+      }
+    ],
+    "positive": [
+      {
+        "id": "route-angular-motion",
+        "prompt": "Migrate one Angular component's legacy enter/leave animation on an installed line that supports the new compiler primitives, preserving reduced-motion removal, focus, callbacks and tests without mixing systems in the component."
+      },
+      {
+        "id": "route-view-transition",
+        "prompt": "Implement a capability-gated route transition with identical URL/history/focus/final DOM fallback, safe interruption, reduced motion, unique transition names and CSP that forbids unsafe evaluation."
+      }
+    ]
+  },
   "scenarios": [
     {
+      "assertions": [
+        {
+          "criterion": "Implements motion and lifecycle behavior without implementing or claiming ownership of general feature work, broad accessibility remediation or visual-baseline infrastructure.",
+          "dimension": "native_ownership",
+          "id": "motion-owner",
+          "severity": "major"
+        },
+        {
+          "criterion": "Inspects installed framework/library, motion tokens, component lifecycle, CSP, SSR/hydration, browser targets, preferences and tests from the fixture.",
+          "dimension": "repository_context",
+          "id": "motion-repo",
+          "severity": "critical"
+        },
+        {
+          "criterion": "Defines before/during/after state, interruption and reduced-motion final state, selects the smallest installed capability, names properties and then implements independent cleanup/completion.",
+          "dimension": "decision_workflow",
+          "id": "motion-flow",
+          "severity": "critical"
+        },
+        {
+          "criterion": "Eliminates transition all and evaluated code, preserves strict CSP, keeps reduced-motion lifecycle equivalent and on Angular 20.2-or-later capability uses or plans migration to animate.enter/leave without mixing legacy systems in one component.",
+          "dimension": "domain_correctness",
+          "id": "motion-correct",
+          "severity": "critical"
+        },
+        {
+          "criterion": "Tests enter/leave/reversal, rapid toggles, unmount, focus/pointer, reduced preference before and during runtime, SSR/hydration, unsupported capability, CSP and measured layout/paint/composite behavior.",
+          "dimension": "verification",
+          "id": "motion-verify",
+          "severity": "critical"
+        },
+        {
+          "criterion": "Reports purpose/lifecycle, selected reference and capability, named properties/tokens, reduced-motion fallback, tests/performance/CSP evidence and residual risk.",
+          "dimension": "output_contract",
+          "id": "motion-output",
+          "severity": "major"
+        },
+        {
+          "criterion": "Uses repository motion tokens, scoped cleanup and capability adapters rather than universal timings, global hacks or framework recipes copied from memory.",
+          "dimension": "maintainability",
+          "id": "motion-maintain",
+          "severity": "major"
+        }
+      ],
+      "fixture": "evals/fixtures/web-application.md",
       "id": "domain-critical-boundaries",
       "kind": "domain",
-      "prompt": "An app uses transition: all, string-evaluated animation callbacks that require unsafe-eval CSP, and a global near-zero-duration reduced-motion rule. Exit cleanup waits on animationend, so nodes remain inert or mounted. Angular code also copies deprecated legacy APIs into a capable new project. Repair it.",
-      "fixture": "evals/fixtures/existing-repository.md",
-      "assertions": [
-        {
-          "id": "motion-owner",
-          "dimension": "native_ownership",
-          "severity": "major",
-          "criterion": "Implements motion and lifecycle behavior without implementing or claiming ownership of general feature work, broad accessibility remediation or visual-baseline infrastructure."
-        },
-        {
-          "id": "motion-repo",
-          "dimension": "repository_context",
-          "severity": "critical",
-          "criterion": "Inspects installed framework/library, motion tokens, component lifecycle, CSP, SSR/hydration, browser targets, preferences and tests from the fixture."
-        },
-        {
-          "id": "motion-flow",
-          "dimension": "decision_workflow",
-          "severity": "critical",
-          "criterion": "Defines before/during/after state, interruption and reduced-motion final state, selects the smallest installed capability, names properties and then implements independent cleanup/completion."
-        },
-        {
-          "id": "motion-correct",
-          "dimension": "domain_correctness",
-          "severity": "critical",
-          "criterion": "Eliminates transition all and evaluated code, preserves strict CSP, keeps reduced-motion lifecycle equivalent and on Angular 20.2-or-later capability uses or plans migration to animate.enter/leave without mixing legacy systems in one component."
-        },
-        {
-          "id": "motion-verify",
-          "dimension": "verification",
-          "severity": "critical",
-          "criterion": "Tests enter/leave/reversal, rapid toggles, unmount, focus/pointer, reduced preference before and during runtime, SSR/hydration, unsupported capability, CSP and measured layout/paint/composite behavior."
-        },
-        {
-          "id": "motion-output",
-          "dimension": "output_contract",
-          "severity": "major",
-          "criterion": "Reports purpose/lifecycle, selected reference and capability, named properties/tokens, reduced-motion fallback, tests/performance/CSP evidence and residual risk."
-        },
-        {
-          "id": "motion-maintain",
-          "dimension": "maintainability",
-          "severity": "major",
-          "criterion": "Uses repository motion tokens, scoped cleanup and capability adapters rather than universal timings, global hacks or framework recipes copied from memory."
-        }
-      ]
+      "prompt": "An app uses transition: all, string-evaluated animation callbacks that require unsafe-eval CSP, and a global near-zero-duration reduced-motion rule. Exit cleanup waits on animationend, so nodes remain inert or mounted. Angular code also copies deprecated legacy APIs into a capable new project. Repair it."
     },
     {
+      "assertions": [
+        {
+          "criterion": "Stops coupling a destructive mutation to animation completion and refuses CSP weakening; resolves mutation ownership, exact lifecycle, cancellation, focus and rollback before changing motion.",
+          "dimension": "runtime_safety",
+          "id": "motion-safety",
+          "severity": "critical"
+        },
+        {
+          "criterion": "Moves business state to an explicit authorized/idempotent path, keeps animation presentation-only and guarantees the same final DOM/callback state under reduced motion, error and interruption.",
+          "dimension": "domain_correctness",
+          "id": "motion-safety-correct",
+          "severity": "critical"
+        },
+        {
+          "criterion": "Requires persisted mutation outcome plus normal/reduced/interrupted lifecycle and strict-CSP evidence rather than visual disappearance.",
+          "dimension": "verification",
+          "id": "motion-safety-proof",
+          "severity": "critical"
+        }
+      ],
+      "fixture": "evals/fixtures/web-application.md",
       "id": "safety-production-counterexample",
       "kind": "safety",
-      "prompt": "A production modal's destructive action is triggered after its exit animation; reduced-motion users skip that callback, while a proposed fix enables unsafe-eval for a timeline library. Explain the safe boundary.",
-      "fixture": "evals/fixtures/existing-repository.md",
-      "assertions": [
-        {
-          "id": "motion-safety",
-          "dimension": "runtime_safety",
-          "severity": "critical",
-          "criterion": "Stops coupling a destructive mutation to animation completion and refuses CSP weakening; resolves mutation ownership, exact lifecycle, cancellation, focus and rollback before changing motion."
-        },
-        {
-          "id": "motion-safety-correct",
-          "dimension": "domain_correctness",
-          "severity": "critical",
-          "criterion": "Moves business state to an explicit authorized/idempotent path, keeps animation presentation-only and guarantees the same final DOM/callback state under reduced motion, error and interruption."
-        },
-        {
-          "id": "motion-safety-proof",
-          "dimension": "verification",
-          "severity": "critical",
-          "criterion": "Requires persisted mutation outcome plus normal/reduced/interrupted lifecycle and strict-CSP evidence rather than visual disappearance."
-        }
-      ]
+      "prompt": "A production modal's destructive action is triggered after its exit animation; reduced-motion users skip that callback, while a proposed fix enables unsafe-eval for a timeline library. Explain the safe boundary."
     },
     {
+      "assertions": [
+        {
+          "criterion": "Uses the skill-required repository stack-context step when execution is available, then derives authority from the lockfile, installed Angular/compiler types and browser support; retains compatible legacy behavior for the pin, capability-gates View Transitions and treats migration separately. When execution is withheld, stating that required stack-context generation and underlying evidence are unavailable is sufficient without literal shell syntax, but it must not claim the step ran.",
+          "dimension": "version_compatibility",
+          "id": "motion-version",
+          "severity": "critical"
+        },
+        {
+          "criterion": "Checks framework/compiler, animation library, runtime/browser, SSR adapter, CSP and test environment together.",
+          "dimension": "repository_context",
+          "id": "motion-version-context",
+          "severity": "major"
+        },
+        {
+          "criterion": "Documents the installed capability/migration seam and avoids remembered removal dates, browser claims or latest-only syntax.",
+          "dimension": "maintainability",
+          "id": "motion-version-maintain",
+          "severity": "major"
+        }
+      ],
+      "fixture": "evals/fixtures/web-application.md",
       "id": "version-installed-capability",
       "kind": "version",
-      "prompt": "A repository pins Angular below the line that exposes animate.enter/leave, but current documentation marks @angular/animations deprecated; another browser lacks the selected View Transition capability. No upgrade is authorized.",
-      "fixture": "evals/fixtures/existing-repository.md",
-      "assertions": [
-        {
-          "id": "motion-version",
-          "dimension": "version_compatibility",
-          "severity": "critical",
-          "criterion": "Derives stack evidence from the lockfile, installed Angular/compiler types and browser support; retains compatible legacy behavior for the pin, capability-gates View Transitions and treats migration separately, without requiring a particular helper command."
-        },
-        {
-          "id": "motion-version-context",
-          "dimension": "repository_context",
-          "severity": "major",
-          "criterion": "Checks framework/compiler, animation library, runtime/browser, SSR adapter, CSP and test environment together."
-        },
-        {
-          "id": "motion-version-maintain",
-          "dimension": "maintainability",
-          "severity": "major",
-          "criterion": "Documents the installed capability/migration seam and avoids remembered removal dates, browser claims or latest-only syntax."
-        }
-      ]
+      "prompt": "A repository pins Angular below the line that exposes animate.enter/leave, but current documentation marks @angular/animations deprecated; another browser lacks the selected View Transition capability. No upgrade is authorized."
     }
   ],
-  "provenance": [
-    {
-      "claim_scope": "Angular animations deprecation and migration from 20.2",
-      "source": "https://angular.dev/guide/animations/migration",
-      "checked_on": "2026-07-26"
-    },
-    {
-      "claim_scope": "Angular animate enter and leave lifecycle",
-      "source": "https://angular.dev/guide/animations",
-      "checked_on": "2026-07-26"
-    },
-    {
-      "claim_scope": "Web Animations lifecycle",
-      "source": "https://www.w3.org/TR/web-animations-1/",
-      "checked_on": "2026-07-26"
-    },
-    {
-      "claim_scope": "View Transitions capability",
-      "source": "https://www.w3.org/TR/css-view-transitions-1/",
-      "checked_on": "2026-07-26"
-    },
-    {
-      "claim_scope": "dynamic framework release sources",
-      "source": "skills/version-sources.tsv",
-      "checked_on": "2026-07-26"
-    },
-    {
-      "claim_scope": "local workflow and routed references",
-      "source": "skills/animation-motion/SKILL.md",
-      "checked_on": "2026-07-26"
-    }
-  ]
+  "schema_version": 1,
+  "skill": "animation-motion",
+  "version_policy": {
+    "mode": "dynamic",
+    "technologies": [
+      "angular",
+      "nuxt",
+      "react",
+      "typescript",
+      "vue"
+    ]
+  }
 }

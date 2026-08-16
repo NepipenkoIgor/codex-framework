@@ -28,7 +28,9 @@ def main() -> int:
         if status == "warning":
             advisories.append(f"{name}: {summary}")
             continue
-        if name == "terminal.env" and not os.isatty(0) and check.get("details", {}).get("TERM") == "dumb":
+        terminal_details = check.get("details", {})
+        doctor_output_was_redirected = terminal_details.get("stdout is terminal") == "false"
+        if name == "terminal.env" and check.get("details", {}).get("TERM") == "dumb" and (not os.isatty(0) or doctor_output_was_redirected):
             ignored_non_tty = True
             continue
         failures.append(f"{name}: {summary}")

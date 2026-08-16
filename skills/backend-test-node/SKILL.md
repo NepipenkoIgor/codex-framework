@@ -1,6 +1,6 @@
 ---
 name: backend-test-node
-description: Add Node.js, Bun, Express, Fastify, Elysia, or framework-neutral backend tests with the repository's installed runner, application harness, persistence, auth, and provider boundaries. Use when executable non-Nest Node coverage is requested; do not migrate the stack or implement unrelated features.
+description: Add Node.js, Bun, Express, Fastify, or Elysia backend tests with the repository's installed runner, application harness, persistence, auth, and provider boundaries. Use only when an established non-Nest Node/Bun runtime owns the executable coverage; route runtime-neutral test strategy to backend-test, and do not migrate the stack or implement unrelated features.
 metadata:
   owner: codex-framework
   reviewed: "2026-07-27"

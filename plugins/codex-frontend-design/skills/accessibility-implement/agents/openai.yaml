@@ -1,0 +1,4 @@
+interface:
+  display_name: "Accessibility Implement"
+  short_description: "Implement and verify accessible interface behavior"
+  default_prompt: "Implement the requested accessibility behavior and verify it interactively in the visible in-app Browser."

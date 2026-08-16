@@ -20,4 +20,4 @@ Before material mutation, resolve exact task-owned targets, owner and write auth
 6. Animate only intentional theme-sensitive properties and honor reduced motion. Never use `transition: all`; it can animate layout, visibility and unrelated sensitive states.
 7. Verify initial HTML, hydration, system change, explicit override, invalid/tampered persistence, logout/account switch, no-storage/private mode, CSP enforcement, forced-colors/high contrast, contrast/focus, form controls, charts/media and print.
 
-Report theme precedence/state, Tailwind/styling capability evidence, persistence/CSP contract, token/assets changes, verified first paint and accessibility gaps.
+Report theme precedence/state, Tailwind/styling capability evidence, explicit compatibility across the installed runtime/engine, framework/compiler, peer dependencies, generated types/configuration, repository test tooling, browser targets and deployment constraints, persistence/CSP contract, token/assets changes, verified first paint and accessibility gaps.

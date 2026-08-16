@@ -1,0 +1,4 @@
+interface:
+  display_name: "UI Consistency Audit"
+  short_description: "Find evidence-backed interface-system inconsistencies"
+  default_prompt: "Audit this interface for design-system drift with rendered evidence and concrete affected components."

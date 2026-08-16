@@ -1,70 +1,177 @@
 {
-  "schema_version": 1,
   "contract_status": "reviewed",
-  "skill": "background-jobs",
   "native_ownership": {
-    "responsibility": "Implement durable in-application job enqueue, claiming, execution, retry, scheduling, cancellation, shutdown, dead-letter recovery, and replay-safe side effects.",
     "excludes": [
       "External broker producer/consumer topology and event schema ownership are owned by message-queue-patterns.",
       "Long-running configurable business workflow and approval state machines are owned by workflow-engine-design.",
       "Job-system diagnosis or review without implementation is outside this implementation skill."
     ],
-    "nearest_neighbors": ["message-queue-patterns", "workflow-engine-design", "distributed-coordination", "event-driven-architecture"]
-  },
-  "risk": {"mode": "repository_write", "rationale": "Job retries, crashes, and replays can duplicate external side effects or lose required work unless enqueue, ownership, shutdown, and reconciliation are durable."},
-  "version_policy": {"mode": "agnostic", "technologies": []},
-  "routing": {
-    "positive": [
-      {"id": "route-provider-reconciliation", "prompt": "Implement a deferred export worker that can crash after the provider accepts the operation. Enqueue must be atomic with the request, concurrent workers must not duplicate it, and recovery must reconcile ambiguous provider outcomes."},
-      {"id": "route-scheduler-shutdown-replay", "prompt": "Implement recurring invoice reminders with overlap and missed-run policy, retry classification, graceful shutdown under SIGTERM even when a dependency hangs, poison quarantine, and an authorized auditable replay path."}
+    "nearest_neighbors": [
+      "message-queue-patterns",
+      "workflow-engine-design",
+      "distributed-coordination",
+      "event-driven-architecture"
     ],
-    "negative": [
-      {"id": "route-broker-consumer", "prompt": "Implement Kafka producers and consumer groups for order events with schema compatibility, partition ordering, offset commits, rebalance handling, dead-letter topics, and redelivery-safe effects.", "expected_skill": "message-queue-patterns"},
-      {"id": "route-business-workflow", "prompt": "Design a configurable purchase-approval workflow with user-defined stages, conditional transitions, timers, escalation, versioned definitions, audit history, and human task assignment.", "expected_skill": "workflow-engine-design"}
-    ]
+    "responsibility": "Implement durable in-application job enqueue, claiming, execution, retry, scheduling, cancellation, shutdown, dead-letter recovery, and replay-safe side effects."
   },
-  "reference_routing": [],
-  "scenarios": [
+  "provenance": [
     {
-      "id": "domain-provider-crash-race",
-      "kind": "domain",
-      "prompt": "A queued job charges a provider, then marks an invoice paid. The worker can crash after the provider succeeds, two workers can claim the same due row, and the provider can time out ambiguously. Implement the safe lifecycle and evidence.",
-      "fixture": "evals/fixtures/existing-repository.md",
-      "assertions": [
-        {"id": "job-boundary", "dimension": "native_ownership", "severity": "major", "criterion": "Owns job enqueue, claim, attempts, worker lifecycle, dead-letter and replay behavior and does not implement or claim generic broker topology or payment-domain policy. Explicit neighbor disclaimers are not required when behavior remains in scope."},
-        {"id": "job-repository-evidence", "dimension": "repository_context", "severity": "critical", "criterion": "Grounds decisions in supplied inspected repository evidence, names decision-relevant installed job/runtime surfaces, marks withheld exact values unavailable, and invents no implementation details."},
-        {"id": "durable-job-workflow", "dimension": "decision_workflow", "severity": "critical", "criterion": "Defines business operation identity, atomic enqueue, atomic claim/lease, provider reservation or lookup, settle/reconcile states, retry classification, terminal recovery and verification before coding."},
-        {"id": "crash-race-correctness", "dimension": "domain_correctness", "severity": "critical", "criterion": "Prevents dual unprotected execution, uses provider idempotency and authoritative reconciliation after ambiguous timeout or crash-after-success, and never treats lock reacquisition or another attempt as permission to charge blindly."},
-        {"id": "job-fault-proof", "dimension": "verification", "severity": "critical", "criterion": "Injects process death before/after provider and local writes, concurrent claims, duplicate enqueue, ambiguous timeout, lease loss, retry exhaustion, and reconciliation, proving one intended monetary outcome and recoverable job state."},
-        {"id": "job-output", "dimension": "output_contract", "severity": "major", "criterion": "Reports inspected installed-system evidence categories without inventing withheld values, job/operation states, atomicity and ownership, side-effect/reconciliation behavior, retry/dead-letter policy, actual test results when run or proposed checks otherwise, and unverified provider/deployment risk."},
-        {"id": "job-policy-maintenance", "dimension": "maintainability", "severity": "major", "criterion": "Keeps attempts, delays, leases, concurrency and payload compatibility as explicit measured policy and installed capability rather than universal library defaults, and does the same for schedule behavior when recurrence is in scope."}
-      ]
+      "checked_on": "2026-07-26",
+      "claim_scope": "Kubernetes Pod termination and graceful shutdown lifecycle",
+      "source": "https://kubernetes.io/docs/concepts/workloads/pods/pod-lifecycle/#pod-termination"
     },
     {
-      "id": "safety-sigterm-dlq-replay",
-      "kind": "safety",
-      "prompt": "A worker receives SIGTERM while its provider call is hung. It still claims new jobs, the lease expires during the call, and operations wants to replay every dead-letter item after deployment without checking payload versions or current authorization.",
-      "assertions": [
-        {"id": "bounded-shutdown", "dimension": "runtime_safety", "severity": "critical", "criterion": "Stops new claims, signals cancellation/deadline, stays within the real platform grace budget, avoids stale-owner writes, and leaves unfinished work durably recoverable rather than waiting forever or forcing completion."},
-        {"id": "safe-replay", "dimension": "domain_correctness", "severity": "critical", "criterion": "Requires per-item classification, payload/schema compatibility, current actor/resource authorization, side-effect evidence, deduplication and audit-preserving new attempts; rejects blind bulk replay."},
-        {"id": "shutdown-replay-proof", "dimension": "verification", "severity": "critical", "criterion": "Defines executable proof for hung call plus SIGTERM, claim cessation, grace expiry, lease loss, restart recovery, poison isolation, unauthorized/old-schema replay, and provider-side reconciliation; when no repository or runtime is supplied, it does not invent execution results."},
-        {"id": "operational-report", "dimension": "output_contract", "severity": "major", "criterion": "Defines report fields for what was drained, canceled, recovered, quarantined, replayed, or left unresolved, marks unavailable execution evidence unresolved, and does not present process exit as proof of side-effect correctness."}
-      ]
+      "checked_on": "2026-07-26",
+      "claim_scope": "Kubernetes Job lifecycle and cleanup behavior",
+      "source": "https://kubernetes.io/docs/concepts/workloads/controllers/job/"
     },
     {
-      "id": "version-pinned-job-system",
-      "kind": "version",
-      "prompt": "An existing repository pins an older supported job library and runtime. Current examples use different lock renewal, shutdown hooks, and retry configuration. The feature does not authorize migration.",
-      "assertions": [
-        {"id": "job-pin-authority", "dimension": "version_compatibility", "severity": "critical", "criterion": "Uses lockfile, installed types/config schema, backend version, runtime/deployment behavior and matching official docs as authority, preserving pins and separating a library/backend migration."},
-        {"id": "job-compatibility-unit", "dimension": "repository_context", "severity": "major", "criterion": "Checks worker and backend compatibility, lock/visibility semantics, scheduler, retry/dead-letter support, signal hooks, deployment grace, tests and operational tooling together."},
-        {"id": "job-version-provenance", "dimension": "maintainability", "severity": "major", "criterion": "Records verified library/runtime capability and source without copying a remembered current API, default attempt count, lock duration, or scheduler behavior into the reusable workflow."}
-      ]
+      "checked_on": "2026-07-26",
+      "claim_scope": "local durable job and recovery workflow",
+      "source": "skills/background-jobs/SKILL.md"
     }
   ],
-  "provenance": [
-    {"claim_scope": "Kubernetes Pod termination and graceful shutdown lifecycle", "source": "https://kubernetes.io/docs/concepts/workloads/pods/pod-lifecycle/#pod-termination", "checked_on": "2026-07-26"},
-    {"claim_scope": "Kubernetes Job lifecycle and cleanup behavior", "source": "https://kubernetes.io/docs/concepts/workloads/controllers/job/", "checked_on": "2026-07-26"},
-    {"claim_scope": "local durable job and recovery workflow", "source": "skills/background-jobs/SKILL.md", "checked_on": "2026-07-26"}
-  ]
+  "reference_routing": [],
+  "risk": {
+    "mode": "repository_write",
+    "rationale": "Job retries, crashes, and replays can duplicate external side effects or lose required work unless enqueue, ownership, shutdown, and reconciliation are durable."
+  },
+  "routing": {
+    "negative": [
+      {
+        "expected_skill": "message-queue-patterns",
+        "id": "route-broker-consumer",
+        "prompt": "Implement Kafka producers and consumer groups for order events with schema compatibility, partition ordering, offset commits, rebalance handling, dead-letter topics, and redelivery-safe effects."
+      },
+      {
+        "expected_skill": "workflow-engine-design",
+        "id": "route-business-workflow",
+        "prompt": "Design a configurable purchase-approval workflow with user-defined stages, conditional transitions, timers, escalation, versioned definitions, audit history, and human task assignment."
+      }
+    ],
+    "positive": [
+      {
+        "id": "route-provider-reconciliation",
+        "prompt": "Implement a deferred export worker that can crash after the provider accepts the operation. Enqueue must be atomic with the request, concurrent workers must not duplicate it, and recovery must reconcile ambiguous provider outcomes."
+      },
+      {
+        "id": "route-scheduler-shutdown-replay",
+        "prompt": "Implement recurring invoice reminders with overlap and missed-run policy, retry classification, graceful shutdown under SIGTERM even when a dependency hangs, poison quarantine, and an authorized auditable replay path."
+      }
+    ]
+  },
+  "scenarios": [
+    {
+      "assertions": [
+        {
+          "criterion": "Owns job enqueue, claim, attempts, worker lifecycle, dead-letter and replay behavior and does not implement or claim generic broker topology or payment-domain policy. Explicit neighbor disclaimers are not required when behavior remains in scope.",
+          "dimension": "native_ownership",
+          "id": "job-boundary",
+          "severity": "major"
+        },
+        {
+          "criterion": "Grounds decisions in supplied inspected repository evidence, names decision-relevant installed job/runtime surfaces, marks withheld exact values unavailable, and invents no implementation details.",
+          "dimension": "repository_context",
+          "id": "job-repository-evidence",
+          "severity": "critical"
+        },
+        {
+          "criterion": "Defines business operation identity, atomic enqueue, atomic claim/lease, provider reservation or lookup, settle/reconcile states, retry classification, terminal recovery and verification before coding.",
+          "dimension": "decision_workflow",
+          "id": "durable-job-workflow",
+          "severity": "critical"
+        },
+        {
+          "criterion": "Prevents dual unprotected execution, uses provider idempotency and authoritative reconciliation after ambiguous timeout or crash-after-success, and never treats lock reacquisition or another attempt as permission to charge blindly.",
+          "dimension": "domain_correctness",
+          "id": "crash-race-correctness",
+          "severity": "critical"
+        },
+        {
+          "criterion": "Injects process death before/after provider and local writes, concurrent claims, duplicate enqueue, ambiguous timeout, lease loss, retry exhaustion, and reconciliation, proving one intended monetary outcome and recoverable job state.",
+          "dimension": "verification",
+          "id": "job-fault-proof",
+          "severity": "critical"
+        },
+        {
+          "criterion": "Reports inspected installed-system evidence categories without inventing withheld values, job/operation states, atomicity and ownership, side-effect/reconciliation behavior, retry/dead-letter policy, actual test results when run or proposed checks otherwise, and unverified provider/deployment risk.",
+          "dimension": "output_contract",
+          "id": "job-output",
+          "severity": "major"
+        },
+        {
+          "criterion": "Keeps attempts, delays, leases, concurrency and payload compatibility as explicit measured policy and installed capability rather than universal library defaults, and does the same for schedule behavior when recurrence is in scope.",
+          "dimension": "maintainability",
+          "id": "job-policy-maintenance",
+          "severity": "major"
+        }
+      ],
+      "fixture": "evals/fixtures/backend-service.md",
+      "id": "domain-provider-crash-race",
+      "kind": "domain",
+      "prompt": "A queued job charges a provider, then marks an invoice paid. The worker can crash after the provider succeeds, two workers can claim the same due row, and the provider can time out ambiguously. Implement the safe lifecycle and evidence."
+    },
+    {
+      "assertions": [
+        {
+          "criterion": "Stops new claims, signals cancellation/deadline, stays within the real platform grace budget, avoids stale-owner writes, and leaves unfinished work durably recoverable rather than waiting forever or forcing completion.",
+          "dimension": "runtime_safety",
+          "id": "bounded-shutdown",
+          "severity": "critical"
+        },
+        {
+          "criterion": "Requires per-item classification, payload/schema compatibility, current actor/resource authorization, side-effect evidence, deduplication and audit-preserving new attempts; rejects blind bulk replay.",
+          "dimension": "domain_correctness",
+          "id": "safe-replay",
+          "severity": "critical"
+        },
+        {
+          "criterion": "Defines executable proof for hung call plus SIGTERM, claim cessation, grace expiry, lease loss, restart recovery, poison isolation, unauthorized/old-schema replay, and provider-side reconciliation; when no repository or runtime is supplied, it does not invent execution results.",
+          "dimension": "verification",
+          "id": "shutdown-replay-proof",
+          "severity": "critical"
+        },
+        {
+          "criterion": "Defines report fields for what was drained, canceled, recovered, quarantined, replayed, or left unresolved, marks unavailable execution evidence unresolved, and does not present process exit as proof of side-effect correctness.",
+          "dimension": "output_contract",
+          "id": "operational-report",
+          "severity": "major"
+        }
+      ],
+      "id": "safety-sigterm-dlq-replay",
+      "kind": "safety",
+      "prompt": "A worker receives SIGTERM while its provider call is hung. It still claims new jobs, the lease expires during the call, and operations wants to replay every dead-letter item after deployment without checking payload versions or current authorization."
+    },
+    {
+      "assertions": [
+        {
+          "criterion": "Uses lockfile, installed types/config schema, backend version, runtime/deployment behavior and matching official docs as authority, preserving pins and separating a library/backend migration.",
+          "dimension": "version_compatibility",
+          "id": "job-pin-authority",
+          "severity": "critical"
+        },
+        {
+          "criterion": "Checks worker and backend compatibility, lock/visibility semantics, scheduler, retry/dead-letter support, signal hooks, deployment grace, tests and operational tooling together.",
+          "dimension": "repository_context",
+          "id": "job-compatibility-unit",
+          "severity": "major"
+        },
+        {
+          "criterion": "Records verified library/runtime capability and source without copying a remembered current API, default attempt count, lock duration, or scheduler behavior into the reusable workflow.",
+          "dimension": "maintainability",
+          "id": "job-version-provenance",
+          "severity": "major"
+        }
+      ],
+      "id": "version-pinned-job-system",
+      "kind": "version",
+      "prompt": "An existing repository pins an older supported job library and runtime. Current examples use different lock renewal, shutdown hooks, and retry configuration. The feature does not authorize migration."
+    }
+  ],
+  "schema_version": 1,
+  "skill": "background-jobs",
+  "version_policy": {
+    "mode": "agnostic",
+    "technologies": []
+  }
 }

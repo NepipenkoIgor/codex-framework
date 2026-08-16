@@ -1,0 +1,9 @@
+# Backend data, persistence, storage, and search
+caching-strategy
+data-modeling
+data-pipeline-engineering
+data-validation-design
+database-migration
+database-optimization
+file-upload-storage
+search-implementation

@@ -22,7 +22,7 @@ Implement `$ARGUMENTS` in the existing repository. This is the generic fallback,
 
 ## Workflow
 
-1. Read instructions, manifests/lockfiles, target routes/components, shared primitives, API/schema/auth contracts, nearby tests, and authoritative commands.
+1. Read instructions, manifests/lockfiles, target routes/components, shared primitives, API/schema/auth contracts, nearby tests, and authoritative commands. Discover the repository-native dev server and affected route, then start or attach early and open that route in the visible in-app Browser. Reuse the browser binding across tab recovery and track exact task-owned server, port, and tab identity.
 2. Generate stack context before version-sensitive work. Preserve repository language and pins; use installed types/config/CLI capability and matching official docs. Do not introduce TypeScript, a framework upgrade, a state library, or a validation library incidentally.
 3. Define caller-visible acceptance across success, loading, empty, error, retry, responsive, keyboard/focus, and fresh-load/navigation states that matter.
 4. Resolve exact task-owned mutation targets, write authority/permissions, ownership of data loading, state, validation, mutation, cache invalidation and server/client serialization, plus effect-appropriate rollback/recovery before editing.
@@ -38,6 +38,6 @@ Implement `$ARGUMENTS` in the existing repository. This is the generic fallback,
 
 ## Verification and output
 
-- Run the repository's focused test and affected type/lint/build/component/browser checks. Verify a fresh load when initialization, SSR, hydration, or cache behavior is involved.
+- Iterate through visible Browser behavior during implementation and finish with rendered DOM, console/network/runtime, interaction, responsive, and fresh-load evidence. Headless checks supplement rather than replace this loop. Run the repository's focused test and affected type/lint/build/component/browser checks.
 - Verify rendered behavior plus server/persisted outcome for mutations, including unauthorized and duplicate/retry paths when relevant.
 - Report files and behavior changed, installed capability used, commands/results, and untested provider/browser/deployment risk.

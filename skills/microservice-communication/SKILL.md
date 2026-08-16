@@ -1,6 +1,6 @@
 ---
 name: microservice-communication
-description: Design or implement independently deployed service contracts across REST, gRPC, messaging, and gateways with compatibility, deadlines, cancellation, retries, idempotency, partial failure, backpressure, auth, and observability. Use for cross-service boundaries; do not use for in-process modules.
+description: Design or implement communication contracts between independently deployed services across REST, gRPC, and messaging with compatibility, deadlines, cancellation, retries, idempotency, partial failure, backpressure, auth, and observability. Use when inter-service communication is primary; route edge gateway/BFF topology and public API contract design to their dedicated skills, and do not use for in-process modules.
 metadata:
   owner: codex-framework
   reviewed: "2026-07-27"

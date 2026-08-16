@@ -1,22 +1,123 @@
 {
-  "schema_version": 1,
   "contract_status": "reviewed",
-  "skill": "nextjs-development",
   "native_ownership": {
-    "responsibility": "Implement, debug, review, or test behavior whose correctness depends on Next.js App Router server/client, request, cache, action, handler, authentication, or deployment-runtime semantics.",
     "excludes": [
       "Framework-neutral React component work is owned by frontend-implement-react.",
       "A version migration whose main deliverable is an upgrade plan belongs to migration planning rather than routine feature work.",
       "Razor component and ASP.NET Core full-stack behavior is owned by blazor-development."
     ],
-    "nearest_neighbors": ["frontend-implement-react", "frontend-debug", "blazor-development", "backend-implement"]
+    "nearest_neighbors": [
+      "frontend-implement-react",
+      "frontend-debug",
+      "blazor-development",
+      "backend-implement"
+    ],
+    "responsibility": "Implement, debug, review, or test behavior whose correctness depends on Next.js App Router server/client, request, cache, action, handler, authentication, or deployment-runtime semantics."
   },
+  "provenance": [
+    {
+      "checked_on": "2026-07-26",
+      "claim_scope": "App Router and server/client capabilities",
+      "source": "https://nextjs.org/docs/app"
+    },
+    {
+      "checked_on": "2026-07-26",
+      "claim_scope": "Route Handler behavior and caching capabilities",
+      "source": "https://nextjs.org/docs/app/getting-started/route-handlers"
+    },
+    {
+      "checked_on": "2026-07-26",
+      "claim_scope": "version-specific migrations and upgrade guides",
+      "source": "https://nextjs.org/docs/app/guides/upgrading"
+    },
+    {
+      "checked_on": "2026-07-26",
+      "claim_scope": "Next.js release channel",
+      "source": "https://nextjs.org/blog"
+    },
+    {
+      "checked_on": "2026-07-26",
+      "claim_scope": "React release compatibility",
+      "source": "https://react.dev/versions"
+    },
+    {
+      "checked_on": "2026-07-26",
+      "claim_scope": "Node.js LTS compatibility",
+      "source": "https://nodejs.org/en/about/previous-releases"
+    },
+    {
+      "checked_on": "2026-07-26",
+      "claim_scope": "TypeScript release compatibility",
+      "source": "https://devblogs.microsoft.com/typescript/"
+    },
+    {
+      "checked_on": "2026-07-26",
+      "claim_scope": "local workflow and reference boundaries",
+      "source": "skills/nextjs-development/SKILL.md"
+    }
+  ],
+  "reference_routing": [
+    {
+      "expected": [
+        "skills/nextjs-development/references/app-router.md"
+      ],
+      "forbidden": [
+        "skills/nextjs-development/references/review.md",
+        "skills/nextjs-development/references/testing.md"
+      ],
+      "id": "reference-app-router-implementation",
+      "prompt": "Implement an authenticated App Router mutation that validates form input, writes through the existing data layer, invalidates only the affected tenant data, and returns an observable error state."
+    },
+    {
+      "expected": [
+        "skills/nextjs-development/references/review.md"
+      ],
+      "forbidden": [
+        "skills/nextjs-development/references/app-router.md",
+        "skills/nextjs-development/references/testing.md"
+      ],
+      "id": "reference-review-only",
+      "prompt": "Perform a read-only review of an App Router change for server/client leakage, authorization, cache isolation, hydration behavior, and pinned-runtime compatibility; report only evidence-backed findings."
+    },
+    {
+      "expected": [
+        "skills/nextjs-development/references/testing.md"
+      ],
+      "forbidden": [
+        "skills/nextjs-development/references/app-router.md",
+        "skills/nextjs-development/references/review.md"
+      ],
+      "id": "reference-runtime-testing",
+      "prompt": "Add focused coverage for a Route Handler's unauthorized response, replayed mutation, redirect behavior, and cache invalidation using the repository's already configured runner."
+    },
+    {
+      "expected": [],
+      "forbidden": [
+        "skills/nextjs-development/references/app-router.md",
+        "skills/nextjs-development/references/review.md",
+        "skills/nextjs-development/references/testing.md"
+      ],
+      "id": "reference-main-only-debug",
+      "prompt": "A production build fails because one route reads an environment variable unavailable in its selected runtime. Reproduce and localize the boundary, explain the smallest compatible correction, and report evidence; no implementation recipe, test-authoring guide, or formal review is requested."
+    }
+  ],
   "risk": {
     "mode": "repository_write",
     "rationale": "Server actions, route handlers, caching, and runtime boundaries can affect authorization, cross-user data isolation, mutations, and deployment behavior."
   },
-  "version_policy": {"mode": "dynamic", "technologies": ["nextjs", "react", "nodejs", "typescript"]},
   "routing": {
+    "negative": [
+      {
+        "expected_skill": "frontend-implement-react",
+        "id": "route-generic-react",
+        "prompt": "Build a reusable controlled date-range field in the existing Vite React application using its form library, component conventions, accessibility tests, and client-side state patterns."
+      },
+      {
+        "expected_skill": "blazor-development",
+        "id": "route-blazor-rendering",
+        "prompt": "An interactive server-rendered Razor component loses form state after reconnect. Diagnose the render mode and circuit lifecycle, repair the component, and cover it with bUnit and the repository's browser tests."
+      }
+    ],
     "positive": [
       {
         "id": "route-action-cache-auth",
@@ -26,93 +127,126 @@
         "id": "route-handler-review",
         "prompt": "Review the new route.ts endpoints and mixed server/client component tree for request API misuse, cross-user caching, serialization leaks, hydration regressions, and incompatibility with the pinned runtime. Return severity-ranked evidence."
       }
-    ],
-    "negative": [
-      {
-        "id": "route-generic-react",
-        "prompt": "Build a reusable controlled date-range field in the existing Vite React application using its form library, component conventions, accessibility tests, and client-side state patterns.",
-        "expected_skill": "frontend-implement-react"
-      },
-      {
-        "id": "route-blazor-rendering",
-        "prompt": "An interactive server-rendered Razor component loses form state after reconnect. Diagnose the render mode and circuit lifecycle, repair the component, and cover it with bUnit and the repository's browser tests.",
-        "expected_skill": "blazor-development"
-      }
     ]
   },
-  "reference_routing": [
-    {
-      "id": "reference-app-router-implementation",
-      "prompt": "Implement an authenticated App Router mutation that validates form input, writes through the existing data layer, invalidates only the affected tenant data, and returns an observable error state.",
-      "expected": ["skills/nextjs-development/references/app-router.md"],
-      "forbidden": ["skills/nextjs-development/references/review.md", "skills/nextjs-development/references/testing.md"]
-    },
-    {
-      "id": "reference-review-only",
-      "prompt": "Perform a read-only review of an App Router change for server/client leakage, authorization, cache isolation, hydration behavior, and pinned-runtime compatibility; report only evidence-backed findings.",
-      "expected": ["skills/nextjs-development/references/review.md"],
-      "forbidden": ["skills/nextjs-development/references/app-router.md", "skills/nextjs-development/references/testing.md"]
-    },
-    {
-      "id": "reference-runtime-testing",
-      "prompt": "Add focused coverage for a Route Handler's unauthorized response, replayed mutation, redirect behavior, and cache invalidation using the repository's already configured runner.",
-      "expected": ["skills/nextjs-development/references/testing.md"],
-      "forbidden": ["skills/nextjs-development/references/app-router.md", "skills/nextjs-development/references/review.md"]
-    },
-    {
-      "id": "reference-main-only-debug",
-      "prompt": "A production build fails because one route reads an environment variable unavailable in its selected runtime. Reproduce and localize the boundary, explain the smallest compatible correction, and report evidence; no implementation recipe, test-authoring guide, or formal review is requested.",
-      "expected": [],
-      "forbidden": ["skills/nextjs-development/references/app-router.md", "skills/nextjs-development/references/review.md", "skills/nextjs-development/references/testing.md"]
-    }
-  ],
   "scenarios": [
     {
+      "assertions": [
+        {
+          "criterion": "Owns the App Router action, request, authorization, cache, and rendering path while leaving generic domain or migration work at its existing repository boundary.",
+          "dimension": "native_ownership",
+          "id": "next-boundary",
+          "severity": "major"
+        },
+        {
+          "criterion": "Uses the fixture plus manifests, lockfile, route tree, runtime declarations, Next configuration, installed types, data layer, and nearby tests as evidence, without inventing files or package-manager commands.",
+          "dimension": "repository_context",
+          "id": "pinned-repository",
+          "severity": "critical"
+        },
+        {
+          "criterion": "Traces actor and tenant input through the Server Action, trusted lookup, cache key, invalidation, render path, and deployment runtime before selecting a correction; stops if authority or data ownership is unresolved.",
+          "dimension": "decision_workflow",
+          "id": "trace-before-edit",
+          "severity": "critical"
+        },
+        {
+          "criterion": "Requires server-side authorization of the exact actor, tenant, and invoice and prevents user-specific data from sharing an unsafe cache identity; invalidates the affected scope without promising a remembered API.",
+          "dimension": "domain_correctness",
+          "id": "tenant-cache-correctness",
+          "severity": "critical"
+        },
+        {
+          "criterion": "Covers authorized and cross-tenant requests, fresh and cached reads, mutation replay, invalidation, side-effect failure, hydration/render behavior, focused tests, types, build, and selected deployment runtime before completion.",
+          "dimension": "verification",
+          "id": "caller-visible-next-proof",
+          "severity": "critical"
+        },
+        {
+          "criterion": "Reports installed stack evidence, traced boundaries, exact files or findings, checks and results, and unverified cache/auth/deployment risks without claiming hypothetical commands ran.",
+          "dimension": "output_contract",
+          "id": "next-output",
+          "severity": "major"
+        },
+        {
+          "criterion": "Uses only the optional App Router detail needed for implementation and does not turn version-specific cache primitives, validators, ORMs, loading files, or module mocks into universal rules.",
+          "dimension": "maintainability",
+          "id": "optional-detail",
+          "severity": "major"
+        }
+      ],
+      "fixture": "evals/fixtures/fullstack-application.md",
       "id": "domain-cross-tenant-cache",
       "kind": "domain",
-      "prompt": "An existing App Router dashboard caches organization invoices. After a Server Action edits one invoice, some requests show stale data and a crafted organization ID can expose another tenant's cached result. Produce the ordered repair and verification plan without assuming a Next.js major or cache API.",
-      "fixture": "evals/fixtures/existing-repository.md",
-      "assertions": [
-        {"id": "next-boundary", "dimension": "native_ownership", "severity": "major", "criterion": "Owns the App Router action, request, authorization, cache, and rendering path while leaving generic domain or migration work at its existing repository boundary."},
-        {"id": "pinned-repository", "dimension": "repository_context", "severity": "critical", "criterion": "Uses the fixture plus manifests, lockfile, route tree, runtime declarations, Next configuration, installed types, data layer, and nearby tests as evidence, without inventing files or package-manager commands."},
-        {"id": "trace-before-edit", "dimension": "decision_workflow", "severity": "critical", "criterion": "Traces actor and tenant input through the Server Action, trusted lookup, cache key, invalidation, render path, and deployment runtime before selecting a correction; stops if authority or data ownership is unresolved."},
-        {"id": "tenant-cache-correctness", "dimension": "domain_correctness", "severity": "critical", "criterion": "Requires server-side authorization of the exact actor, tenant, and invoice and prevents user-specific data from sharing an unsafe cache identity; invalidates the affected scope without promising a remembered API."},
-        {"id": "caller-visible-next-proof", "dimension": "verification", "severity": "critical", "criterion": "Covers authorized and cross-tenant requests, fresh and cached reads, mutation replay, invalidation, side-effect failure, hydration/render behavior, focused tests, types, build, and selected deployment runtime before completion."},
-        {"id": "next-output", "dimension": "output_contract", "severity": "major", "criterion": "Reports installed stack evidence, traced boundaries, exact files or findings, checks and results, and unverified cache/auth/deployment risks without claiming hypothetical commands ran."},
-        {"id": "optional-detail", "dimension": "maintainability", "severity": "major", "criterion": "Uses only the optional App Router detail needed for implementation and does not turn version-specific cache primitives, validators, ORMs, loading files, or module mocks into universal rules."}
-      ]
+      "prompt": "An existing App Router dashboard caches organization invoices. After a Server Action edits one invoice, some requests show stale data and a crafted organization ID can expose another tenant's cached result. Produce the ordered repair and verification plan without assuming a Next.js major or cache API."
     },
     {
+      "assertions": [
+        {
+          "criterion": "Treats every Action input as untrusted, authenticates the caller, authorizes the exact customer/resource, derives authoritative amount server-side, and defines idempotent or transactionally reconciled side effects before redirecting.",
+          "dimension": "runtime_safety",
+          "id": "trusted-action-boundary",
+          "severity": "critical"
+        },
+        {
+          "criterion": "Explicitly rejects hidden UI as authorization and redirect success as mutation proof; handles replay, provider timeout, partial success, and failed redirect without duplicate or cross-customer state.",
+          "dimension": "domain_correctness",
+          "id": "ui-is-not-auth",
+          "severity": "critical"
+        },
+        {
+          "criterion": "Requires unauthorized, cross-tenant, tampered input, concurrent replay, timeout, partial-provider-success, persisted-state, and caller-visible result evidence at the real runtime boundary.",
+          "dimension": "verification",
+          "id": "mutation-proof",
+          "severity": "critical"
+        },
+        {
+          "criterion": "Selects Action, handler, redirect, cache, and request APIs only after confirming the pinned Next.js/React/Node capability and installed types rather than assuming the current documentation applies.",
+          "dimension": "version_compatibility",
+          "id": "capability-not-memory",
+          "severity": "critical"
+        }
+      ],
       "id": "safety-server-action-replay",
       "kind": "safety",
-      "prompt": "A Server Action receives customerId and amount from a hidden form, writes a charge record, sends a provider request, and redirects. The UI hides the form from unauthorized users, but retries can invoke the action twice. Explain the safe correction and evidence boundary.",
-      "assertions": [
-        {"id": "trusted-action-boundary", "dimension": "runtime_safety", "severity": "critical", "criterion": "Treats every Action input as untrusted, authenticates the caller, authorizes the exact customer/resource, derives authoritative amount server-side, and defines idempotent or transactionally reconciled side effects before redirecting."},
-        {"id": "ui-is-not-auth", "dimension": "domain_correctness", "severity": "critical", "criterion": "Explicitly rejects hidden UI as authorization and redirect success as mutation proof; handles replay, provider timeout, partial success, and failed redirect without duplicate or cross-customer state."},
-        {"id": "mutation-proof", "dimension": "verification", "severity": "critical", "criterion": "Requires unauthorized, cross-tenant, tampered input, concurrent replay, timeout, partial-provider-success, persisted-state, and caller-visible result evidence at the real runtime boundary."},
-        {"id": "capability-not-memory", "dimension": "version_compatibility", "severity": "critical", "criterion": "Selects Action, handler, redirect, cache, and request APIs only after confirming the pinned Next.js/React/Node capability and installed types rather than assuming the current documentation applies."}
-      ]
+      "prompt": "A Server Action receives customerId and amount from a hidden form, writes a charge record, sends a provider request, and redirects. The UI hides the form from unauthorized users, but retries can invoke the action twice. Explain the safe correction and evidence boundary."
     },
     {
+      "assertions": [
+        {
+          "criterion": "Preserves the installed Next.js, React, Node, and TypeScript pins, confirms the needed capability in installed types or matching official docs, and treats adoption of the newer primitive as a separate migration.",
+          "dimension": "version_compatibility",
+          "id": "preserve-pin",
+          "severity": "critical"
+        },
+        {
+          "criterion": "Checks engine and peer constraints, runtime target, config flags, generated types, test runner, and deployment support together before applying the older-line repair.",
+          "dimension": "repository_context",
+          "id": "stack-as-unit",
+          "severity": "major"
+        },
+        {
+          "criterion": "Keeps release-specific API detail in optional references or verified implementation context and cites the matching official Next.js documentation rather than hard-coding the newest major in the main workflow.",
+          "dimension": "maintainability",
+          "id": "volatile-next-provenance",
+          "severity": "major"
+        }
+      ],
+      "fixture": "evals/fixtures/fullstack-application.md",
       "id": "version-pinned-app-router",
       "kind": "version",
-      "prompt": "A repository pins an older supported Next.js and React line. A blog example for the newest release uses different request and caching primitives. The requested bug fix does not include an upgrade. Decide which implementation and checks are valid.",
-      "fixture": "evals/fixtures/existing-repository.md",
-      "assertions": [
-        {"id": "preserve-pin", "dimension": "version_compatibility", "severity": "critical", "criterion": "Preserves the installed Next.js, React, Node, and TypeScript pins, confirms the needed capability in installed types or matching official docs, and treats adoption of the newer primitive as a separate migration."},
-        {"id": "stack-as-unit", "dimension": "repository_context", "severity": "major", "criterion": "Checks engine and peer constraints, runtime target, config flags, generated types, test runner, and deployment support together before applying the older-line repair."},
-        {"id": "volatile-next-provenance", "dimension": "maintainability", "severity": "major", "criterion": "Keeps release-specific API detail in optional references or verified implementation context and cites the matching official Next.js documentation rather than hard-coding the newest major in the main workflow."}
-      ]
+      "prompt": "A repository pins an older supported Next.js and React line. A blog example for the newest release uses different request and caching primitives. The requested bug fix does not include an upgrade. Decide which implementation and checks are valid."
     }
   ],
-  "provenance": [
-    {"claim_scope": "App Router and server/client capabilities", "source": "https://nextjs.org/docs/app", "checked_on": "2026-07-26"},
-    {"claim_scope": "Route Handler behavior and caching capabilities", "source": "https://nextjs.org/docs/app/getting-started/route-handlers", "checked_on": "2026-07-26"},
-    {"claim_scope": "version-specific migrations and upgrade guides", "source": "https://nextjs.org/docs/app/guides/upgrading", "checked_on": "2026-07-26"},
-    {"claim_scope": "Next.js release channel", "source": "https://nextjs.org/blog", "checked_on": "2026-07-26"},
-    {"claim_scope": "React release compatibility", "source": "https://react.dev/versions", "checked_on": "2026-07-26"},
-    {"claim_scope": "Node.js LTS compatibility", "source": "https://nodejs.org/en/about/previous-releases", "checked_on": "2026-07-26"},
-    {"claim_scope": "TypeScript release compatibility", "source": "https://devblogs.microsoft.com/typescript/", "checked_on": "2026-07-26"},
-    {"claim_scope": "local workflow and reference boundaries", "source": "skills/nextjs-development/SKILL.md", "checked_on": "2026-07-26"}
-  ]
+  "schema_version": 1,
+  "skill": "nextjs-development",
+  "version_policy": {
+    "mode": "dynamic",
+    "technologies": [
+      "nextjs",
+      "react",
+      "nodejs",
+      "typescript"
+    ]
+  }
 }

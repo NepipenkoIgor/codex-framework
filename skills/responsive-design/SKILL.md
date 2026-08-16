@@ -12,7 +12,7 @@ metadata:
 
 Derive stack context from manifests/lockfiles, installed types/configuration, actual DOM/content, containing blocks, design tokens, framework adapter, CSS processor, Tailwind/build plugins, content detection, browser targets, rendering mode, localization, SSR/hydration and visual/browser tests as one compatibility unit. A repository helper may summarize this evidence but is not required. Existing manifests and lockfiles are authority; for authorized greenfield work resolve stable/LTS releases from configured official sources at execution time, verify compatibility, and make the generated manifest and lockfile authoritative. Verify container-query, viewport-unit, image, and framework APIs against current official docs and installed capability.
 
-Load exactly one relevant deep dive for the task. Do not load Tailwind detail merely because Tailwind is installed; select it only when installed utility syntax itself is the unresolved subject.
+Load at most one relevant deep dive. Resolve the choice explicitly before implementation and report either the single selected reference or `none` with the task evidence showing that the main workflow is sufficient. Never conditionally name a reference without resolving whether it was loaded, and do not force an unrelated deep dive merely to satisfy routing. Do not load Tailwind detail merely because Tailwind is installed; select it only when installed utility syntax itself is the unresolved subject.
 
 - responsive image selection or art direction: [responsive-images.md](references/responsive-images.md)
 - adaptive navigation and disclosure: [responsive-navigation.md](references/responsive-navigation.md)
@@ -50,7 +50,7 @@ Load exactly one relevant deep dive for the task. Do not load Tailwind detail me
 
 - Content/container and breakpoint decisions
 - Reflow, zoom, target-size, SSR/hydration, and overflow contracts
-- Loaded reference and installed capability evidence
+- Exactly one resolved reference-selection result (the selected path, or `none` with task evidence) and installed capability evidence
 - Test matrix and observed results
 - Residual browser, localization, content, and design risks
 

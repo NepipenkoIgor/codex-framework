@@ -18,7 +18,9 @@ warn() {
   warnings=$((warnings + 1))
 }
 
-find "$ROOT/skills" -mindepth 2 -maxdepth 2 -name SKILL.md | sort > "$catalog_file"
+for file in "$ROOT"/skills/*/SKILL.md; do
+  [ -f "$file" ] && printf '%s\n' "$file"
+done | sort > "$catalog_file"
 
 while IFS= read -r file; do
   dir="$(basename "$(dirname "$file")")"
@@ -89,7 +91,37 @@ for manifest in "$ROOT/skills/core.txt" "$ROOT"/skills/packs/*.txt; do
     [ -f "$ROOT/skills/$skill/SKILL.md" ] || fail "$manifest_rel references missing skill '$skill'"
     printf '%s\n' "$skill" >> "$registry_file"
   done < "$manifest"
+
+  metadata_chars=0
+  while IFS= read -r skill; do
+    case "$skill" in ''|'#'*) continue ;; esac
+    description="$(sed -n 's/^description: //p' "$ROOT/skills/$skill/SKILL.md" | head -n 1)"
+    metadata_chars=$((metadata_chars + ${#skill} + ${#description} + 2))
+  done < "$manifest"
+  [ "$metadata_chars" -le 7000 ] \
+    || warn "$manifest_rel routing name/description metadata is $metadata_chars characters; native catalogs share a bounded startup budget"
 done
+
+plugin_root="$ROOT/plugins/codex-frontend-design"
+plugin_manifest="$ROOT/.agents/plugins/marketplace.json"
+plugin_pack="$ROOT/skills/packs/frontend-design.txt"
+if [ -d "$plugin_root" ]; then
+  [ -f "$plugin_manifest" ] || fail 'frontend-design plugin marketplace is missing'
+  [ -f "$plugin_root/.codex-plugin/plugin.json" ] || fail 'frontend-design plugin manifest is missing'
+  plugin_members="$(find "$plugin_root/skills" -mindepth 1 -maxdepth 1 -type d -exec basename {} \; | sort)"
+  pack_members="$(sed '/^#/d;/^$/d' "$plugin_pack" | sort)"
+  [ "$plugin_members" = "$pack_members" ] || fail 'frontend-design plugin membership differs from its owning pack'
+  while IFS= read -r skill; do
+    [ -n "$skill" ] || continue
+    expected="../plugins/codex-frontend-design/skills/$skill"
+    [ -L "$ROOT/skills/$skill" ] && [ "$(readlink "$ROOT/skills/$skill")" = "$expected" ] \
+      || fail "frontend-design direct skill projection drifted: $skill"
+    [ -f "$plugin_root/skills/$skill/agents/openai.yaml" ] \
+      || fail "frontend-design plugin skill lacks native UI metadata: $skill"
+    [ "${#skill}" -le 64 ] && [ $(( ${#skill} + 22 )) -le 64 ] \
+      || fail "frontend-design plugin-qualified skill identity exceeds 64 characters: $skill"
+  done <<< "$pack_members"
+fi
 
 while IFS= read -r file; do
   skill="$(basename "$(dirname "$file")")"

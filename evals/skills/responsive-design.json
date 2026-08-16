@@ -1,9 +1,6 @@
 {
-  "schema_version": 1,
   "contract_status": "reviewed",
-  "skill": "responsive-design",
   "native_ownership": {
-    "responsibility": "Implement adaptive page and component layout across real viewport/container constraints, zoom and text reflow, localization, input modes, and SSR hydration.",
     "excludes": [
       "Broad WCAG remediation is owned by accessibility-implement.",
       "Responsive image processing and optimizer security are owned by image-optimization.",
@@ -14,12 +11,236 @@
       "image-optimization",
       "design-system-implement",
       "frontend-implement"
-    ]
+    ],
+    "responsibility": "Implement adaptive page and component layout across real viewport/container constraints, zoom and text reflow, localization, input modes, and SSR hydration."
   },
+  "provenance": [
+    {
+      "checked_on": "2026-07-26",
+      "claim_scope": "WCAG 2.2 reflow and target-size criteria",
+      "source": "https://www.w3.org/TR/WCAG22/"
+    },
+    {
+      "checked_on": "2026-07-26",
+      "claim_scope": "AA target size minimum and exceptions",
+      "source": "https://www.w3.org/WAI/WCAG22/Understanding/target-size-minimum"
+    },
+    {
+      "checked_on": "2026-07-26",
+      "claim_scope": "AAA target size enhanced",
+      "source": "https://www.w3.org/WAI/WCAG22/Understanding/target-size-enhanced"
+    },
+    {
+      "checked_on": "2026-07-26",
+      "claim_scope": "container query model",
+      "source": "https://www.w3.org/TR/css-contain-3/"
+    },
+    {
+      "checked_on": "2026-07-26",
+      "claim_scope": "dynamic framework release sources",
+      "source": "skills/version-sources.tsv"
+    },
+    {
+      "checked_on": "2026-07-26",
+      "claim_scope": "local workflow and routed references",
+      "source": "skills/responsive-design/SKILL.md"
+    }
+  ],
+  "reference_routing": [
+    {
+      "expected": [
+        "skills/responsive-design/references/responsive-images.md"
+      ],
+      "forbidden": [
+        "skills/responsive-design/references/responsive-navigation.md",
+        "skills/responsive-design/references/responsive-tables.md",
+        "skills/responsive-design/references/tailwind-responsive.md"
+      ],
+      "id": "reference-1-responsive-images-md",
+      "prompt": "A responsive hero needs art-directed crops and width candidates. Its rendered slot varies by container, and the pinned Next.js Image component may expose a different preload or priority API."
+    },
+    {
+      "expected": [
+        "skills/responsive-design/references/responsive-navigation.md"
+      ],
+      "forbidden": [
+        "skills/responsive-design/references/responsive-images.md",
+        "skills/responsive-design/references/responsive-tables.md",
+        "skills/responsive-design/references/tailwind-responsive.md"
+      ],
+      "id": "reference-2-responsive-navigation-md",
+      "prompt": "A server-rendered site needs a disclosure navigation that becomes an overlay in constrained space while preserving one destination tree, correct focus, history, auth UI and hydration."
+    },
+    {
+      "expected": [
+        "skills/responsive-design/references/responsive-tables.md"
+      ],
+      "forbidden": [
+        "skills/responsive-design/references/responsive-images.md",
+        "skills/responsive-design/references/responsive-navigation.md",
+        "skills/responsive-design/references/tailwind-responsive.md"
+      ],
+      "id": "reference-3-responsive-tables-md",
+      "prompt": "A read-only comparison table must remain understandable at zoom and in a narrow container; decide between accessible horizontal scrolling, selective disclosure and a card alternative without losing header relationships."
+    },
+    {
+      "expected": [
+        "skills/responsive-design/references/tailwind-responsive.md"
+      ],
+      "forbidden": [
+        "skills/responsive-design/references/responsive-images.md",
+        "skills/responsive-design/references/responsive-navigation.md",
+        "skills/responsive-design/references/responsive-tables.md"
+      ],
+      "id": "reference-4-tailwind-responsive-md",
+      "prompt": "The repository already pins Tailwind. Implement content-driven media and container variants using its installed configuration and verify emitted production CSS rather than assuming default breakpoint syntax."
+    },
+    {
+      "expected": [],
+      "forbidden": [
+        "skills/responsive-design/references/responsive-images.md",
+        "skills/responsive-design/references/responsive-navigation.md",
+        "skills/responsive-design/references/responsive-tables.md",
+        "skills/responsive-design/references/tailwind-responsive.md"
+      ],
+      "id": "reference-main-only",
+      "prompt": "Handle a routine responsive design request using the main workflow only; no framework, library, image, navigation, table, utility, or other optional deep dive is needed."
+    }
+  ],
   "risk": {
     "mode": "repository_write",
     "rationale": "responsive-design implements repository behavior; edits remain limited to the authorized scope and require affected-path verification."
   },
+  "routing": {
+    "negative": [
+      {
+        "expected_skill": "accessibility-implement",
+        "id": "route-accessibility-program",
+        "prompt": "Implement scoped repairs across forms, headings, live announcements, keyboard focus, dialogs, contrast and reduced motion to meet identified WCAG 2.2 findings."
+      },
+      {
+        "expected_skill": "image-optimization",
+        "id": "route-image-pipeline",
+        "prompt": "Secure and optimize remote and uploaded images with responsive variants, private cache isolation, SSRF defenses, SVG handling, metadata stripping and decoder resource limits."
+      }
+    ],
+    "positive": [
+      {
+        "id": "route-container-reflow",
+        "prompt": "Repair a reusable product card that works at wide page widths but overflows in a narrow split pane, with long translations, text spacing overrides, browser zoom and a server-rendered initial state."
+      },
+      {
+        "id": "route-responsive-nav",
+        "prompt": "Implement one adaptive navigation experience across narrow and wide containers without duplicate focusable trees or hydration mismatch; verify zoom, target sizing, keyboard/touch, safe areas and resize while open."
+      }
+    ]
+  },
+  "scenarios": [
+    {
+      "assertions": [
+        {
+          "criterion": "Implements adaptive layout, reflow and SSR-responsive behavior without implementing or claiming ownership of broad accessibility remediation, image-optimizer security or design-system architecture.",
+          "dimension": "native_ownership",
+          "id": "responsive-owner",
+          "severity": "major"
+        },
+        {
+          "criterion": "Inspects rendered DOM/content extremes, containing blocks, CSS/build stack, tokens, browser targets, SSR inputs, localization and tests from the fixture without inventing repository facts.",
+          "dimension": "repository_context",
+          "id": "responsive-repo",
+          "severity": "critical"
+        },
+        {
+          "criterion": "Defines wrap/stack/scroll/hide invariants from real content and container failures, chooses stable semantic DOM and fluid rules, then adds only measured breakpoints and capability fallbacks.",
+          "dimension": "decision_workflow",
+          "id": "responsive-flow",
+          "severity": "critical"
+        },
+        {
+          "criterion": "Distinguishes viewport from container constraints, avoids hydration-varying breakpoint markup, verifies zoom/reflow and states AA 2.5.8 as 24 by 24 CSS pixels with its exceptions while identifying 44 by 44 as AAA 2.5.5.",
+          "dimension": "domain_correctness",
+          "id": "responsive-correct",
+          "severity": "critical"
+        },
+        {
+          "criterion": "Tests actual embedding containers, intermediate failure widths, zoom/reflow, text spacing, long translation/RTL, target exceptions, input modes, SSR versus hydration, resize and no-JS fallback.",
+          "dimension": "verification",
+          "id": "responsive-verify",
+          "severity": "critical"
+        },
+        {
+          "criterion": "Reports content/container decisions, target-size and overflow rationale, SSR contract, loaded references, observed checks and residual browser/content/design risks.",
+          "dimension": "output_contract",
+          "id": "responsive-output",
+          "severity": "major"
+        },
+        {
+          "criterion": "Uses intent-based repository tokens and minimizes breakpoint/DOM variants rather than freezing device catalogs or framework defaults.",
+          "dimension": "maintainability",
+          "id": "responsive-maintain",
+          "severity": "major"
+        }
+      ],
+      "fixture": "evals/fixtures/web-application.md",
+      "id": "domain-critical-boundaries",
+      "kind": "domain",
+      "prompt": "A server-rendered dashboard uses device-width constants to render separate mobile and desktop DOM trees. A card breaks in a narrow sidebar, the page scrolls horizontally at zoom, and every pointer target is forced to 44 CSS pixels as an alleged WCAG AA rule. Repair the responsive contract."
+    },
+    {
+      "assertions": [
+        {
+          "criterion": "Stops changes that remove required controls, disable user zoom or cache user-agent-specific markup without a verified vary/cache/hydration contract; resolves exact flows and rollback first.",
+          "dimension": "runtime_safety",
+          "id": "responsive-safety",
+          "severity": "critical"
+        },
+        {
+          "criterion": "Preserves one authorized semantic workflow, access to consent/cancel at every supported layout and a stable server/client DOM while allowing only presentation to adapt.",
+          "dimension": "domain_correctness",
+          "id": "responsive-safety-correct",
+          "severity": "critical"
+        },
+        {
+          "criterion": "Requires checkout completion/cancellation, keyboard/touch/zoom evidence, cache-variant isolation and hydrated DOM checks rather than screenshots at named devices.",
+          "dimension": "verification",
+          "id": "responsive-safety-proof",
+          "severity": "critical"
+        }
+      ],
+      "fixture": "evals/fixtures/web-application.md",
+      "id": "safety-production-counterexample",
+      "kind": "safety",
+      "prompt": "A hotfix proposes hiding checkout consent and the only cancel action below a CSS breakpoint, disabling zoom, and serving mobile markup from a cache keyed only by URL. Explain the safe response."
+    },
+    {
+      "assertions": [
+        {
+          "criterion": "Uses stack-context output, lockfile, installed types/config and matching official docs; applies only exposed utilities/APIs and treats migration separately.",
+          "dimension": "version_compatibility",
+          "id": "responsive-version",
+          "severity": "critical"
+        },
+        {
+          "criterion": "Checks framework renderer, CSS processor, Tailwind/content detection, image component, browser targets and SSR deployment together.",
+          "dimension": "repository_context",
+          "id": "responsive-version-context",
+          "severity": "major"
+        },
+        {
+          "criterion": "Avoids remembered breakpoint tables, browser-version claims and latest-only syntax; records verified capability and fallback.",
+          "dimension": "maintainability",
+          "id": "responsive-version-maintain",
+          "severity": "major"
+        }
+      ],
+      "fixture": "evals/fixtures/web-application.md",
+      "id": "version-installed-capability",
+      "kind": "version",
+      "prompt": "The repository pins an older supported framework and Tailwind line; a current example uses different container-query and image-priority syntax. No migration is authorized."
+    }
+  ],
+  "schema_version": 1,
+  "skill": "responsive-design",
   "version_policy": {
     "mode": "dynamic",
     "technologies": [
@@ -30,226 +251,5 @@
       "vite",
       "vue"
     ]
-  },
-  "routing": {
-    "positive": [
-      {
-        "id": "route-container-reflow",
-        "prompt": "Repair a reusable product card that works at wide page widths but overflows in a narrow split pane, with long translations, text spacing overrides, browser zoom and a server-rendered initial state."
-      },
-      {
-        "id": "route-responsive-nav",
-        "prompt": "Implement one adaptive navigation experience across narrow and wide containers without duplicate focusable trees or hydration mismatch; verify zoom, target sizing, keyboard/touch, safe areas and resize while open."
-      }
-    ],
-    "negative": [
-      {
-        "id": "route-accessibility-program",
-        "prompt": "Implement scoped repairs across forms, headings, live announcements, keyboard focus, dialogs, contrast and reduced motion to meet identified WCAG 2.2 findings.",
-        "expected_skill": "accessibility-implement"
-      },
-      {
-        "id": "route-image-pipeline",
-        "prompt": "Secure and optimize remote and uploaded images with responsive variants, private cache isolation, SSRF defenses, SVG handling, metadata stripping and decoder resource limits.",
-        "expected_skill": "image-optimization"
-      }
-    ]
-  },
-  "reference_routing": [
-    {
-      "id": "reference-1-responsive-images-md",
-      "prompt": "A responsive hero needs art-directed crops and width candidates. Its rendered slot varies by container, and the pinned Next.js Image component may expose a different preload or priority API.",
-      "expected": [
-        "skills/responsive-design/references/responsive-images.md"
-      ],
-      "forbidden": [
-        "skills/responsive-design/references/responsive-navigation.md",
-        "skills/responsive-design/references/responsive-tables.md",
-        "skills/responsive-design/references/tailwind-responsive.md"
-      ]
-    },
-    {
-      "id": "reference-2-responsive-navigation-md",
-      "prompt": "A server-rendered site needs a disclosure navigation that becomes an overlay in constrained space while preserving one destination tree, correct focus, history, auth UI and hydration.",
-      "expected": [
-        "skills/responsive-design/references/responsive-navigation.md"
-      ],
-      "forbidden": [
-        "skills/responsive-design/references/responsive-images.md",
-        "skills/responsive-design/references/responsive-tables.md",
-        "skills/responsive-design/references/tailwind-responsive.md"
-      ]
-    },
-    {
-      "id": "reference-3-responsive-tables-md",
-      "prompt": "A read-only comparison table must remain understandable at zoom and in a narrow container; decide between accessible horizontal scrolling, selective disclosure and a card alternative without losing header relationships.",
-      "expected": [
-        "skills/responsive-design/references/responsive-tables.md"
-      ],
-      "forbidden": [
-        "skills/responsive-design/references/responsive-images.md",
-        "skills/responsive-design/references/responsive-navigation.md",
-        "skills/responsive-design/references/tailwind-responsive.md"
-      ]
-    },
-    {
-      "id": "reference-4-tailwind-responsive-md",
-      "prompt": "The repository already pins Tailwind. Implement content-driven media and container variants using its installed configuration and verify emitted production CSS rather than assuming default breakpoint syntax.",
-      "expected": [
-        "skills/responsive-design/references/tailwind-responsive.md"
-      ],
-      "forbidden": [
-        "skills/responsive-design/references/responsive-images.md",
-        "skills/responsive-design/references/responsive-navigation.md",
-        "skills/responsive-design/references/responsive-tables.md"
-      ]
-    },
-    {
-      "id": "reference-main-only",
-      "prompt": "Handle a routine responsive design request using the main workflow only; no framework, library, image, navigation, table, utility, or other optional deep dive is needed.",
-      "expected": [],
-      "forbidden": [
-        "skills/responsive-design/references/responsive-images.md",
-        "skills/responsive-design/references/responsive-navigation.md",
-        "skills/responsive-design/references/responsive-tables.md",
-        "skills/responsive-design/references/tailwind-responsive.md"
-      ]
-    }
-  ],
-  "scenarios": [
-    {
-      "id": "domain-critical-boundaries",
-      "kind": "domain",
-      "prompt": "A server-rendered dashboard uses device-width constants to render separate mobile and desktop DOM trees. A card breaks in a narrow sidebar, the page scrolls horizontally at zoom, and every pointer target is forced to 44 CSS pixels as an alleged WCAG AA rule. Repair the responsive contract.",
-      "fixture": "evals/fixtures/existing-repository.md",
-      "assertions": [
-        {
-          "id": "responsive-owner",
-          "dimension": "native_ownership",
-          "severity": "major",
-          "criterion": "Implements adaptive layout, reflow and SSR-responsive behavior without implementing or claiming ownership of broad accessibility remediation, image-optimizer security or design-system architecture."
-        },
-        {
-          "id": "responsive-repo",
-          "dimension": "repository_context",
-          "severity": "critical",
-          "criterion": "Inspects rendered DOM/content extremes, containing blocks, CSS/build stack, tokens, browser targets, SSR inputs, localization and tests from the fixture without inventing repository facts."
-        },
-        {
-          "id": "responsive-flow",
-          "dimension": "decision_workflow",
-          "severity": "critical",
-          "criterion": "Defines wrap/stack/scroll/hide invariants from real content and container failures, chooses stable semantic DOM and fluid rules, then adds only measured breakpoints and capability fallbacks."
-        },
-        {
-          "id": "responsive-correct",
-          "dimension": "domain_correctness",
-          "severity": "critical",
-          "criterion": "Distinguishes viewport from container constraints, avoids hydration-varying breakpoint markup, verifies zoom/reflow and states AA 2.5.8 as 24 by 24 CSS pixels with its exceptions while identifying 44 by 44 as AAA 2.5.5."
-        },
-        {
-          "id": "responsive-verify",
-          "dimension": "verification",
-          "severity": "critical",
-          "criterion": "Tests actual embedding containers, intermediate failure widths, zoom/reflow, text spacing, long translation/RTL, target exceptions, input modes, SSR versus hydration, resize and no-JS fallback."
-        },
-        {
-          "id": "responsive-output",
-          "dimension": "output_contract",
-          "severity": "major",
-          "criterion": "Reports content/container decisions, target-size and overflow rationale, SSR contract, loaded references, observed checks and residual browser/content/design risks."
-        },
-        {
-          "id": "responsive-maintain",
-          "dimension": "maintainability",
-          "severity": "major",
-          "criterion": "Uses intent-based repository tokens and minimizes breakpoint/DOM variants rather than freezing device catalogs or framework defaults."
-        }
-      ]
-    },
-    {
-      "id": "safety-production-counterexample",
-      "kind": "safety",
-      "prompt": "A hotfix proposes hiding checkout consent and the only cancel action below a CSS breakpoint, disabling zoom, and serving mobile markup from a cache keyed only by URL. Explain the safe response.",
-      "fixture": "evals/fixtures/existing-repository.md",
-      "assertions": [
-        {
-          "id": "responsive-safety",
-          "dimension": "runtime_safety",
-          "severity": "critical",
-          "criterion": "Stops changes that remove required controls, disable user zoom or cache user-agent-specific markup without a verified vary/cache/hydration contract; resolves exact flows and rollback first."
-        },
-        {
-          "id": "responsive-safety-correct",
-          "dimension": "domain_correctness",
-          "severity": "critical",
-          "criterion": "Preserves one authorized semantic workflow, access to consent/cancel at every supported layout and a stable server/client DOM while allowing only presentation to adapt."
-        },
-        {
-          "id": "responsive-safety-proof",
-          "dimension": "verification",
-          "severity": "critical",
-          "criterion": "Requires checkout completion/cancellation, keyboard/touch/zoom evidence, cache-variant isolation and hydrated DOM checks rather than screenshots at named devices."
-        }
-      ]
-    },
-    {
-      "id": "version-installed-capability",
-      "kind": "version",
-      "prompt": "The repository pins an older supported framework and Tailwind line; a current example uses different container-query and image-priority syntax. No migration is authorized.",
-      "fixture": "evals/fixtures/existing-repository.md",
-      "assertions": [
-        {
-          "id": "responsive-version",
-          "dimension": "version_compatibility",
-          "severity": "critical",
-          "criterion": "Uses stack-context output, lockfile, installed types/config and matching official docs; applies only exposed utilities/APIs and treats migration separately."
-        },
-        {
-          "id": "responsive-version-context",
-          "dimension": "repository_context",
-          "severity": "major",
-          "criterion": "Checks framework renderer, CSS processor, Tailwind/content detection, image component, browser targets and SSR deployment together."
-        },
-        {
-          "id": "responsive-version-maintain",
-          "dimension": "maintainability",
-          "severity": "major",
-          "criterion": "Avoids remembered breakpoint tables, browser-version claims and latest-only syntax; records verified capability and fallback."
-        }
-      ]
-    }
-  ],
-  "provenance": [
-    {
-      "claim_scope": "WCAG 2.2 reflow and target-size criteria",
-      "source": "https://www.w3.org/TR/WCAG22/",
-      "checked_on": "2026-07-26"
-    },
-    {
-      "claim_scope": "AA target size minimum and exceptions",
-      "source": "https://www.w3.org/WAI/WCAG22/Understanding/target-size-minimum",
-      "checked_on": "2026-07-26"
-    },
-    {
-      "claim_scope": "AAA target size enhanced",
-      "source": "https://www.w3.org/WAI/WCAG22/Understanding/target-size-enhanced",
-      "checked_on": "2026-07-26"
-    },
-    {
-      "claim_scope": "container query model",
-      "source": "https://www.w3.org/TR/css-contain-3/",
-      "checked_on": "2026-07-26"
-    },
-    {
-      "claim_scope": "dynamic framework release sources",
-      "source": "skills/version-sources.tsv",
-      "checked_on": "2026-07-26"
-    },
-    {
-      "claim_scope": "local workflow and routed references",
-      "source": "skills/responsive-design/SKILL.md",
-      "checked_on": "2026-07-26"
-    }
-  ]
+  }
 }

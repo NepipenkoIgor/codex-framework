@@ -15,6 +15,8 @@ Implement the Flutter feature requested in $ARGUMENTS.
 
 Read repository instructions, `pubspec` and lockfile, app entry points, routing/state/data abstractions, platform projects, generated plugin registration, tests, CI, minimum OS targets, and release configuration. Preserve the existing router, state container, file layout, list widget, storage engine, dependency-injection style, and code generation unless the requirement makes a migration necessary.
 
+Before mutation, resolve the exact task-owned Dart files, native iOS/Android files, generated-code boundary, storage records/contracts, tests and configuration targets, their owners, applicable write authority, and recovery for partial or conflicting changes. Do not begin implementation while those mutation targets or ownership remain unresolved.
+
 Verify installed Flutter/Dart/plugin capabilities from the local toolchain, generated APIs, analyzer, or matching official documentation. Treat framework/plugin upgrades separately. For greenfield work, use `scripts/framework-stack-context.py` to resolve stable Flutter and supported production toolchains dynamically; let generated manifests and locks become authority.
 
 ## Implementation invariants
@@ -32,6 +34,6 @@ Profile before changing rendering, rebuild, image, isolate, or list behavior. Se
 
 ## Verification and output
 
-Add focused unit/widget/integration/native-contract tests following the repository runner. Cover validation, denial, partial storage rotation, lifecycle/process restoration, duplicate push/deep link, offline/error states, reduced motion/text scaling, and platform-channel failure where affected. Verify on the smallest relevant OS/device/build matrix and run affected analyzer/build/test commands.
+Add focused unit/widget/integration/native-contract tests following the repository runner. When credentials are in scope, exercise the exact rotation sequence under concurrency and a failure between each state transition: atomically or journaledly persist the new credential plus metadata, recover the partial state, confirm durability, and only then retire the old token. Cover validation, denial, lifecycle/process restoration, duplicate push/deep link, offline/error states, and platform-channel failure where affected. Explicitly render and observe both reduced-motion and enlarged/dynamic-text cases in widget or visible device tests; preserving the settings in implementation without exercising them is insufficient. Verify on the smallest relevant OS/device/build matrix and run affected analyzer/build/test commands.
 
-Report local stack evidence, preserved conventions, trust/lifecycle contracts, changes, migrations/rollback, actual checks/device evidence, and unresolved signing/provider/store/device risks.
+Report local stack evidence, preserved conventions, trust/lifecycle contracts, changes, migrations/rollback, actual checks/device evidence, and unresolved signing/provider/store/device risks. When push or credentials are in scope, explicitly report push-payload validation across foreground/background/cold-start/duplicate/revoked/denied cases and the atomic, concurrency-safe token-rotation state machine: new credential plus metadata durable first, partial-failure recovery, then old-token retirement.

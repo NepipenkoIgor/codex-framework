@@ -4,7 +4,7 @@ description: Estimate and reason about LLM, embedding, inference, and workflow o
 metadata:
   owner: codex-framework
   reviewed: "2026-07-26"
-  version: 2.0
+  version: 2.1
   argument-hint: "feature/workflow, expected volume, model choices, token sizes, retrieval/tools, latency and budget constraints"
 ---
 
@@ -57,6 +57,7 @@ Do not use this skill as a substitute for current provider pricing. If exact rat
 - Recalculate totals from the stated assumptions.
 - Check the model mix and unit conversions: tokens, requests, users, documents, and months.
 - Compare estimate against at least one realistic high-usage scenario.
+- Run an explicit sensitivity table over evidence-supported lower and upper bounds for missing provider usage and provider/application tool-runtime charges. For every bound, recompute cost and state whether the margin, pricing, plan-limit, or launch decision flips; merely labeling those components unknown or asking an approver to accept unspecified uncertainty is insufficient.
 - If production logs exist, reconcile assumptions against observed token and request counts.
 - When provider invoices or billing exports are available, reconcile modeled billed legs and totals to them; explain residual timing, currency, tax or allocation differences instead of forcing equality.
 - Reconcile request IDs across retries, fallbacks, tool rounds, cache usage and delayed provider usage so ambiguous/missing legs remain visible instead of being double-counted or dropped.

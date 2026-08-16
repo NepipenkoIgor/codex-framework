@@ -1,0 +1,4 @@
+interface:
+  display_name: "Design System Implement"
+  short_description: "Implement governed tokens and reusable components"
+  default_prompt: "Implement the requested design-system capability and verify its rendered states in the visible in-app Browser."

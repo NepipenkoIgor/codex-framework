@@ -36,11 +36,11 @@ Select the states affected by the change: cold start, restored session, foregrou
 
 ## Workflow
 
-1. Inspect the existing test stack and CI device coverage. Resolve the owners and write authority for affected apps, test accounts/data, devices and external systems, plus rollback/recovery ownership for any material mutation; isolated accounts do not by themselves prove ownership.
+1. Inspect the existing test stack and CI device coverage. Boot or attach to a visible repository-configured simulator, emulator, or device for the affected runnable app, launch it early, and record exact ownership of any target/process/session started by the task. Resolve the owners and write authority for affected apps, test accounts/data, devices and external systems, plus rollback/recovery ownership for any material mutation; isolated accounts do not by themselves prove ownership.
 2. Derive a behavior/state matrix from acceptance criteria.
 3. Allocate each behavior to the cheapest sufficient layer.
 4. Implement fixtures and boundary controls before the assertions.
-5. Run focused tests, then the repository's affected suite and platform build.
+5. Run focused tests, then the repository's affected suite and platform build; interactively verify the critical path on the visible target because headless/unit/widget evidence is supplementary.
 6. Record untested devices, OS versions, lifecycle states, or external services.
 
 ## Output Contract

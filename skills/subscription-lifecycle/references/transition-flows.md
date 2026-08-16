@@ -4,7 +4,7 @@ Use when upgrade, downgrade, cancellation, resume, trial conversion, quantity, o
 
 For every source state and requested transition define: authorized actor; effective time; preview requirement and expiry; proration, credit, refund, tax and currency rules; payment behavior; entitlement timing; data-loss consequences; reversibility; communication; and failure/reconciliation path. Product and finance owners decide these semantics.
 
-Persist requested, accepted, pending-payment, scheduled, applied, failed, superseded, and reverted states with idempotency keys and provider object/event generations. A repeated command or webhook must converge without repeating monetary or entitlement effects. Resolve concurrent incompatible transitions explicitly.
+Persist requested, accepted, applied, failed and superseded states, plus pending-payment, scheduled and reverted states only when the approved product/provider policy permits those transitions. Bind every persisted state to idempotency keys and provider object/event generations. A repeated command or webhook must converge without repeating monetary or entitlement effects. Resolve concurrent incompatible transitions explicitly.
 
 Verification covers duplicate clicks/events, stale preview, failed payment, timeout-after-commit, out-of-order webhook, missing webhook plus reconciliation, scheduled change superseded before effective time, cancellation/resume race, and entitlement state after every terminal and pending provider state.
 

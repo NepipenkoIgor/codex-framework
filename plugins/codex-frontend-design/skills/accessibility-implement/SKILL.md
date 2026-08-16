@@ -1,6 +1,6 @@
 ---
 name: accessibility-implement
-description: Implement scoped WCAG 2.2 accessibility repairs in components and flows using native semantics, keyboard/focus behavior, forms, announcements, and verified assistive-technology outcomes. Use for requested repository changes; do not use for audit-only work.
+description: Implement scoped WCAG 2.2 accessibility repairs in existing components and flows using native semantics, keyboard/focus behavior, forms, announcements, and verified assistive-technology outcomes. Use for requested accessibility changes; do not use for audit-only work or when implementing dialog lifecycle and interaction is the primary outcome (use modal-dialog-patterns).
 metadata:
   owner: codex-framework
   reviewed: "2026-07-26"
@@ -42,6 +42,8 @@ Generate stack context with `python3 scripts/framework-stack-context.py project 
 - For payment or other consequential mutations, bypass client controls, exercise server failure and recalculation races, and prove the correct persisted outcome plus provider/server reconciliation; accessible announcements or UI success are not mutation evidence.
 
 ## Output Contract
+
+Name the concrete user impact and applicable normative criterion for every repaired behavior; do not defer them to a later audit step.
 
 - User impact and normative criteria
 - Semantic, focus, validation, announcement, motion and dialog decisions

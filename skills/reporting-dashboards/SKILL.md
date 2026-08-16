@@ -4,7 +4,7 @@ description: Implement authorized reporting queries, dashboard APIs, consistent 
 metadata:
   owner: codex-framework
   reviewed: "2026-07-26"
-  version: 2.0
+  version: 2.1
   argument-hint: "metrics, subject/tenant scope, time semantics, export formats, consistency and load requirements"
 ---
 
@@ -19,6 +19,7 @@ metadata:
 5. For a multi-page/file export, establish one consistent database snapshot or versioned report manifest so pages cannot mix states. Bind it to requester, tenant, filters, columns, locale/timezone, source watermark, expiry, and audit record.
 6. Stream with real backpressure: await drain/producer demand, bound buffers and concurrency, cancel database cursors and work on client disconnect/abort, and clean partial artifacts. Derive cleanup retry attempt and elapsed-time bounds from storage/provider behavior, artifact expiry and job deadline, then surface exhausted cleanup for operator reconciliation. Queue heavy reports according to measured resource risk, not format alone.
 7. Define time windows with an IANA zone, calendar semantics and explicit half-open UTC boundaries. Test DST gaps/folds, leap/calendar boundaries, locale formatting, and source timestamps; a fixed offset is not a timezone.
+8. Map every applicable repository and product review-checklist item to a traceable acceptance criterion and executable evidence. Completion remains blocked until each item is satisfied or marked inapplicable with task evidence, and until any stakeholder approval required by the repository/product contract is recorded; inspecting a checklist or noting that approval is unavailable is not a passed gate.
 
 ## Safe Exports
 

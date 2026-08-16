@@ -30,7 +30,7 @@ Write behavior-focused Vue tests without replacing the repository's runner, DOM 
 - Use `mount` or the repository render helper when child integration matters. Shallow mounting is acceptable only when the child contract is explicitly outside scope and the stub does not erase the behavior under test.
 - Change props with `setProps`, inputs with `setValue`, and events with awaited `trigger` or the installed user-event helper. Direct instance mutation is not a user interaction.
 - Prefer semantic/accessibility queries where the installed harness supports them. Component lookup or stable test IDs are acceptable for contracts without a user-facing selector.
-- Await Vue updates and unresolved promises deliberately; do not add arbitrary sleeps.
+- Await Vue updates and unresolved promises deliberately; do not add arbitrary sleeps. Bound every automated wait, controlled retry, and timeout-after-commit reconciliation exercise by attempts or elapsed time derived from the authoritative operation contract and repository test-runner limits.
 
 ## Stores, composables, and I/O
 

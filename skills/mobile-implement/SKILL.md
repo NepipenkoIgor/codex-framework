@@ -2,7 +2,7 @@
 name: mobile-implement
 description: Implement cross-platform mobile features using repository-native patterns for lifecycle, navigation, offline behavior, secure storage, accessibility, and platform adaptation. Use for mobile work whose framework is unknown or spans platforms; use the React Native or Flutter specialization when platform-specific APIs dominate.
 metadata:
-  version: 2.0
+  version: 2.1
   argument-hint: "platform, feature, lifecycle states, offline/security/accessibility requirements"
   owner: mobile
   reviewed: "2026-07-26"
@@ -14,7 +14,7 @@ This is the universal mobile baseline. It deliberately does not prescribe a rout
 
 ## Discovery
 
-1. Detect framework, versions, build system, navigation, state, storage, testing, and release conventions.
+1. Generate project stack context and detect framework, versions, build system, navigation, state, storage, testing, and release conventions. Existing manifests and resolved lockfiles are authority. For greenfield work, resolve stable releases and support from the configured official sources, verify a mutually compatible stack, scaffold through the selected project-creation owner, and then make the scaffold-generated manifest and lockfile authoritative for installed versions and available capabilities; re-check installed types before implementation.
 2. Read nearby screens, services, platform configuration, and tests before choosing a pattern.
 3. Identify supported OS versions, device classes, orientations, accessibility requirements, and offline expectations.
 4. Verify version-sensitive APIs in current official documentation.
@@ -42,13 +42,13 @@ Choose explicitly among cache-only, read-through cache, queued writes, and full 
 
 ## Workflow
 
-1. Write observable acceptance criteria for supported devices and lifecycle states.
+1. Write observable acceptance criteria for supported devices and lifecycle states. Boot or attach to a visible repository-configured simulator, emulator, or device and launch the app early; track exact task-owned target, app/server session, and ports.
 2. Extend the existing navigation and state boundaries.
 3. Implement the smallest vertical slice with accessible loading/error/empty states.
 4. Add persistence or sync only where product behavior requires it.
 5. Integrate permissions with contextual explanation and denied-state recovery.
 6. Test unit logic, component/widget behavior, platform integration, and one critical end-to-end path.
-7. Verify on the affected platforms and at least one small and one large layout.
+7. Interact with the visible app throughout implementation and verify on the affected platforms and at least one small and one large layout. Headless/unit/widget checks supplement rather than replace device evidence.
 
 ## Verification
 

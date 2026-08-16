@@ -4,7 +4,7 @@ description: Audit a defined frontend sample against applicable WCAG 2.2 Level A
 metadata:
   owner: codex-framework
   reviewed: "2026-07-27"
-  version: 1.5
+  version: 1.6
   argument-hint: "page URL or component path, conformance target, sampled routes/templates/states, browsers and assistive technologies"
 ---
 
@@ -13,6 +13,8 @@ metadata:
 Audit `$ARGUMENTS` read-only. Findings and remediation guidance are allowed; repository or external-state changes are not.
 
 For an existing repository, manifests, resolved lockfiles, runtime files, generated types, browser policy, and installed capabilities are authoritative. Before using any version-sensitive command or API, verify that exact selection against at least one applicable installed capability source such as generated types, configuration schema, CLI help, or matching official documentation; manifest script existence alone is not capability evidence. For greenfield analysis, resolve current stable/LTS releases from official sources at execution time, verify cross-stack compatibility, and once a project is generated treat its manifest and resolved lockfile as the authoritative stack record rather than the earlier lookup.
+
+For a version-sensitive checker, API, CLI option, or framework recipe, verify every applicable compatibility edge exposed by repository evidence, such as runtime engines, peer dependencies, compiler/framework integration, test runner, build tooling, or deployment runtime. Check only dimensions that can affect the selected path; do not turn this into an unrelated upgrade audit, and treat an upgrade as a separately authorized migration.
 
 ## Define the claim before testing
 
@@ -38,7 +40,7 @@ For an existing repository, manifests, resolved lockfiles, runtime files, genera
 
 ## Findings
 
-For each reproducible finding report severity, criterion, exact page/component/state, affected users, steps, observed versus expected behavior, evidence method, and a remediation direction that favors native semantics. Distinguish confirmed defects, code-review risks requiring runtime confirmation, and coverage gaps.
+For each reproducible finding report severity, criterion, exact page/component/state, affected users, steps, observed versus expected behavior, evidence method, and a remediation direction that explicitly selects the applicable native HTML element/behavior first. Recommend ARIA only when native HTML cannot express the required contract, name that gap, and require verification of the resulting ARIA behavior. Distinguish confirmed defects, code-review risks requiring runtime confirmation, and coverage gaps.
 
 Do not publish a fabricated "compliance percentage" or claim site-wide WCAG conformance from a sample. Summarize instead:
 

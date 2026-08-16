@@ -19,7 +19,7 @@ metadata:
 
 - Validate untrusted HTTP/event/provider/config data at runtime and authorize current actor, tenant and target resource server-side.
 - Handle async errors through the installed framework's exact lifecycle. Never leave rejected promises, fire-and-forget work or response-after-abort paths unobserved.
-- Propagate `AbortSignal`/cancellation where installed APIs support it; derive downstream retry attempt and elapsed-time bounds from operation/provider evidence and distinguish client disconnect from committed server outcome.
+- Propagate `AbortSignal`/cancellation where installed APIs support it. Any executable plan that permits an application, worker, client, or provider retry must state both a bounded attempt count and a bounded total elapsed time derived from the operation/provider evidence; an idempotency check alone is not a retry bound. Distinguish client disconnect from committed server outcome.
 - Use explicit transaction/concurrency constraints and stable idempotency for retryable effects; reconcile timeout-after-commit/provider-effect.
 - Avoid event-loop blocking and unbounded concurrency, body/query/file size or buffering. Parallelize only independent operations with failure/cancellation semantics defined.
 - Implement graceful shutdown for the actual runtime: stop admission, drain bounded in-flight HTTP/jobs, abort remaining work, close server/pools/consumers and respect orchestrator deadline/readiness. Do not copy fixed signal/time thresholds.

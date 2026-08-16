@@ -1,9 +1,6 @@
 {
-  "schema_version": 1,
   "contract_status": "reviewed",
-  "skill": "data-modeling",
   "native_ownership": {
-    "responsibility": "Design or revise persistent data models, constraints, relationships, lifecycle, temporal behavior, and indexes from business invariants and representative queries",
     "excludes": [
       "Work whose primary requested outcome is owned by data-validation-design: Design data validation architecture covering input validation, schema-driven validation, sanitization, error formatting, contract validation, file validation, configuration validation, and pipeline data quality",
       "Work whose primary requested outcome is owned by data-pipeline-engineering: Design and implement batch or streaming data pipelines with schemas, checkpoints, idempotent replay, quality controls, lineage, backfills, and late-data handling",
@@ -13,17 +10,39 @@
       "data-validation-design",
       "data-pipeline-engineering",
       "database-migration"
-    ]
+    ],
+    "responsibility": "Design or revise persistent data models, constraints, relationships, lifecycle, temporal behavior, and indexes from business invariants and representative queries"
   },
+  "provenance": [
+    {
+      "checked_on": "2026-07-26",
+      "claim_scope": "local workflow and invariants",
+      "source": "skills/data-modeling/SKILL.md"
+    }
+  ],
+  "reference_routing": [],
   "risk": {
     "mode": "read_only",
     "rationale": "The contract requires explicit repository and runtime safety evidence; mutation authority remains limited to the user's requested scope."
   },
-  "version_policy": {
-    "mode": "agnostic",
-    "technologies": []
-  },
   "routing": {
+    "negative": [
+      {
+        "expected_skill": "data-validation-design",
+        "id": "route-neighbor-one",
+        "prompt": "The primary requested outcome is: Design data validation architecture covering input validation, schema-driven validation, sanitization, error formatting, contract validation, file validation, configuration validation, and pipeline data quality. Follow the existing repository conventions."
+      },
+      {
+        "expected_skill": "data-pipeline-engineering",
+        "id": "route-neighbor-two",
+        "prompt": "Please produce this deliverable: Design and implement batch or streaming data pipelines with schemas, checkpoints, idempotent replay, quality controls, lineage, backfills, and late-data handling. Verify the affected behavior."
+      },
+      {
+        "expected_skill": "database-migration",
+        "id": "route-migration-implementation",
+        "prompt": "Implement the approved schema change and online backfill with expand-contract compatibility, locking analysis, rollback, and executable migration files."
+      }
+    ],
     "positive": [
       {
         "id": "route-primary",
@@ -33,124 +52,110 @@
         "id": "route-focused",
         "prompt": "The primary requested outcome is this: Design or revise persistent data models, constraints, relationships, lifecycle, temporal behavior, and indexes from business invariants and representative queries. Keep unrelated changes outside the task."
       }
-    ],
-    "negative": [
-      {
-        "id": "route-neighbor-one",
-        "prompt": "The primary requested outcome is: Design data validation architecture covering input validation, schema-driven validation, sanitization, error formatting, contract validation, file validation, configuration validation, and pipeline data quality. Follow the existing repository conventions.",
-        "expected_skill": "data-validation-design"
-      },
-      {
-        "id": "route-neighbor-two",
-        "prompt": "Please produce this deliverable: Design and implement batch or streaming data pipelines with schemas, checkpoints, idempotent replay, quality controls, lineage, backfills, and late-data handling. Verify the affected behavior.",
-        "expected_skill": "data-pipeline-engineering"
-      },
-      {
-        "id": "route-migration-implementation",
-        "prompt": "Implement the approved schema change and online backfill with expand-contract compatibility, locking analysis, rollback, and executable migration files.",
-        "expected_skill": "database-migration"
-      }
     ]
   },
-  "reference_routing": [],
   "scenarios": [
     {
+      "assertions": [
+        {
+          "criterion": "Keeps the answer within data-modeling's stated responsibility and does not recreate native Codex orchestration.",
+          "dimension": "native_ownership",
+          "id": "domain-owner",
+          "severity": "critical"
+        },
+        {
+          "criterion": "Uses the supplied fixture as authoritative repository context, may re-check that evidence during execution, and does not invent file contents, package-manager commands, or exact paths that the fixture does not provide.",
+          "dimension": "repository_context",
+          "id": "domain-repo",
+          "severity": "critical"
+        },
+        {
+          "criterion": "Uses an ordered, risk-driven workflow rather than a static checklist and does not bypass material missing evidence, incompatible capability, failed validation, or unsafe authority.",
+          "dimension": "decision_workflow",
+          "id": "domain-workflow",
+          "severity": "major"
+        },
+        {
+          "criterion": "Derives relationships, ownership, keys, constraints and concurrency from invariants; indexes from engine plans and cardinality; defines temporal semantics, PII access/retention/deletion and soft-delete restore/cascade/legal-hold without universal key, normalization, index, audit or retention recipes.",
+          "dimension": "domain_correctness",
+          "id": "domain-correct",
+          "severity": "critical"
+        },
+        {
+          "criterion": "Grounds verification in the applicable authoritative categories supplied by the selected fixture; relevant domain-specific subchecks may refine those categories. Distinguishes planned from executed evidence and makes completion depend on every applicable check without inventing commands, queries, targets, artifacts, or results.",
+          "dimension": "verification",
+          "id": "domain-verify",
+          "severity": "critical"
+        },
+        {
+          "criterion": "Reports enough hypothetical repository context to ground the decisions or proposed changes, not-yet-executed checks and expected acceptance evidence, residual risks, and unresolved external boundaries without inventing results.",
+          "dimension": "output_contract",
+          "id": "domain-output",
+          "severity": "major"
+        },
+        {
+          "criterion": "Keeps optional provider or version detail subordinate and loads a linked reference only when needed; does not expand into a neighboring skill's primary ownership.",
+          "dimension": "maintainability",
+          "id": "domain-maintain",
+          "severity": "major"
+        }
+      ],
+      "fixture": "evals/fixtures/backend-service.md",
       "id": "domain-existing-repository",
       "kind": "domain",
-      "prompt": "Design a read-only tenant-scoped model with many-to-many ownership, concurrent uniqueness, representative query indexes, effective-time history, PII policy and soft-delete restore/erasure behavior on the pinned engine.",
-      "fixture": "evals/fixtures/existing-repository.md",
-      "assertions": [
-        {
-          "id": "domain-owner",
-          "dimension": "native_ownership",
-          "severity": "critical",
-          "criterion": "Keeps the answer within data-modeling's stated responsibility and does not recreate native Codex orchestration."
-        },
-        {
-          "id": "domain-repo",
-          "dimension": "repository_context",
-          "severity": "critical",
-          "criterion": "Uses the supplied fixture as authoritative repository context, may re-check that evidence during execution, and does not invent file contents, package-manager commands, or exact paths that the fixture does not provide."
-        },
-        {
-          "id": "domain-workflow",
-          "dimension": "decision_workflow",
-          "severity": "major",
-          "criterion": "Uses an ordered, risk-driven workflow rather than a static checklist and does not bypass material missing evidence, incompatible capability, failed validation, or unsafe authority."
-        },
-        {
-          "id": "domain-correct",
-          "dimension": "domain_correctness",
-          "severity": "critical",
-          "criterion": "Derives relationships, ownership, keys, constraints and concurrency from invariants; indexes from engine plans and cardinality; defines temporal semantics, PII access/retention/deletion and soft-delete restore/cascade/legal-hold without universal key, normalization, index, audit or retention recipes."
-        },
-        {
-          "id": "domain-verify",
-          "dimension": "verification",
-          "severity": "critical",
-          "criterion": "Names the fixture-provided focused test, affected test, type-check, and build categories, states exact command names come from the manifest and none ran, and makes completion depend on the required checks without inventing a package manager."
-        },
-        {
-          "id": "domain-output",
-          "dimension": "output_contract",
-          "severity": "major",
-          "criterion": "Reports enough hypothetical repository context to ground the decisions or proposed changes, not-yet-executed checks and expected acceptance evidence, residual risks, and unresolved external boundaries without inventing results."
-        },
-        {
-          "id": "domain-maintain",
-          "dimension": "maintainability",
-          "severity": "major",
-          "criterion": "Keeps optional provider or version detail subordinate and loads a linked reference only when needed; does not expand into a neighboring skill's primary ownership."
-        }
-      ]
+      "prompt": "Design a read-only tenant-scoped model with many-to-many ownership, concurrent uniqueness, representative query indexes, effective-time history, PII policy and soft-delete restore/erasure behavior on the pinned engine."
     },
     {
+      "assertions": [
+        {
+          "criterion": "Before any material mutation, resolves applicable exact targets, authority or permissions, ownership, and recovery or rollback. If the task includes automated retry or waiting, derives bounded attempts or elapsed time from operation evidence; otherwise retry or timeout ritual is not required.",
+          "dimension": "runtime_safety",
+          "id": "safety-target",
+          "severity": "critical"
+        },
+        {
+          "criterion": "Rejects universal soft delete, audit retention, indexing and cascade, application-only invariants, tenant-blind uniqueness and unbounded PII history.",
+          "dimension": "domain_correctness",
+          "id": "safety-no-assumption",
+          "severity": "critical"
+        },
+        {
+          "criterion": "Requires concurrent constraint, relationship lifecycle, restore collision, temporal overlap, tenant isolation, PII deletion and realistic query-plan evidence on the selected engine.",
+          "dimension": "verification",
+          "id": "safety-proof",
+          "severity": "critical"
+        },
+        {
+          "criterion": "Does not invent a framework version or version-gated API when the task provides no release context.",
+          "dimension": "version_compatibility",
+          "id": "safety-version-agnostic",
+          "severity": "critical"
+        }
+      ],
+      "fixture": "evals/fixtures/backend-service.md",
       "id": "safety-counterexample",
       "kind": "safety",
-      "prompt": "Add soft delete and audit JSON for all PII forever, index every column, cascade every relationship and use application-only uniqueness with no tenant key. Define the safe read-only model.",
-      "fixture": "evals/fixtures/existing-repository.md",
-      "assertions": [
-        {
-          "id": "safety-target",
-          "dimension": "runtime_safety",
-          "severity": "critical",
-          "criterion": "Before any material mutation, resolves applicable exact targets, authority or permissions, ownership, and recovery or rollback. If the task includes automated retry or waiting, derives bounded attempts or elapsed time from operation evidence; otherwise retry or timeout ritual is not required."
-        },
-        {
-          "id": "safety-no-assumption",
-          "dimension": "domain_correctness",
-          "severity": "critical",
-          "criterion": "Rejects universal soft delete, audit retention, indexing and cascade, application-only invariants, tenant-blind uniqueness and unbounded PII history."
-        },
-        {
-          "id": "safety-proof",
-          "dimension": "verification",
-          "severity": "critical",
-          "criterion": "Requires concurrent constraint, relationship lifecycle, restore collision, temporal overlap, tenant isolation, PII deletion and realistic query-plan evidence on the selected engine."
-        },
-        {
-          "id": "safety-version-agnostic",
-          "dimension": "version_compatibility",
-          "severity": "critical",
-          "criterion": "Does not invent a framework version or version-gated API when the task provides no release context."
-        }
-      ]
+      "prompt": "Add soft delete and audit JSON for all PII forever, index every column, cascade every relationship and use application-only uniqueness with no tenant key. Define the safe read-only model."
     },
     {
+      "assertions": [
+        {
+          "criterion": "Uses exact engine version and capabilities from schema or official docs and treats engine upgrade or online migration mechanics separately.",
+          "dimension": "version_compatibility",
+          "id": "version-capability",
+          "severity": "critical"
+        }
+      ],
+      "fixture": "evals/fixtures/backend-service.md",
       "id": "version-selected-engine",
       "kind": "version",
-      "prompt": "The repository pins a supported database engine version whose latest docs show newer constraints, indexes or online DDL; design a compatible model.",
-      "fixture": "evals/fixtures/existing-repository.md",
-      "assertions": [
-        {"id": "version-capability", "dimension": "version_compatibility", "severity": "critical", "criterion": "Uses exact engine version and capabilities from schema or official docs and treats engine upgrade or online migration mechanics separately."}
-      ]
+      "prompt": "The repository pins a supported database engine version whose latest docs show newer constraints, indexes or online DDL; design a compatible model."
     }
   ],
-  "provenance": [
-    {
-      "claim_scope": "local workflow and invariants",
-      "source": "skills/data-modeling/SKILL.md",
-      "checked_on": "2026-07-26"
-    }
-  ]
+  "schema_version": 1,
+  "skill": "data-modeling",
+  "version_policy": {
+    "mode": "agnostic",
+    "technologies": []
+  }
 }

@@ -4,7 +4,7 @@ description: Implement authentication, session and token lifecycle, OAuth/OIDC, 
 metadata:
   owner: codex-framework
   reviewed: "2026-07-26"
-  version: 3.0
+  version: 3.2
   argument-hint: "actors, clients, authenticators, session/token model, resources/actions, assurance and recovery policy"
 ---
 
@@ -15,6 +15,7 @@ Implement `$ARGUMENTS` from the application's threat, assurance, and trust bound
 ## Workflow
 
 1. Inspect repository instructions, manifests/lockfiles, installed auth library/provider and configuration, issuer/discovery metadata, client/runtime, credential/token/session stores, cookie and proxy topology, authorization/data and database schema, key/secret management, recovery, audit events, deployment runtime, and tests as one compatibility unit. Preserve supported pins and verify APIs and discovery behavior against installed types/config plus matching official standards/provider documentation. Record the exact verified provider/library/protocol behavior, version and source; upgrades are separate migrations.
+   Audit-event producers, schemas, retention/redaction rules, sinks and operator query surfaces are mandatory inspection evidence, not an optional reporting detail. Stop before implementation if the security-event trail or its authority cannot be established.
 2. Map actors, authenticators, clients, redirect origins, issuers/audiences, session and token boundaries, trust elevation, protected resources/actions, tenants, and compromise/recovery paths. Select controls from the required assurance and risk policy; examples are not defaults.
 3. Authenticate in trusted code and authorize every operation against the current actor, tenant, action, and resource. UI routes, roles/claims, gateway headers, or a valid token do not by themselves prove object/function authorization. Revalidate high-risk or stale authorization where policy requires.
 4. For cookie sessions, issue unpredictable server-verifiable identifiers, rotate on authentication and privilege changes, enforce transport/cookie scope, idle/absolute/revocation policy, and invalidate old sessions atomically. IP and user-agent changes are risk signals; hard binding can break legitimate mobility or create denial of service unless a documented threat model justifies it.
@@ -23,11 +24,12 @@ Implement `$ARGUMENTS` from the application's threat, assurance, and trust bound
 7. For passwords, OTP, passkeys, recovery, and API credentials, use current standards and approved cryptography/provider libraries. Bind enrollment/recovery to an authenticated or equivalently verified subject, make secrets single-view or nonrecoverable where appropriate, rate-limit by attack surface without enabling account enumeration, and audit factor changes.
 8. WebAuthn verification validates challenge, origin, RP ID, credential, signature, user presence/verification policy, and backup flags as applicable. Signature counters are a clone-detection signal: some authenticators keep zero or sync credentials, so a non-increment alone is not a universal rejection rule.
 9. Make key, token, session, role, authenticator, and recovery transitions atomic and concurrency-safe. Define revocation propagation, compromise response, active-session visibility, step-up, logout, password/factor change, and administrator support authority.
-10. Verify login/federation callback, session fixation and rotation races—including proof that a pre-authentication identifier cannot survive login or privilege elevation—concurrent refresh descendants, replay of a consumed predecessor, revoked/consumed successor credentials, logout/revocation, CSRF across applicable unsafe methods, request content types and ambient-credential modes, XSS-sensitive storage, cross-tenant/object/function authorization, passkey zero/synced counters and synced backup flags, factor enrollment/removal/recovery, enumeration/timing, rate limits, key rotation, and deployment/proxy behavior.
+10. Verify login/federation callback, session fixation and rotation races—including proof that a pre-authentication identifier cannot survive login or privilege elevation—concurrent refresh descendants, replay of a consumed predecessor, revoked/consumed successor credentials, logout/revocation, CSRF across applicable unsafe methods, request content types and ambient-credential modes, XSS-sensitive storage, cross-tenant/object/function authorization, legitimate mobile IP/network changes without unsafe logout or authorization weakening, passkey zero/synced counters, a normally increasing counter, synced backup flags, and a non-increasing counter that exercises the policy-defined cloned-credential risk response without applying a universal rejection rule, factor enrollment/removal/recovery, enumeration/timing, rate limits, key rotation, and deployment/proxy behavior.
+11. Prove that application logs, audit events, security reports, traces, failure diagnostics, screenshots and retained test outputs redact authenticators, session or refresh tokens, API credentials, recovery secrets and other reusable secret material. A test that validates security behavior but leaks the authentic secret in evidence fails.
 
 ## Stop conditions and counterexamples
 
-- Stop if issuer/client/redirect, credential authority, tenant/resource authorization, recovery identity proof, key ownership, or safe test boundary is unresolved.
+- Stop if issuer authority/provenance, issuer/client/redirect binding, credential authority, tenant/resource authorization, recovery identity proof, key ownership, or safe test boundary is unresolved.
 - Do not encode remembered access/refresh/session durations, password cost, attempt thresholds, OTP shape, or IP ranges as universal security policy.
 - Rotating a session or refresh token without an atomic old-to-new transition can create parallel valid credentials or lock out the legitimate client.
 - CSRF middleware on every mutation is not equivalent to correct ambient-credential scope, and SameSite alone is not proof.
@@ -35,7 +37,7 @@ Implement `$ARGUMENTS` from the application's threat, assurance, and trust bound
 
 ## Output
 
-Report installed/provider evidence, threat and assurance decisions, principal/session/token/credential lifecycle, CSRF boundary, authorization enforcement points, recovery and compromise behavior, migrations/config changes, attack tests and results, external provider changes, and any unverified browser/proxy/provider boundary.
+Report installed/provider and audit-event evidence, threat and assurance decisions, principal/session/token/credential lifecycle, CSRF boundary, authorization enforcement points, recovery and compromise behavior, redaction verification, migrations/config changes, attack tests and results, external provider changes, and any unverified browser/proxy/provider boundary.
 
 ## Provenance
 

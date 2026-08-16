@@ -1,0 +1,20 @@
+{
+  "name": "ai-codex-framework",
+  "interface": {
+    "displayName": "AI Codex Framework"
+  },
+  "plugins": [
+    {
+      "name": "codex-frontend-design",
+      "source": {
+        "source": "local",
+        "path": "./plugins/codex-frontend-design"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Developer Tools"
+    }
+  ]
+}

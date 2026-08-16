@@ -4,7 +4,7 @@ description: Design and implement controlled online experiments, including assig
 metadata:
   owner: codex-framework
   reviewed: "2026-07-26"
-  version: 2.0
+  version: 2.1
   argument-hint: "hypothesis, unit of randomization, population, estimand, metric, decision risk"
 ---
 
@@ -42,7 +42,7 @@ This skill owns causal product experiments and their execution contract. Automat
 
 ## Output
 
-Report the decision and estimand, population and randomization unit, method and assumptions, calculated sample/duration with inputs, assignment/exposure contract, integrity and guardrail checks, analysis and multiplicity rule, implementation/tests, decision evidence, and residual validity or privacy risks. Separate executed evidence from proposed verification.
+Report the decision and estimand, population and randomization unit, method and assumptions, calculated sample/duration with inputs, assignment/exposure contract, integrity and guardrail checks, analysis and multiplicity rule, implementation/tests, decision evidence, and residual validity or privacy risks. For every version-sensitive vendor/API/method decision, require the exact verified source, installed/configured version and capability conclusion to be stored beside the relevant repository configuration or implementation; a chat-only note or remembered-current version is insufficient. Separate executed evidence from proposed verification.
 
 ## Provenance
 

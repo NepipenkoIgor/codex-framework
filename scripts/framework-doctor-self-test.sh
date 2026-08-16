@@ -10,6 +10,9 @@ trap 'rm -rf -- "$FIXTURE"' EXIT
 printf '%s\n' '{"checks":{"terminal.env":{"status":"warning","summary":"height 13 rows - content may scroll off (recommended >=24)","details":{"terminal size":"80x13"}}}}' > "$FIXTURE/native-warning.json"
 python3 "$ROOT/scripts/framework-doctor-native.py" "$FIXTURE/native-warning.json" 0 \
   | grep -q 'native advisory: terminal.env: height 13 rows'
+printf '%s\n' '{"checks":{"terminal.env":{"status":"fail","summary":"TERM=dumb","details":{"TERM":"dumb","stdin is terminal":"false","stdout is terminal":"false","stderr is terminal":"false"}}}}' > "$FIXTURE/native-piped-terminal.json"
+python3 "$ROOT/scripts/framework-doctor-native.py" "$FIXTURE/native-piped-terminal.json" 1 \
+  | grep -q 'ignored TERM=dumb because this audit is running without a TTY'
 printf '%s\n' '{"checks":{"runtime":{"status":"fail","summary":"runtime is unavailable","details":{}}}}' > "$FIXTURE/native-failure.json"
 if python3 "$ROOT/scripts/framework-doctor-native.py" "$FIXTURE/native-failure.json" 1 >/dev/null 2>&1; then
   printf 'native doctor classifier did not reject a real failure\n' >&2

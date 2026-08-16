@@ -4,7 +4,7 @@ description: Implement environment configuration, secrets, previews, promotion, 
 metadata:
   owner: codex-framework
   reviewed: "2026-07-27"
-  version: 2.0
+  version: 2.1
   argument-hint: "exact environments/accounts, config and secret systems, preview ownership, promotion/cleanup requirements"
 ---
 
@@ -28,4 +28,4 @@ Design rollback across code, config, secret, database/data, queue/event and exte
 
 ## Verification and output
 
-Validate schemas and secret references without exposing values; test isolation, revoked-secret behavior, rotation partial failure, preview collision/cleanup, permission denial, artifact/config promotion, restore and rollback. Where external actions are authorized, read back exact resource state. Report targets/ownership, configuration and secret provenance, changes, approvals, cleanup inventory, checks/results and residual provider/data risks.
+Validate schemas and secret references without exposing values. Add executable compatibility cases that bind an immutable artifact identity to the exact configuration/schema version, accept a supported pairing, and reject an incompatible or stale pairing before promotion. Prove secret non-exposure with repository, generated-config, build-artifact, log/diagnostic, and retained-output scanning/redaction checks that use safe test markers rather than authentic secrets. Also test isolation, revoked-secret behavior, rotation partial failure, preview collision/cleanup, permission denial, restore and rollback. Where external actions are authorized, read back exact resource state. Report targets/ownership, configuration and secret provenance, changes, approvals, cleanup inventory, checks/results and residual provider/data risks.

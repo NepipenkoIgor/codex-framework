@@ -1,9 +1,6 @@
 {
-  "schema_version": 1,
   "contract_status": "reviewed",
-  "skill": "ai-streaming",
   "native_ownership": {
-    "responsibility": "Implement AI stream framing and decoding, incremental state, abort propagation, bounded backpressure, terminal/partial semantics and safe reconnect or reconciliation.",
     "excludes": [
       "End-to-end conversational persistence, rendering and tool UX are owned by chatbot-implement.",
       "Agent tools, memory and approval architecture are owned by ai-agent-architecture.",
@@ -14,22 +11,54 @@
       "ai-agent-architecture",
       "backend-implement",
       "frontend-implement"
-    ]
+    ],
+    "responsibility": "Implement AI stream framing and decoding, incremental state, abort propagation, bounded backpressure, terminal/partial semantics and safe reconnect or reconciliation."
   },
+  "provenance": [
+    {
+      "checked_on": "2026-07-26",
+      "claim_scope": "SSE parsing and line/event semantics",
+      "source": "https://html.spec.whatwg.org/multipage/server-sent-events.html"
+    },
+    {
+      "checked_on": "2026-07-26",
+      "claim_scope": "WHATWG Streams backpressure and cancellation",
+      "source": "https://streams.spec.whatwg.org/"
+    },
+    {
+      "checked_on": "2026-07-26",
+      "claim_scope": "AI SDK streamText response methods",
+      "source": "https://ai-sdk.dev/docs/reference/ai-sdk-core/stream-text"
+    },
+    {
+      "checked_on": "2026-07-26",
+      "claim_scope": "dynamic AI SDK release resolver",
+      "source": "skills/version-sources.tsv"
+    },
+    {
+      "checked_on": "2026-07-26",
+      "claim_scope": "local streaming workflow",
+      "source": "skills/ai-streaming/SKILL.md"
+    }
+  ],
+  "reference_routing": [],
   "risk": {
     "mode": "repository_write",
     "rationale": "ai-streaming changes repository runtime behavior and therefore requires scoped authorization, safe external-effect boundaries and affected-path verification."
   },
-  "version_policy": {
-    "mode": "dynamic",
-    "technologies": [
-      "ai-sdk",
-      "nodejs",
-      "openai",
-      "typescript"
-    ]
-  },
   "routing": {
+    "negative": [
+      {
+        "expected_skill": "chatbot-implement",
+        "id": "route-chat-product",
+        "prompt": "Build the complete multi-tenant chatbot including authoritative conversations, installed useChat transport, message rendering, tools and approvals, persistence, attachments and human handoff."
+      },
+      {
+        "expected_skill": "ai-agent-architecture",
+        "id": "route-agent-system",
+        "prompt": "Design a least-privilege product agent with explicit state, tool authorization, human approval, memory governance, evaluation and rollout boundaries."
+      }
+    ],
     "positive": [
       {
         "id": "route-sse-decoder",
@@ -39,156 +68,127 @@
         "id": "route-stream-abort",
         "prompt": "Repair a streamed tool response so browser disconnect aborts provider and cancellable tools, unknown provider success is reconciled, partial output remains nonterminal and retry never repeats an ambiguous side effect."
       }
-    ],
-    "negative": [
-      {
-        "id": "route-chat-product",
-        "prompt": "Build the complete multi-tenant chatbot including authoritative conversations, installed useChat transport, message rendering, tools and approvals, persistence, attachments and human handoff.",
-        "expected_skill": "chatbot-implement"
-      },
-      {
-        "id": "route-agent-system",
-        "prompt": "Design a least-privilege product agent with explicit state, tool authorization, human approval, memory governance, evaluation and rollout boundaries.",
-        "expected_skill": "ai-agent-architecture"
-      }
     ]
   },
-  "reference_routing": [],
   "scenarios": [
     {
+      "assertions": [
+        {
+          "criterion": "Owns framing, decoding, stream state, abort and backpressure while leaving chatbot product and agent architecture to neighbors.",
+          "dimension": "native_ownership",
+          "id": "stream-owner",
+          "severity": "major"
+        },
+        {
+          "criterion": "Inspects installed SDK/protocol, route/runtime, proxy buffering, event schema, UI state, side effects and tests from the fixture without assuming SSE or an SDK method.",
+          "dimension": "repository_context",
+          "id": "stream-repo",
+          "severity": "critical"
+        },
+        {
+          "criterion": "Chooses a proven installed decoder where possible, otherwise defines framing/terminal/limit state before incremental implementation and deployed verification.",
+          "dimension": "decision_workflow",
+          "id": "stream-flow",
+          "severity": "critical"
+        },
+        {
+          "criterion": "Handles streamed UTF-8 final flush, CRLF/lone CR/LF across chunks, multiline data joined by newline, comments and field parsing, explicit terminal schema, bounded malformed events and unterminated EOF as interrupted partial state.",
+          "dimension": "domain_correctness",
+          "id": "stream-correct",
+          "severity": "critical"
+        },
+        {
+          "criterion": "Uses byte-split fixtures inside UTF-8, delimiters and fields plus multiline/comment/unknown/empty/final/malformed/oversized/unterminated cases, slow consumers and deployed proxy behavior.",
+          "dimension": "verification",
+          "id": "stream-verify",
+          "severity": "critical"
+        },
+        {
+          "criterion": "Reports installed framing/response capability, decoder/state/terminal contracts, abort/reconnect behavior, byte-level/deployed evidence and residual proxy/provider risks.",
+          "dimension": "output_contract",
+          "id": "stream-output",
+          "severity": "major"
+        },
+        {
+          "criterion": "Uses one protocol decoder with explicit limits and typed events, preferring maintained libraries and isolating volatile SDK response methods.",
+          "dimension": "maintainability",
+          "id": "stream-maintain",
+          "severity": "major"
+        }
+      ],
+      "fixture": "evals/fixtures/ai-data-system.md",
       "id": "domain-critical-boundaries",
       "kind": "domain",
-      "prompt": "A custom SSE consumer splits each decoded chunk on newline, ignores CRLF boundaries and comments, emits each data line separately, drops the final TextDecoder bytes and marks an unterminated EOF complete. Repair the decoder and client state.",
-      "fixture": "evals/fixtures/existing-repository.md",
-      "assertions": [
-        {
-          "id": "stream-owner",
-          "dimension": "native_ownership",
-          "severity": "major",
-          "criterion": "Owns framing, decoding, stream state, abort and backpressure while leaving chatbot product and agent architecture to neighbors."
-        },
-        {
-          "id": "stream-repo",
-          "dimension": "repository_context",
-          "severity": "critical",
-          "criterion": "Inspects installed SDK/protocol, route/runtime, proxy buffering, event schema, UI state, side effects and tests from the fixture without assuming SSE or an SDK method."
-        },
-        {
-          "id": "stream-flow",
-          "dimension": "decision_workflow",
-          "severity": "critical",
-          "criterion": "Chooses a proven installed decoder where possible, otherwise defines framing/terminal/limit state before incremental implementation and deployed verification."
-        },
-        {
-          "id": "stream-correct",
-          "dimension": "domain_correctness",
-          "severity": "critical",
-          "criterion": "Handles streamed UTF-8 final flush, CRLF/lone CR/LF across chunks, multiline data joined by newline, comments and field parsing, explicit terminal schema, bounded malformed events and unterminated EOF as interrupted partial state."
-        },
-        {
-          "id": "stream-verify",
-          "dimension": "verification",
-          "severity": "critical",
-          "criterion": "Uses byte-split fixtures inside UTF-8, delimiters and fields plus multiline/comment/unknown/empty/final/malformed/oversized/unterminated cases, slow consumers and deployed proxy behavior."
-        },
-        {
-          "id": "stream-output",
-          "dimension": "output_contract",
-          "severity": "major",
-          "criterion": "Reports installed framing/response capability, decoder/state/terminal contracts, abort/reconnect behavior, byte-level/deployed evidence and residual proxy/provider risks."
-        },
-        {
-          "id": "stream-maintain",
-          "dimension": "maintainability",
-          "severity": "major",
-          "criterion": "Uses one protocol decoder with explicit limits and typed events, preferring maintained libraries and isolating volatile SDK response methods."
-        }
-      ]
+      "prompt": "A custom SSE consumer splits each decoded chunk on newline, ignores CRLF boundaries and comments, emits each data line separately, drops the final TextDecoder bytes and marks an unterminated EOF complete. Repair the decoder and client state."
     },
     {
+      "assertions": [
+        {
+          "criterion": "Propagates abort but records a durable operation identity and unknown outcome, stops retry-from-start and resolves exact provider/tool reconciliation and user-visible recovery.",
+          "dimension": "runtime_safety",
+          "id": "stream-safety",
+          "severity": "critical"
+        },
+        {
+          "criterion": "Does not treat disconnect as rollback, deduplicates or reconciles the accepted side effect, keeps received output partial/nonterminal and resumes only with a verified cursor/idempotency contract.",
+          "dimension": "domain_correctness",
+          "id": "stream-safety-correct",
+          "severity": "critical"
+        },
+        {
+          "criterion": "Requires authoritative provider/tool result, exactly-once effective operation, terminal-state persistence and disconnect/reconnect evidence rather than closed sockets or reader cancellation.",
+          "dimension": "verification",
+          "id": "stream-safety-proof",
+          "severity": "critical"
+        },
+        {
+          "criterion": "Reports partial generation separately from external-operation reconciliation and identifies any provider cancellation uncertainty.",
+          "dimension": "output_contract",
+          "id": "stream-safety-output",
+          "severity": "major"
+        }
+      ],
+      "fixture": "evals/fixtures/ai-data-system.md",
       "id": "safety-adversarial-runtime",
       "kind": "safety",
-      "prompt": "A streamed agent calls an external send tool. The provider accepts it, the client disconnects before the tool result event, abort does not stop the provider, and reconnect retries the stream from the beginning. Define safe behavior.",
-      "fixture": "evals/fixtures/existing-repository.md",
-      "assertions": [
-        {
-          "id": "stream-safety",
-          "dimension": "runtime_safety",
-          "severity": "critical",
-          "criterion": "Propagates abort but records a durable operation identity and unknown outcome, stops retry-from-start and resolves exact provider/tool reconciliation and user-visible recovery."
-        },
-        {
-          "id": "stream-safety-correct",
-          "dimension": "domain_correctness",
-          "severity": "critical",
-          "criterion": "Does not treat disconnect as rollback, deduplicates or reconciles the accepted side effect, keeps received output partial/nonterminal and resumes only with a verified cursor/idempotency contract."
-        },
-        {
-          "id": "stream-safety-proof",
-          "dimension": "verification",
-          "severity": "critical",
-          "criterion": "Requires authoritative provider/tool result, exactly-once effective operation, terminal-state persistence and disconnect/reconnect evidence rather than closed sockets or reader cancellation."
-        },
-        {
-          "id": "stream-safety-output",
-          "dimension": "output_contract",
-          "severity": "major",
-          "criterion": "Reports partial generation separately from external-operation reconciliation and identifies any provider cancellation uncertainty."
-        }
-      ]
+      "prompt": "A streamed agent calls an external send tool. The provider accepts it, the client disconnects before the tool result event, abort does not stop the provider, and reconnect retries the stream from the beginning. Define safe behavior."
     },
     {
+      "assertions": [
+        {
+          "criterion": "Uses ai-sdk stack detection, lockfile, installed types and matching official docs to choose the exact response/decoder protocol and treats upgrade separately.",
+          "dimension": "version_compatibility",
+          "id": "stream-version",
+          "severity": "critical"
+        },
+        {
+          "criterion": "Checks core/provider SDK, route runtime, client adapter, proxy/CDN and browser stream support together.",
+          "dimension": "repository_context",
+          "id": "stream-version-context",
+          "severity": "major"
+        },
+        {
+          "criterion": "Does not encode a remembered major, response helper or universal timeout/render interval; records capability and infrastructure policy.",
+          "dimension": "maintainability",
+          "id": "stream-version-maintain",
+          "severity": "major"
+        }
+      ],
+      "fixture": "evals/fixtures/ai-data-system.md",
       "id": "version-installed-ai-sdk",
       "kind": "version",
-      "prompt": "A project pins an AI SDK core line whose streamText response method and wire protocol differ from current examples. No SDK migration is authorized.",
-      "fixture": "evals/fixtures/existing-repository.md",
-      "assertions": [
-        {
-          "id": "stream-version",
-          "dimension": "version_compatibility",
-          "severity": "critical",
-          "criterion": "Uses ai-sdk stack detection, lockfile, installed types and matching official docs to choose the exact response/decoder protocol and treats upgrade separately."
-        },
-        {
-          "id": "stream-version-context",
-          "dimension": "repository_context",
-          "severity": "major",
-          "criterion": "Checks core/provider SDK, route runtime, client adapter, proxy/CDN and browser stream support together."
-        },
-        {
-          "id": "stream-version-maintain",
-          "dimension": "maintainability",
-          "severity": "major",
-          "criterion": "Does not encode a remembered major, response helper or universal timeout/render interval; records capability and infrastructure policy."
-        }
-      ]
+      "prompt": "A project pins an AI SDK core line whose streamText response method and wire protocol differ from current examples. No SDK migration is authorized."
     }
   ],
-  "provenance": [
-    {
-      "claim_scope": "SSE parsing and line/event semantics",
-      "source": "https://html.spec.whatwg.org/multipage/server-sent-events.html",
-      "checked_on": "2026-07-26"
-    },
-    {
-      "claim_scope": "WHATWG Streams backpressure and cancellation",
-      "source": "https://streams.spec.whatwg.org/",
-      "checked_on": "2026-07-26"
-    },
-    {
-      "claim_scope": "AI SDK streamText response methods",
-      "source": "https://ai-sdk.dev/docs/reference/ai-sdk-core/stream-text",
-      "checked_on": "2026-07-26"
-    },
-    {
-      "claim_scope": "dynamic AI SDK release resolver",
-      "source": "skills/version-sources.tsv",
-      "checked_on": "2026-07-26"
-    },
-    {
-      "claim_scope": "local streaming workflow",
-      "source": "skills/ai-streaming/SKILL.md",
-      "checked_on": "2026-07-26"
-    }
-  ]
+  "schema_version": 1,
+  "skill": "ai-streaming",
+  "version_policy": {
+    "mode": "dynamic",
+    "technologies": [
+      "ai-sdk",
+      "nodejs",
+      "openai",
+      "typescript"
+    ]
+  }
 }

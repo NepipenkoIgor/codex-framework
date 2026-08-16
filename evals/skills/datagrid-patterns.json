@@ -1,9 +1,6 @@
 {
-  "schema_version": 1,
   "contract_status": "reviewed",
-  "skill": "datagrid-patterns",
   "native_ownership": {
-    "responsibility": "Implement interactive data grids with deterministic server queries, selection and snapshot semantics, inline edits, batch actions, secure export, and accessible interaction.",
     "excludes": [
       "Dashboard composition and analytical reporting are owned by reporting-dashboards.",
       "Broad accessibility remediation is owned by accessibility-implement.",
@@ -14,22 +11,49 @@
       "accessibility-implement",
       "frontend-implement",
       "backend-implement"
-    ]
+    ],
+    "responsibility": "Implement interactive data grids with deterministic server queries, selection and snapshot semantics, inline edits, batch actions, secure export, and accessible interaction."
   },
+  "provenance": [
+    {
+      "checked_on": "2026-07-26",
+      "claim_scope": "ARIA grid interaction semantics",
+      "source": "https://www.w3.org/WAI/ARIA/apg/patterns/grid/"
+    },
+    {
+      "checked_on": "2026-07-26",
+      "claim_scope": "CSV formula injection threat",
+      "source": "https://owasp.org/www-community/attacks/CSV_Injection"
+    },
+    {
+      "checked_on": "2026-07-26",
+      "claim_scope": "dynamic framework release sources",
+      "source": "skills/version-sources.tsv"
+    },
+    {
+      "checked_on": "2026-07-26",
+      "claim_scope": "local implementation workflow",
+      "source": "skills/datagrid-patterns/SKILL.md"
+    }
+  ],
+  "reference_routing": [],
   "risk": {
     "mode": "repository_write",
     "rationale": "datagrid-patterns changes repository code and browser/server behavior; mutations remain limited to the explicitly requested scope and require affected-path verification."
   },
-  "version_policy": {
-    "mode": "dynamic",
-    "technologies": [
-      "angular",
-      "react",
-      "typescript",
-      "vue"
-    ]
-  },
   "routing": {
+    "negative": [
+      {
+        "expected_skill": "reporting-dashboards",
+        "id": "route-dashboard",
+        "prompt": "Build an executive analytics dashboard with KPI definitions, aggregate queries, chart composition, time-range comparisons, drill-downs, freshness labels and reporting performance."
+      },
+      {
+        "expected_skill": "accessibility-implement",
+        "id": "route-accessibility-retrofit",
+        "prompt": "Audit and repair keyboard navigation, landmarks, accessible names, focus management, live regions, contrast and screen-reader behavior across the whole frontend."
+      }
+    ],
     "positive": [
       {
         "id": "route-grid-batch",
@@ -39,145 +63,121 @@
         "id": "route-grid-export",
         "prompt": "Add an authorized CSV export and inline edits to a large tenant data table. The export must prevent spreadsheet formula execution, preserve a consistent dataset snapshot, and expose accessible native-table or ARIA-grid semantics intentionally."
       }
-    ],
-    "negative": [
-      {
-        "id": "route-dashboard",
-        "prompt": "Build an executive analytics dashboard with KPI definitions, aggregate queries, chart composition, time-range comparisons, drill-downs, freshness labels and reporting performance.",
-        "expected_skill": "reporting-dashboards"
-      },
-      {
-        "id": "route-accessibility-retrofit",
-        "prompt": "Audit and repair keyboard navigation, landmarks, accessible names, focus management, live regions, contrast and screen-reader behavior across the whole frontend.",
-        "expected_skill": "accessibility-implement"
-      }
     ]
   },
-  "reference_routing": [],
   "scenarios": [
     {
+      "assertions": [
+        {
+          "criterion": "Implements grid query, selection, editing, batch, export and widget semantics without implementing or claiming ownership of dashboards or a broad accessibility program.",
+          "dimension": "native_ownership",
+          "id": "grid-owner",
+          "severity": "major"
+        },
+        {
+          "criterion": "Inspects grid library, API/query contract, stable row identity/version, authorization rules, dataset scale, export consumers, browser targets and tests from the fixture.",
+          "dimension": "repository_context",
+          "id": "grid-repo",
+          "severity": "critical"
+        },
+        {
+          "criterion": "Chooses native table versus composite grid when the task establishes the interaction model; otherwise states the missing interaction evidence and exact decision rule. In either case it defines deterministic query and snapshot/selection semantics, then edit, batch and export failure behavior before UI APIs.",
+          "dimension": "decision_workflow",
+          "id": "grid-workflow",
+          "severity": "critical"
+        },
+        {
+          "criterion": "Uses stable IDs and versions, freezes query-wide operations to an authoritative snapshot, authorizes each row/action, returns nonleaking partial outcomes and neutralizes spreadsheet formula/control input by a documented consumer policy.",
+          "dimension": "domain_correctness",
+          "id": "grid-correct",
+          "severity": "critical"
+        },
+        {
+          "criterion": "Tests inserts/deletes during pagination, snapshot expiry, permission changes, mixed row outcomes, cancel/retry, timeout after commit, edit conflicts, virtualized focus and formula/newline/Unicode export cases.",
+          "dimension": "verification",
+          "id": "grid-verify",
+          "severity": "critical"
+        },
+        {
+          "criterion": "Reports query/snapshot/selection contracts, per-row authorization, batch failure model, export policy, semantic choice, test evidence and residual scale/consumer risk.",
+          "dimension": "output_contract",
+          "id": "grid-output",
+          "severity": "major"
+        },
+        {
+          "criterion": "Separates server data semantics from library rendering and avoids fixed page sizes, chunk sizes or ARIA behavior unsupported by repository requirements.",
+          "dimension": "maintainability",
+          "id": "grid-maintain",
+          "severity": "major"
+        }
+      ],
+      "fixture": "evals/fixtures/web-application.md",
       "id": "domain-critical-boundaries",
       "kind": "domain",
-      "prompt": "A virtualized tenant grid selects rows by visible index, means 'all current matches' without a snapshot, authorizes only the batch endpoint globally, retries the entire batch after partial timeout, and exports quoted user values directly to CSV. Repair the contracts.",
-      "fixture": "evals/fixtures/existing-repository.md",
-      "assertions": [
-        {
-          "id": "grid-owner",
-          "dimension": "native_ownership",
-          "severity": "major",
-          "criterion": "Implements grid query, selection, editing, batch, export and widget semantics without implementing or claiming ownership of dashboards or a broad accessibility program."
-        },
-        {
-          "id": "grid-repo",
-          "dimension": "repository_context",
-          "severity": "critical",
-          "criterion": "Inspects grid library, API/query contract, stable row identity/version, authorization rules, dataset scale, export consumers, browser targets and tests from the fixture."
-        },
-        {
-          "id": "grid-workflow",
-          "dimension": "decision_workflow",
-          "severity": "critical",
-          "criterion": "Chooses native table versus composite grid when the task establishes the interaction model; otherwise states the missing interaction evidence and exact decision rule. In either case it defines deterministic query and snapshot/selection semantics, then edit, batch and export failure behavior before UI APIs."
-        },
-        {
-          "id": "grid-correct",
-          "dimension": "domain_correctness",
-          "severity": "critical",
-          "criterion": "Uses stable IDs and versions, freezes query-wide operations to an authoritative snapshot, authorizes each row/action, returns nonleaking partial outcomes and neutralizes spreadsheet formula/control input by a documented consumer policy."
-        },
-        {
-          "id": "grid-verify",
-          "dimension": "verification",
-          "severity": "critical",
-          "criterion": "Tests inserts/deletes during pagination, snapshot expiry, permission changes, mixed row outcomes, cancel/retry, timeout after commit, edit conflicts, virtualized focus and formula/newline/Unicode export cases."
-        },
-        {
-          "id": "grid-output",
-          "dimension": "output_contract",
-          "severity": "major",
-          "criterion": "Reports query/snapshot/selection contracts, per-row authorization, batch failure model, export policy, semantic choice, test evidence and residual scale/consumer risk."
-        },
-        {
-          "id": "grid-maintain",
-          "dimension": "maintainability",
-          "severity": "major",
-          "criterion": "Separates server data semantics from library rendering and avoids fixed page sizes, chunk sizes or ARIA behavior unsupported by repository requirements."
-        }
-      ]
+      "prompt": "A virtualized tenant grid selects rows by visible index, means 'all current matches' without a snapshot, authorizes only the batch endpoint globally, retries the entire batch after partial timeout, and exports quoted user values directly to CSV. Repair the contracts."
     },
     {
+      "assertions": [
+        {
+          "criterion": "Stops until exact tenant, normalized query, authoritative snapshot, actor permission, operation identity, destructive confirmation, batch policy and recovery boundary are verified.",
+          "dimension": "runtime_safety",
+          "id": "grid-safety",
+          "severity": "critical"
+        },
+        {
+          "criterion": "Reauthorizes each row at execution, uses concurrency/version checks, preserves per-row terminal outcomes and does not retry rows already durably accepted.",
+          "dimension": "domain_correctness",
+          "id": "grid-safety-correct",
+          "severity": "critical"
+        },
+        {
+          "criterion": "Requires persisted per-row outcomes, audit evidence, snapshot accounting and caller-visible reconciliation rather than browser progress or request success alone.",
+          "dimension": "verification",
+          "id": "grid-safety-proof",
+          "severity": "critical"
+        }
+      ],
+      "fixture": "evals/fixtures/web-application.md",
       "id": "safety-production-counterexample",
       "kind": "safety",
-      "prompt": "An admin asks to run 'select all matching' delete from the browser after a long-lived filter session and to retry every row if the progress request times out. Permissions may have changed. Explain safe execution.",
-      "fixture": "evals/fixtures/existing-repository.md",
-      "assertions": [
-        {
-          "id": "grid-safety",
-          "dimension": "runtime_safety",
-          "severity": "critical",
-          "criterion": "Stops until exact tenant, normalized query, authoritative snapshot, actor permission, operation identity, destructive confirmation, batch policy and recovery boundary are verified."
-        },
-        {
-          "id": "grid-safety-correct",
-          "dimension": "domain_correctness",
-          "severity": "critical",
-          "criterion": "Reauthorizes each row at execution, uses concurrency/version checks, preserves per-row terminal outcomes and does not retry rows already durably accepted."
-        },
-        {
-          "id": "grid-safety-proof",
-          "dimension": "verification",
-          "severity": "critical",
-          "criterion": "Requires persisted per-row outcomes, audit evidence, snapshot accounting and caller-visible reconciliation rather than browser progress or request success alone."
-        }
-      ]
+      "prompt": "An admin asks to run 'select all matching' delete from the browser after a long-lived filter session and to retry every row if the progress request times out. Permissions may have changed. Explain safe execution."
     },
     {
+      "assertions": [
+        {
+          "criterion": "Uses lockfile, installed types, generated DOM behavior and matching official library documentation, with an explicit capability fallback and separate migration scope.",
+          "dimension": "version_compatibility",
+          "id": "grid-version",
+          "severity": "critical"
+        },
+        {
+          "criterion": "Checks framework adapter, grid core, browser support, server query contract and test harness together before selecting APIs.",
+          "dimension": "repository_context",
+          "id": "grid-version-context",
+          "severity": "major"
+        },
+        {
+          "criterion": "Keeps native HTML and ARIA semantics based on current W3C guidance while isolating volatile library API details at the implementation boundary.",
+          "dimension": "maintainability",
+          "id": "grid-version-maintain",
+          "severity": "major"
+        }
+      ],
+      "fixture": "evals/fixtures/web-application.md",
       "id": "version-installed-capability",
       "kind": "version",
-      "prompt": "The existing grid library is pinned to a supported release whose virtualization and accessibility APIs differ from the newest documentation. No dependency upgrade is authorized.",
-      "fixture": "evals/fixtures/existing-repository.md",
-      "assertions": [
-        {
-          "id": "grid-version",
-          "dimension": "version_compatibility",
-          "severity": "critical",
-          "criterion": "Uses lockfile, installed types, generated DOM behavior and matching official library documentation, with an explicit capability fallback and separate migration scope."
-        },
-        {
-          "id": "grid-version-context",
-          "dimension": "repository_context",
-          "severity": "major",
-          "criterion": "Checks framework adapter, grid core, browser support, server query contract and test harness together before selecting APIs."
-        },
-        {
-          "id": "grid-version-maintain",
-          "dimension": "maintainability",
-          "severity": "major",
-          "criterion": "Keeps native HTML and ARIA semantics based on current W3C guidance while isolating volatile library API details at the implementation boundary."
-        }
-      ]
+      "prompt": "The existing grid library is pinned to a supported release whose virtualization and accessibility APIs differ from the newest documentation. No dependency upgrade is authorized."
     }
   ],
-  "provenance": [
-    {
-      "claim_scope": "ARIA grid interaction semantics",
-      "source": "https://www.w3.org/WAI/ARIA/apg/patterns/grid/",
-      "checked_on": "2026-07-26"
-    },
-    {
-      "claim_scope": "CSV formula injection threat",
-      "source": "https://owasp.org/www-community/attacks/CSV_Injection",
-      "checked_on": "2026-07-26"
-    },
-    {
-      "claim_scope": "dynamic framework release sources",
-      "source": "skills/version-sources.tsv",
-      "checked_on": "2026-07-26"
-    },
-    {
-      "claim_scope": "local implementation workflow",
-      "source": "skills/datagrid-patterns/SKILL.md",
-      "checked_on": "2026-07-26"
-    }
-  ]
+  "schema_version": 1,
+  "skill": "datagrid-patterns",
+  "version_policy": {
+    "mode": "dynamic",
+    "technologies": [
+      "angular",
+      "react",
+      "typescript",
+      "vue"
+    ]
+  }
 }

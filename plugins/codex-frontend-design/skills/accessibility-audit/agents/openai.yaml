@@ -1,0 +1,4 @@
+interface:
+  display_name: "Accessibility Audit"
+  short_description: "Audit interfaces against applicable accessibility criteria"
+  default_prompt: "Audit this interface with rendered Browser evidence and report only criterion-grounded accessibility findings."

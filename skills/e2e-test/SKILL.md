@@ -12,7 +12,7 @@ Implement end-to-end tests for $ARGUMENTS.
 
 ## Preserve the harness
 
-Read instructions, manifests/lockfiles, existing E2E configuration/helpers, app routes and accessibility, authentication/session model, data setup APIs, environment ownership, CI/sharding, server commands and readiness endpoints. Use the installed runner and repository scripts; do not impose Playwright, fixed browser projects, Node version, retries, workers, commands, timeouts or framework recipes from memory.
+Read instructions, manifests/lockfiles, existing E2E configuration/helpers, app routes and accessibility, authentication/session model, data setup APIs, environment ownership, CI/sharding, server commands and readiness endpoints. Start or attach to the repository-native server early and inspect the critical route in the visible in-app Browser before and after test implementation. Use the installed runner and repository scripts; do not impose Playwright, fixed browser projects, Node version, retries, workers, commands, timeouts or framework recipes from memory.
 
 Verify runner/framework APIs using installed types/CLI/config schema or matching official docs. For greenfield work, use `scripts/framework-stack-context.py`. Avoid stale framework-specific APIs, including remembered Angular stabilization or zoneless names.
 
@@ -33,6 +33,6 @@ Use controlled fakes for error/latency cases and approved isolated real services
 
 ## Verification and output
 
-Run focused tests, then the repository's affected browser/shard matrix and relevant type/lint/build checks. Prove parallel isolation, auth-state separation, setup/cleanup recovery and task-owned server/process cleanup. Use the in-app Browser when observable UI verification is required; retain screenshots only when they prove a visual result.
+Run focused tests, then the repository's affected browser/shard matrix and relevant type/lint/build checks. Prove parallel isolation, auth-state separation, setup/cleanup recovery and task-owned server/process/tab cleanup. Headless execution proves regression automation but does not replace the visible in-app Browser acceptance loop; retain screenshots only when they prove a visual result.
 
 Report flows, environments/browsers actually run, credential/data isolation, readiness and cleanup model, commands/results/artifacts, flakes, and untested provider or production boundaries. Do not claim completion from configuration or a retried green run alone.

@@ -18,4 +18,4 @@ metadata:
 7. CI must fail or require explicit accountable approval on unexpected diffs. Do not use exit-zero-on-change as the review gate. Baseline updates require human-visible diff, reason and code review.
 8. Verify intentional defect detection, readiness failure, responsive/theme/state coverage, fonts, artifacts, retry/flakiness evidence and task-owned browser cleanup.
 
-Report coverage matrix, readiness contracts, environment/pins, variance-derived thresholds, masking rationale, privacy controls, review gate, executed evidence, and residual or unverified browser/font/CI/artifact risk.
+Report coverage matrix, readiness contracts, environment/pins, the current official capability source used for each selected version-sensitive command/API (or the exact required source when capability facts are withheld), variance-derived thresholds, masking rationale, privacy controls, review gate, executed evidence, and residual or unverified browser/font/CI/artifact risk.

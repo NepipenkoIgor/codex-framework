@@ -1,70 +1,177 @@
 {
-  "schema_version": 1,
   "contract_status": "reviewed",
-  "skill": "database-migration",
   "native_ownership": {
-    "responsibility": "Design and implement schema/data transitions with application compatibility, expand-contract phases, engine-specific online DDL, bounded backfill, lock evidence, rollout gates and recovery.",
     "excludes": [
       "Query and index tuning without a persisted schema/data transition is owned by database-optimization.",
       "Greenfield entity/relationship design without migration delivery is owned by data-modeling.",
       "Provider backup and disaster-recovery architecture is owned by disaster-recovery."
     ],
-    "nearest_neighbors": ["database-optimization", "data-modeling", "deployment-validation", "backend-architecture"]
-  },
-  "risk": {"mode": "repository_write", "rationale": "Schema and backfill changes can block production traffic, break overlapping binaries, lose or mis-transform data, and affect replicas or CDC."},
-  "version_policy": {"mode": "agnostic", "technologies": []},
-  "routing": {
-    "positive": [
-      {"id": "route-expand-contract", "prompt": "Migrate a large orders table from one status representation to another while old and new application versions overlap. Design expand, dual compatibility, resumable backfill, reconciliation, read switch, constraint validation, and delayed contraction."},
-      {"id": "route-online-unique-index", "prompt": "Add a uniqueness invariant to a busy production table. Verify the exact engine version's concurrent or online index behavior, existing duplicates, lock and replica impact, invalid-build recovery, rollout gates, and forward-fix plan."}
+    "nearest_neighbors": [
+      "database-optimization",
+      "data-modeling",
+      "deployment-validation",
+      "backend-architecture"
     ],
-    "negative": [
-      {"id": "route-query-tuning", "prompt": "Diagnose a slow orders query using production fingerprints, safe plans, statistics and lock evidence; compare query/index candidates and prove before/after latency without changing the logical schema.", "expected_skill": "database-optimization"},
-      {"id": "route-greenfield-model", "prompt": "Design a greenfield catalog and inventory relational model, including entities, cardinalities, normalization, temporal history, keys, indexes and ownership; no existing data or deployment migration exists.", "expected_skill": "data-modeling"}
-    ]
+    "responsibility": "Design and implement schema/data transitions with application compatibility, expand-contract phases, engine-specific online DDL, bounded backfill, lock evidence, rollout gates and recovery."
   },
-  "reference_routing": [],
-  "scenarios": [
+  "provenance": [
     {
-      "id": "domain-expand-contract-backfill",
-      "kind": "domain",
-      "prompt": "A large table must replace customer_id with account_id while old and new application versions overlap. Writes continue during a multi-hour backfill, replicas and CDC consume changes, and product wants a one-click rollback. Produce the safe sequence and proof.",
-      "fixture": "evals/fixtures/existing-repository.md",
-      "assertions": [
-        {"id": "migration-boundary", "dimension": "native_ownership", "severity": "major", "criterion": "Owns persisted schema/data transition and deployment compatibility while leaving pure query tuning, greenfield modeling and backup architecture at their neighboring boundaries."},
-        {"id": "migration-evidence", "dimension": "repository_context", "severity": "critical", "criterion": "Uses the fixture to inspect engine/version, migration runner/history, schema/ORM and all readers/writers/jobs, table volume, traffic/transactions, replicas/CDC, deployment overlap, backup/restore evidence and tests without inventing details."},
-        {"id": "expand-contract-workflow", "dimension": "decision_workflow", "severity": "critical", "criterion": "Defines current/target invariants and compatibility matrix, then expand, authoritative dual compatibility, resumable backfill, concurrent-change reconciliation, read switch, validation, delayed contraction and recovery gates."},
-        {"id": "backfill-correctness", "dimension": "domain_correctness", "severity": "critical", "criterion": "Uses stable resumable batches, handles concurrent inserts/updates with one authoritative path and reconciliation, validates replicas/CDC and old/new binaries, and rejects simplistic rollback after incompatible new-format writes."},
-        {"id": "migration-proof", "dimension": "verification", "severity": "critical", "criterion": "Rehearses production-shaped volume/concurrency and measures locks/waits, duration, I/O/WAL, replica lag, errors and backfill; verifies checksums/invariants, old/new readers/writers, CDC and caller behavior at each gate."},
-        {"id": "migration-output", "dimension": "output_contract", "severity": "major", "criterion": "Reports engine/topology evidence, invariants and compatibility phases, DDL/lock and backfill details, abort/resume/forward-fix or restore plan, executed measurements, irreversible steps and residual risk."},
-        {"id": "migration-maintenance", "dimension": "maintainability", "severity": "major", "criterion": "Keeps online-DDL and runner details tied to exact installed engine/version and records deprecation/contraction ownership rather than leaving permanent dual paths."}
-      ]
+      "checked_on": "2026-07-26",
+      "claim_scope": "PostgreSQL lock modes and DDL impact",
+      "source": "https://www.postgresql.org/docs/current/explicit-locking.html"
     },
     {
-      "id": "safety-online-ddl-rollback",
-      "kind": "safety",
-      "prompt": "A migration proposes adding a unique index concurrently and a non-null column in production, then dropping the old column in the same release. If anything fails, the down script restores the old schema. Explain the safe plan.",
-      "assertions": [
-        {"id": "bounded-ddl", "dimension": "runtime_safety", "severity": "critical", "criterion": "Requires exact engine/version capability and lock/rewrite analysis, duplicate/data validation, abort thresholds, invalid-index cleanup, replica/CDC monitoring and separates destructive contraction until old binaries are absent."},
-        {"id": "rollback-reality", "dimension": "domain_correctness", "severity": "critical", "criterion": "Rejects the down script as universal rollback when new writes or dropped data are incompatible; selects forward fix, feature disable or verified restore according to the actual failure boundary."},
-        {"id": "ddl-failure-proof", "dimension": "verification", "severity": "critical", "criterion": "Tests lock acquisition under long transactions, concurrent writes, uniqueness violations, failed online build artifacts, old/new application overlap, replica lag and recovery/forward-fix behavior."},
-        {"id": "irreversible-report", "dimension": "output_contract", "severity": "major", "criterion": "Labels lock risk, destructive/irreversible steps and actual recovery point rather than claiming reversible merely because an inverse SQL file exists."}
-      ]
+      "checked_on": "2026-07-26",
+      "claim_scope": "PostgreSQL concurrent index caveats and failure artifacts",
+      "source": "https://www.postgresql.org/docs/current/sql-createindex.html"
     },
     {
-      "id": "version-engine-online-capability",
-      "kind": "version",
-      "prompt": "The production database pins an older supported engine release. Current documentation describes instant column changes and online constraint validation unavailable or different on that line. Migration does not include an engine upgrade.",
-      "assertions": [
-        {"id": "engine-pin-authority", "dimension": "version_compatibility", "severity": "critical", "criterion": "Uses actual server/extension version, configuration and matching official DDL/lock documentation as authority, preserving the engine pin and treating stronger capability as upgrade scope."},
-        {"id": "engine-capability-unit", "dimension": "repository_context", "severity": "major", "criterion": "Checks operation variant, transaction restrictions, lock/rewrite behavior, table/partition/index form, replicas/CDC, migration runner and application overlap together."},
-        {"id": "ddl-provenance", "dimension": "maintainability", "severity": "major", "criterion": "Records exact engine/version capability and source near the migration and avoids promoting current online/instant DDL claims to evergreen guidance."}
-      ]
+      "checked_on": "2026-07-26",
+      "claim_scope": "local expand-contract, backfill and recovery workflow",
+      "source": "skills/database-migration/SKILL.md"
     }
   ],
-  "provenance": [
-    {"claim_scope": "PostgreSQL lock modes and DDL impact", "source": "https://www.postgresql.org/docs/current/explicit-locking.html", "checked_on": "2026-07-26"},
-    {"claim_scope": "PostgreSQL concurrent index caveats and failure artifacts", "source": "https://www.postgresql.org/docs/current/sql-createindex.html", "checked_on": "2026-07-26"},
-    {"claim_scope": "local expand-contract, backfill and recovery workflow", "source": "skills/database-migration/SKILL.md", "checked_on": "2026-07-26"}
-  ]
+  "reference_routing": [],
+  "risk": {
+    "mode": "repository_write",
+    "rationale": "Schema and backfill changes can block production traffic, break overlapping binaries, lose or mis-transform data, and affect replicas or CDC."
+  },
+  "routing": {
+    "negative": [
+      {
+        "expected_skill": "database-optimization",
+        "id": "route-query-tuning",
+        "prompt": "Diagnose a slow orders query using production fingerprints, safe plans, statistics and lock evidence; compare query/index candidates and prove before/after latency without changing the logical schema."
+      },
+      {
+        "expected_skill": "data-modeling",
+        "id": "route-greenfield-model",
+        "prompt": "Design a greenfield catalog and inventory relational model, including entities, cardinalities, normalization, temporal history, keys, indexes and ownership; no existing data or deployment migration exists."
+      }
+    ],
+    "positive": [
+      {
+        "id": "route-expand-contract",
+        "prompt": "Migrate a large orders table from one status representation to another while old and new application versions overlap. Design expand, dual compatibility, resumable backfill, reconciliation, read switch, constraint validation, and delayed contraction."
+      },
+      {
+        "id": "route-online-unique-index",
+        "prompt": "Add a uniqueness invariant to a busy production table. Verify the exact engine version's concurrent or online index behavior, existing duplicates, lock and replica impact, invalid-build recovery, rollout gates, and forward-fix plan."
+      }
+    ]
+  },
+  "scenarios": [
+    {
+      "assertions": [
+        {
+          "criterion": "Owns persisted schema/data transition and deployment compatibility while leaving pure query tuning, greenfield modeling and backup architecture at their neighboring boundaries.",
+          "dimension": "native_ownership",
+          "id": "migration-boundary",
+          "severity": "major"
+        },
+        {
+          "criterion": "Uses the fixture to inspect engine/version, migration runner/history, schema/ORM and all readers/writers/jobs, table volume, traffic/transactions, replicas/CDC, deployment overlap, backup/restore evidence and tests without inventing details.",
+          "dimension": "repository_context",
+          "id": "migration-evidence",
+          "severity": "critical"
+        },
+        {
+          "criterion": "Defines current/target invariants and compatibility matrix, then expand, authoritative dual compatibility, resumable backfill, concurrent-change reconciliation, read switch, validation, delayed contraction and recovery gates.",
+          "dimension": "decision_workflow",
+          "id": "expand-contract-workflow",
+          "severity": "critical"
+        },
+        {
+          "criterion": "Uses stable resumable batches, handles concurrent inserts/updates with one authoritative path and reconciliation, validates replicas/CDC and old/new binaries, and rejects simplistic rollback after incompatible new-format writes.",
+          "dimension": "domain_correctness",
+          "id": "backfill-correctness",
+          "severity": "critical"
+        },
+        {
+          "criterion": "Rehearses production-shaped volume/concurrency and measures locks/waits, duration, I/O/WAL, replica lag, errors and backfill; verifies checksums/invariants, old/new readers/writers, CDC and caller behavior at each gate.",
+          "dimension": "verification",
+          "id": "migration-proof",
+          "severity": "critical"
+        },
+        {
+          "criterion": "Reports engine/topology evidence, invariants and compatibility phases, DDL/lock and backfill details, abort/resume/forward-fix or restore plan, executed measurements, irreversible steps and residual risk.",
+          "dimension": "output_contract",
+          "id": "migration-output",
+          "severity": "major"
+        },
+        {
+          "criterion": "Keeps online-DDL and runner details tied to exact installed engine/version and records deprecation/contraction ownership rather than leaving permanent dual paths.",
+          "dimension": "maintainability",
+          "id": "migration-maintenance",
+          "severity": "major"
+        }
+      ],
+      "fixture": "evals/fixtures/backend-service.md",
+      "id": "domain-expand-contract-backfill",
+      "kind": "domain",
+      "prompt": "A large table must replace customer_id with account_id while old and new application versions overlap. Writes continue during a multi-hour backfill, replicas and CDC consume changes, and product wants a one-click rollback. Produce the safe sequence and proof."
+    },
+    {
+      "assertions": [
+        {
+          "criterion": "Requires exact engine/version capability and lock/rewrite analysis, duplicate/data validation, abort thresholds, invalid-index cleanup, replica/CDC monitoring and separates destructive contraction until old binaries are absent.",
+          "dimension": "runtime_safety",
+          "id": "bounded-ddl",
+          "severity": "critical"
+        },
+        {
+          "criterion": "Rejects the down script as universal rollback when new writes or dropped data are incompatible; selects forward fix, feature disable or verified restore according to the actual failure boundary.",
+          "dimension": "domain_correctness",
+          "id": "rollback-reality",
+          "severity": "critical"
+        },
+        {
+          "criterion": "Tests lock acquisition under long transactions, concurrent writes, uniqueness violations, failed online build artifacts, old/new application overlap, replica lag and recovery/forward-fix behavior.",
+          "dimension": "verification",
+          "id": "ddl-failure-proof",
+          "severity": "critical"
+        },
+        {
+          "criterion": "Labels lock risk, destructive/irreversible steps and actual recovery point rather than claiming reversible merely because an inverse SQL file exists.",
+          "dimension": "output_contract",
+          "id": "irreversible-report",
+          "severity": "major"
+        }
+      ],
+      "id": "safety-online-ddl-rollback",
+      "kind": "safety",
+      "prompt": "A migration proposes adding a unique index concurrently and a non-null column in production, then dropping the old column in the same release. If anything fails, the down script restores the old schema. Explain the safe plan."
+    },
+    {
+      "assertions": [
+        {
+          "criterion": "Uses actual server/extension version, configuration and matching official DDL/lock documentation as authority, preserving the engine pin and treating stronger capability as upgrade scope.",
+          "dimension": "version_compatibility",
+          "id": "engine-pin-authority",
+          "severity": "critical"
+        },
+        {
+          "criterion": "Checks operation variant, transaction restrictions, lock/rewrite behavior, table/partition/index form, replicas/CDC, migration runner and application overlap together.",
+          "dimension": "repository_context",
+          "id": "engine-capability-unit",
+          "severity": "major"
+        },
+        {
+          "criterion": "Records exact engine/version capability and source near the migration and avoids promoting current online/instant DDL claims to evergreen guidance.",
+          "dimension": "maintainability",
+          "id": "ddl-provenance",
+          "severity": "major"
+        }
+      ],
+      "id": "version-engine-online-capability",
+      "kind": "version",
+      "prompt": "The production database pins an older supported engine release. Current documentation describes instant column changes and online constraint validation unavailable or different on that line. Migration does not include an engine upgrade."
+    }
+  ],
+  "schema_version": 1,
+  "skill": "database-migration",
+  "version_policy": {
+    "mode": "agnostic",
+    "technologies": []
+  }
 }

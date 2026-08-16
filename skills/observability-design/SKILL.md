@@ -20,6 +20,6 @@ Sampling is an observation policy, not truth. Record head/tail/adaptive rules, b
 
 Health/readiness semantics are local workload contracts. Liveness avoids fragile dependencies; readiness reflects ability to serve this workload and may distinguish critical from optional dependencies. Do not mandate public unauthenticated detailed endpoints or a universal dependency tree.
 
-Define SLIs at caller-visible boundaries, missing-telemetry behavior, alert action/owner/runbook, dashboards for diagnosis and instrumentation health. Validate correlation at ingress/async hops, redaction, cardinality/volume, sampling accounting, collector outage/backpressure, readiness/drain and alert delivery.
+Define SLIs at caller-visible boundaries, missing-telemetry behavior, alert action/owner/runbook, dashboards for diagnosis and instrumentation health. Validate correlation at ingress/async hops, redaction, cardinality/volume, sampling accounting, collector outage/backpressure, readiness/drain and alert delivery. Add an executable instrumentation-blind-spot case: deliberately suppress or drop one expected trace/metric/log/alert signal at a named boundary and prove the missing-telemetry health signal, sampling/drop accounting, or alert detects the absence without treating silence as success.
 
-Report topology/journeys, schemas, trust/privacy boundaries, cardinality/cost, sampling truth, SLI/alerts/owners, health contracts, installed version evidence, validation and residual blind spots.
+Report topology/journeys, schemas, trust/privacy boundaries, cardinality/cost, sampling truth, SLI/alerts/owners, health contracts, installed version evidence, validation including the missing-telemetry test, and residual blind spots.

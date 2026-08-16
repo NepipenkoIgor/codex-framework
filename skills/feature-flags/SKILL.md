@@ -4,7 +4,7 @@ description: Implement feature-flag evaluation, rollout, kill-switch, stale-clie
 metadata:
   owner: codex-framework
   reviewed: "2026-07-27"
-  version: 2.1
+  version: 2.2
   argument-hint: "flag purpose/owner, evaluation identities and attributes, server/client surfaces, rollout/kill-switch/staleness/cleanup"
 ---
 
@@ -25,6 +25,6 @@ metadata:
 
 ## Verification
 
-Test identity/tenant isolation, stable rollout, snapshot consistency, concurrent config change, provider outage, stale/offline client, revocation/kill switch, unauthorized flag mutation, default behavior, dependency cycles, cleanup and both branches. Verify server authority for protected actions.
+Completion requires separate executable evidence for every applicable item in this list: identity/tenant isolation, stable rollout assignment, single-snapshot consistency, a concurrent flag-configuration change during evaluation, provider outage, stale/offline client, revocation/kill switch, unauthorized flag mutation, default behavior, dependency cycles, cleanup and both branches. Design prose is not test evidence. Verify server authority for protected actions.
 
 Report flag contract/owner, evaluation and snapshot identities, default/failure/staleness semantics, rollout/kill-switch/rollback, exposure telemetry boundary, cleanup trigger, checks/results and residual client risk.

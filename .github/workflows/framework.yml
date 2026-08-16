@@ -14,7 +14,7 @@ concurrency:
   cancel-in-progress: true
 
 env:
-  CODEX_CLI_VERSION: 0.146.1
+  CODEX_CLI_VERSION: 0.147.0
 
 jobs:
   deterministic:
@@ -22,9 +22,13 @@ jobs:
     timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
       - uses: actions/setup-node@v4
         with:
           node-version: 22
+      - name: Install framework system dependencies
+        run: sudo apt-get update && sudo apt-get install --yes ripgrep
       - name: Install pinned Codex CLI
         run: npm install --global "@openai/codex@${CODEX_CLI_VERSION}"
       - name: Syntax and compile checks
@@ -45,5 +49,7 @@ jobs:
           git archive HEAD | tar -x -C "$fixture"
           bash "$fixture/scripts/framework-health.sh"
           rm -r "$fixture"
+      - name: Release evidence rejects fabricated attestations
+        run: python3 scripts/framework-release-evidence.py self-test
       - name: Release evidence is current for source and pinned runtime
         run: python3 scripts/framework-release-evidence.py check

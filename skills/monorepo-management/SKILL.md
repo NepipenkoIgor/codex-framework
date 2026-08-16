@@ -1,6 +1,6 @@
 ---
 name: monorepo-management
-description: Configure and evolve existing or new monorepo workspaces, dependency graphs, task pipelines, caching, affected execution, package boundaries, and releases. Use when repository changes to monorepo tooling are requested.
+description: Configure and evolve existing or new monorepo workspaces, dependency graphs, task pipelines, caching, affected execution, and package boundaries. Use when repository changes to monorepo tooling are primary; route semantic versioning, changelogs, release branches, hotfixes, and release automation to release-management.
 metadata:
   owner: codex-framework
   reviewed: "2026-07-27"
@@ -16,7 +16,7 @@ Resolve the exact repository/workspaces authorized for mutation and applicable i
 
 There is no package-count threshold that mandates Nx, Turborepo, pnpm, generators, remote cache or a directory layout. Choose tooling from current languages, ownership, graph complexity, task semantics, release cadence, CI bottlenecks, platform support and migration cost. For existing projects, verify capabilities from installed CLI/config schemas and matching official docs. For greenfield, use `scripts/framework-stack-context.py` to resolve supported stable/LTS components dynamically; after scaffolding, verify compatibility and let the generated manifests and lockfiles become the ongoing project authority.
 
-For version-sensitive changes, evaluate every compatibility dimension exposed by the repository as one set: runtime engine ranges, workspace/package peers, compiler and framework pins, test runner, native tooling and deployment runtime where applicable. A supported monorepo-tool version alone does not prove the workspace stack is compatible.
+For version-sensitive changes, first determine which compatibility dimensions the supplied repository evidence actually exposes; do not claim a runtime engine, peer, compiler/framework pin, test runner, native tool, or deployment runtime exists merely because it is a common monorepo concern. Evaluate the applicable dimensions as one set and mark the others unavailable or inapplicable with task evidence. A supported monorepo-tool version alone does not prove the workspace stack is compatible.
 
 ## Model correctness before optimization
 
@@ -41,7 +41,7 @@ Read only the relevant exact guide when needed:
 - Turborepo configuration: [references/turborepo.md](references/turborepo.md)
 - shared configuration: [references/shared-config.md](references/shared-config.md)
 - boundary enforcement: [references/boundary-enforcement.md](references/boundary-enforcement.md)
-- Changesets/releases: [references/changesets.md](references/changesets.md)
+- Release-tool workspace integration: [references/release-tool-workspace-integration.md](references/release-tool-workspace-integration.md)
 - GitHub Actions CI: [references/ci-github-actions.md](references/ci-github-actions.md)
 
 Run graph validation, locked install, focused package tasks, affected-set comparison against known changes, cache miss/hit correctness, clean rebuild, and affected CI/deploy checks. Test cache denial/poisoning boundaries for untrusted PRs where remote cache is enabled.

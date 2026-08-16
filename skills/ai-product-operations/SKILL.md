@@ -4,7 +4,7 @@ description: Design and implement production AI controls including usage meterin
 metadata:
   owner: codex-framework
   reviewed: "2026-07-26"
-  version: 2.0
+  version: 2.1
   domain: ai-saas
 ---
 
@@ -20,7 +20,7 @@ Generate stack context, then inspect the exact core/provider SDK pins and matchi
 2. Separate admission limits from final billing: reserve capacity, execute once under an idempotency key, settle authoritative usage, then release or reconcile the reservation.
 3. Make request, token, concurrency, and credit policies explicit per organization, user, and feature.
 4. Define fallback compatibility before ordering models: supported modalities/tools/schema, context capacity, data region, latency, and user-visible attribution.
-5. Retain immutable raw provider usage with source/request provenance, then produce a versioned normalized record; instrument started/completed/failed/fallback/reconciled events with usage provenance and exactness. Later adapter changes must not rewrite historical raw evidence.
+5. Retain immutable raw provider usage with source/request provenance, then produce a versioned normalized record that identifies the exact provider-usage adapter version; instrument started/completed/failed/fallback/reconciled events with usage provenance and exactness. Version the rollout adapter independently and attach its version to exposure and routing decisions. Later adapter changes must not rewrite historical raw evidence.
 6. Exercise timeout-after-provider-success, replay, missing usage, partial stream, quota race, fallback incompatibility, and delayed reconciliation.
 7. Define evaluation-gated rollout, cohort/canary exposure, model/prompt/tool version attribution, drift slices, deterministic disable/rollback, and reconciliation of in-flight work. Keep provider usage/fallback/rollout adapters versioned and keep thresholds, cohorts and gates in provenance-linked versioned product policy/configuration. Thresholds come from product harm, baseline and SLO evidence rather than universal numbers.
 
@@ -78,11 +78,12 @@ Emit the original model, served model, trigger, compatibility decision, and any 
 - Interrupt a stream after partial provider output/usage; prove reservation settlement and reconciliation use authoritative provider evidence, do not double charge or treat the partial response as a complete success, and preserve the caller-visible failure state.
 - Trigger context overflow; prove bounded-context handling precedes only a contract-compatible fallback.
 - Reconcile a delayed provider record and prove invoice/export totals converge.
+- Replay pinned historical fixtures through the recorded provider-usage and rollout adapter versions, then through an explicitly migrated version; prove semantic changes are attributable and historical raw evidence is unchanged.
 - Canary a compatible model or prompt change on representative slices; prove evaluation and operational gates, drift detection, deterministic disable/rollback and caller-visible recovery without hardcoded global thresholds.
 
 ## Output Contract
 
-Report the discovered request/billing boundaries, metering schema, reservation and settlement state machine, quota scopes, fallback compatibility matrix, SLOs, dashboards, reconciliation/alerts, executed failure cases, and residual assumptions about provider usage authority.
+Report the discovered request/billing boundaries, provider-usage and rollout adapter versions, metering schema, reservation and settlement state machine, quota scopes, fallback compatibility matrix, SLOs, dashboards, reconciliation/alerts, executed failure cases, and residual assumptions about provider usage authority.
 
 ## Done Criteria
 

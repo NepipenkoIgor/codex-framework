@@ -1,13 +1,20 @@
 # Project Instructions
 
-Use native Codex planning, goals, skills, approvals, worktrees, browser control, native agent messaging, memories, and subagents. For work with multiple files, a shared contract, or non-trivial risk, create and maintain a native plan. Read the repository before editing, preserve unrelated work, verify the actual diff, and report residual risk.
+The global working agreement installed by the Codex framework owns generic planning, project/environment authority, fail-closed errors, capability discovery, task automation, branch naming, resource ownership, and interactive Browser/mobile behavior. This file adds only project facts and closer overrides; do not copy the global policy here or weaken it with hidden fallbacks.
 
-Delegate only independent work when it improves time to a sound decision. Use built-in `explorer` and `worker`, plus custom `architect`, `reviewer`, and `tester` profiles when their narrower contract helps. Use a separate worktree for every parallel writer. Resolve shared contracts before implementation. Do not create plan files, fictional agent updates, or hooks that manage plans or agents.
+## Project contract
 
-After implementation and ordinary verification, use one independent read-only `reviewer` to try to falsify high-risk changes involving security, migrations, shared contracts, public APIs, concurrency, data integrity, permissions, deployment, multiple systems, failed substantive checks, or unresolved ambiguity. Require evidence-backed findings with severity and a file reference, reproduction, or missing executable check. The parent adjudicates, revises when warranted, and reruns affected checks. Stop after exactly one cycle; a further reviewer pass requires a new explicit user request for a deeper audit. Skip routine low-risk changes and never create recursive debate loops.
+- Repository shape: document application/package/workspace boundaries.
+- Stack authority: name the manifests and lockfiles that own versions.
+- Commands: list repository-native install, development, lint, typecheck, test, build, migration, and release commands that actually exist.
+- Environment map: name local, test, staging, production, and preview targets plus their authority source.
+- Mutation boundary: state which environments/accounts/projects may be changed and what requires explicit approval.
+- Verification: name the provider-visible, runtime, UI/device, and caller-visible evidence required for completion.
 
-Use native plugins and MCP servers when a task needs their external data or actions. Prefer the in-app Browser for UI verification; use DOM, console, and network evidence before screenshots. Keep Desktop and CLI behavior identical: no surface-specific branches, prompt injection, local handoff engines, or conversational-memory scripts.
+## Project-specific rules
 
-Before version-sensitive work, run `${CODEX_HOME:-$HOME/.codex}/bin/codex-framework-stack-context project . --format markdown`. For a new stack, use its `latest <technologies>` or `action <technology>` command. Preserve existing pins unless migration is explicitly requested, and use an API recipe only when installed types, generated structure, CLI/schema output, or matching official docs expose that capability.
+- Preserve existing repository conventions and unrelated work.
+- Record only durable project facts or genuine closer exceptions below. Do not restate global behavior.
+- If a closer exception authorizes degraded behavior, it must explicitly define trigger, semantics, provenance, user-visible state, observability, tests, and recovery/removal condition.
 
-Add project-specific conventions below.
+<!-- Add project-specific architecture, commands, environment identities, release rules, and closer exceptions here. -->

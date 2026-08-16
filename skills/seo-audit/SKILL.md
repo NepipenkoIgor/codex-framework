@@ -4,7 +4,7 @@ description: Audit crawlability, indexation signals, canonicalization, links, me
 metadata:
   owner: codex-framework
   reviewed: "2026-07-26"
-  version: 2.0
+  version: 2.1
   argument-hint: "site/environment, representative templates, search markets, analytics/search-console access, scope"
 ---
 
@@ -16,7 +16,7 @@ Read [the full framework and category checklist](references/full-guide.md) only 
 
 Read repository instructions, manifests/lockfiles, framework/SEO configuration, target templates/implementation, adjacent tests and recent failure evidence. Report supplied/observed repository inspection separately from commands or browser/search checks executed during the audit; “no command ran” must not erase already supplied evidence. Start with authoritative robots/sitemap/canonical/hreflang/structured-data output, representative rendered pages, response headers/statuses, internal link graph, performance field data, and available search-console/analytics evidence. Do not infer production indexation solely from source code or a local crawl.
 
-Revalidate volatile search behavior at execution time against current engine-owned official guidance for JavaScript rendering, sitemaps, snippets, localization/hreflang and structured data. Preserve documented limits only with current provenance and never invent that tool use is prohibited; when live guidance cannot be checked, mark the claim unresolved.
+Revalidate volatile search behavior at execution time against current engine-owned official guidance for JavaScript rendering, sitemaps, snippets, localization/hreflang and structured data. Analyze JavaScript rendering as three separate evidence boundaries: whether URLs/content are discovered, whether required resources are crawlable and available, and whether content appears within the engine's rendering/indexing timing. Preserve documented limits only with current provenance and never invent that tool use is prohibited; when live guidance cannot be checked, mark the claim unresolved.
 
 ## Audit
 

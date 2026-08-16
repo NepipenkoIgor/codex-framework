@@ -8,7 +8,7 @@ For representative and edge URLs record raw status/headers/body, redirects, cano
 
 `robots.txt` controls crawling, not confidentiality or guaranteed deindexing. Verify private content with unauthenticated authorization tests. A blocked URL can still appear without content; reconcile robots, noindex, canonical, redirects, links and sitemap rather than treating one signal as absolute.
 
-Keep official sitemap protocol limits: a sitemap file is limited to 50,000 URLs and 50 MB uncompressed; use sitemap indexes and current target-engine documentation when exceeding either. Validate absolute canonical URLs, fetchability, accurate last modification data when supplied, and only preferred indexable URLs.
+Resolve sitemap file and index limits at execution time from the current official protocol and target-engine documentation, cite that dated provenance, and use sitemap indexes whenever the verified limits require them. If current guidance cannot be checked, keep the limit unresolved rather than reusing remembered thresholds. Validate absolute canonical URLs, fetchability, accurate last modification data when supplied, and only preferred indexable URLs.
 
 ## Metadata and content
 

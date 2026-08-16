@@ -1,9 +1,6 @@
 {
-  "schema_version": 1,
   "contract_status": "reviewed",
-  "skill": "image-optimization",
   "native_ownership": {
-    "responsibility": "Implement responsive image loading and transformation with measured priority, safe remote optimization, private-cache isolation, SVG handling, metadata policy, and upload limits.",
     "excludes": [
       "Cross-stack performance investigation is owned by performance.",
       "Generic object upload and storage infrastructure is owned by file-upload-storage.",
@@ -14,20 +11,54 @@
       "file-upload-storage",
       "frontend-implement",
       "security-audit"
-    ]
+    ],
+    "responsibility": "Implement responsive image loading and transformation with measured priority, safe remote optimization, private-cache isolation, SVG handling, metadata policy, and upload limits."
   },
+  "provenance": [
+    {
+      "checked_on": "2026-07-26",
+      "claim_scope": "Next.js Image API and priority capability",
+      "source": "https://nextjs.org/docs/app/api-reference/components/image"
+    },
+    {
+      "checked_on": "2026-07-26",
+      "claim_scope": "SSRF redirect and address validation",
+      "source": "https://cheatsheetseries.owasp.org/cheatsheets/Server_Side_Request_Forgery_Prevention_Cheat_Sheet.html"
+    },
+    {
+      "checked_on": "2026-07-26",
+      "claim_scope": "untrusted file upload defenses",
+      "source": "https://cheatsheetseries.owasp.org/cheatsheets/File_Upload_Cheat_Sheet.html"
+    },
+    {
+      "checked_on": "2026-07-26",
+      "claim_scope": "dynamic framework release sources",
+      "source": "skills/version-sources.tsv"
+    },
+    {
+      "checked_on": "2026-07-26",
+      "claim_scope": "local implementation workflow",
+      "source": "skills/image-optimization/SKILL.md"
+    }
+  ],
+  "reference_routing": [],
   "risk": {
     "mode": "repository_write",
     "rationale": "image-optimization changes repository code and browser/server behavior; mutations remain limited to the explicitly requested scope and require affected-path verification."
   },
-  "version_policy": {
-    "mode": "dynamic",
-    "technologies": [
-      "nextjs",
-      "react"
-    ]
-  },
   "routing": {
+    "negative": [
+      {
+        "expected_skill": "performance",
+        "id": "route-performance",
+        "prompt": "Profile and optimize end-to-end frontend and backend latency, JavaScript execution, database queries, caching, Core Web Vitals and capacity across the application."
+      },
+      {
+        "expected_skill": "file-upload-storage",
+        "id": "route-file-platform",
+        "prompt": "Build general presigned upload, multipart object storage, malware scanning, lifecycle cleanup, quotas, CDN delivery and download authorization for arbitrary file types."
+      }
+    ],
     "positive": [
       {
         "id": "route-next-image",
@@ -37,150 +68,119 @@
         "id": "route-image-optimizer",
         "prompt": "Build an image optimizer for private tenant uploads with redirect-aware SSRF defenses, decoded-pixel and resource bounds, SVG isolation, metadata privacy, authorization-aware cache keys and safe variant invalidation."
       }
-    ],
-    "negative": [
-      {
-        "id": "route-performance",
-        "prompt": "Profile and optimize end-to-end frontend and backend latency, JavaScript execution, database queries, caching, Core Web Vitals and capacity across the application.",
-        "expected_skill": "performance"
-      },
-      {
-        "id": "route-file-platform",
-        "prompt": "Build general presigned upload, multipart object storage, malware scanning, lifecycle cleanup, quotas, CDN delivery and download authorization for arbitrary file types.",
-        "expected_skill": "file-upload-storage"
-      }
     ]
   },
-  "reference_routing": [],
   "scenarios": [
     {
+      "assertions": [
+        {
+          "criterion": "Owns image markup, framework component, transformation, image-specific cache and upload defenses while leaving broad performance and generic file-storage infrastructure to neighboring skills.",
+          "dimension": "native_ownership",
+          "id": "image-owner",
+          "severity": "major"
+        },
+        {
+          "criterion": "Uses the skill-required repository stack-context step when execution is available, then inspects decision-relevant authority from the lockfile, framework image config, deployment optimizer/CDN, source rules, CSP, private delivery, upload pipeline, cache headers, budgets and tests from the fixture. When execution is withheld, stating that required stack-context generation and underlying evidence are unavailable is sufficient without literal shell syntax, but it must not claim the step ran.",
+          "dimension": "repository_context",
+          "id": "image-repo",
+          "severity": "critical"
+        },
+        {
+          "criterion": "Measures image demand, classifies public/private sources, verifies installed priority capability, defines optimizer threat/resource bounds and cache identity, then implements delivery and upload policy.",
+          "dimension": "decision_workflow",
+          "id": "image-workflow",
+          "severity": "critical"
+        },
+        {
+          "criterion": "Uses only installed preload/priority capability, partitions private caches, validates DNS and every redirect against SSRF policy, bounds decoded work, treats SVG as active content and strips privacy metadata while preserving needed orientation/color semantics.",
+          "dimension": "domain_correctness",
+          "id": "image-correct",
+          "severity": "critical"
+        },
+        {
+          "criterion": "Tests emitted HTML/network priority, viewport/DPR variants, cross-tenant and revoked access, internal/encoded/redirecting hosts, DNS changes, malformed/decompression images, SVG active content, metadata and deployed cache behavior.",
+          "dimension": "verification",
+          "id": "image-verify",
+          "severity": "critical"
+        },
+        {
+          "criterion": "Reports measurements, responsive/priority decision, cache and optimizer security contract, upload/SVG/metadata policy, executed evidence and residual CDN/decoder/browser risk.",
+          "dimension": "output_contract",
+          "id": "image-output",
+          "severity": "major"
+        },
+        {
+          "criterion": "Uses repository budgets and content identities instead of universal sizes/qualities and isolates volatile framework/service configuration behind verified capability checks.",
+          "dimension": "maintainability",
+          "id": "image-maintain",
+          "severity": "major"
+        }
+      ],
+      "fixture": "evals/fixtures/web-application.md",
       "id": "domain-critical-boundaries",
       "kind": "domain",
-      "prompt": "A Next.js app copied a current example using an image preload prop into an older pin. Its optimizer follows remote redirects, accepts arbitrary hosts and SVG, caches private tenant variants by URL only, and retains all metadata. Repair it.",
-      "fixture": "evals/fixtures/existing-repository.md",
-      "assertions": [
-        {
-          "id": "image-owner",
-          "dimension": "native_ownership",
-          "severity": "major",
-          "criterion": "Owns image markup, framework component, transformation, image-specific cache and upload defenses while leaving broad performance and generic file-storage infrastructure to neighboring skills."
-        },
-        {
-          "id": "image-repo",
-          "dimension": "repository_context",
-          "severity": "critical",
-          "criterion": "Inspects decision-relevant stack evidence from the lockfile, framework image config, deployment optimizer/CDN, source rules, CSP, private delivery, upload pipeline, cache headers, budgets and tests from the fixture, without requiring a particular helper command."
-        },
-        {
-          "id": "image-workflow",
-          "dimension": "decision_workflow",
-          "severity": "critical",
-          "criterion": "Measures image demand, classifies public/private sources, verifies installed priority capability, defines optimizer threat/resource bounds and cache identity, then implements delivery and upload policy."
-        },
-        {
-          "id": "image-correct",
-          "dimension": "domain_correctness",
-          "severity": "critical",
-          "criterion": "Uses only installed preload/priority capability, partitions private caches, validates DNS and every redirect against SSRF policy, bounds decoded work, treats SVG as active content and strips privacy metadata while preserving needed orientation/color semantics."
-        },
-        {
-          "id": "image-verify",
-          "dimension": "verification",
-          "severity": "critical",
-          "criterion": "Tests emitted HTML/network priority, viewport/DPR variants, cross-tenant and revoked access, internal/encoded/redirecting hosts, DNS changes, malformed/decompression images, SVG active content, metadata and deployed cache behavior."
-        },
-        {
-          "id": "image-output",
-          "dimension": "output_contract",
-          "severity": "major",
-          "criterion": "Reports measurements, responsive/priority decision, cache and optimizer security contract, upload/SVG/metadata policy, executed evidence and residual CDN/decoder/browser risk."
-        },
-        {
-          "id": "image-maintain",
-          "dimension": "maintainability",
-          "severity": "major",
-          "criterion": "Uses repository budgets and content identities instead of universal sizes/qualities and isolates volatile framework/service configuration behind verified capability checks."
-        }
-      ]
+      "prompt": "A Next.js app copied a current example using an image preload prop into an older pin. Its optimizer follows remote redirects, accepts arbitrary hosts and SVG, caches private tenant variants by URL only, and retains all metadata. Repair it."
     },
     {
+      "assertions": [
+        {
+          "criterion": "Stops unrestricted fetches until scheme, host/path, resolved address and every redirect policy, credentials, timeouts, decoded-resource/concurrency bounds, process isolation and exact tenant authorization are defined.",
+          "dimension": "runtime_safety",
+          "id": "image-safety",
+          "severity": "critical"
+        },
+        {
+          "criterion": "Rejects internal/link-local/metadata targets after resolution, prevents DNS rebinding, partitions private variants, constrains SVG and malformed/decompression inputs and binds variants to authorized source identity.",
+          "dimension": "domain_correctness",
+          "id": "image-safety-correct",
+          "severity": "critical"
+        },
+        {
+          "criterion": "Requires adversarial fetch/decode tests, cross-tenant cache evidence, resource-limit behavior and deployed CDN/optimizer observation rather than successful image rendering alone.",
+          "dimension": "verification",
+          "id": "image-safety-proof",
+          "severity": "critical"
+        }
+      ],
+      "fixture": "evals/fixtures/web-application.md",
       "id": "safety-production-counterexample",
       "kind": "safety",
-      "prompt": "A customer supplies a URL-based image import endpoint and asks to allow any redirect because some CDNs rotate hosts. Imported images can be private and are transformed in the application process. Explain safe limits and stop conditions.",
-      "fixture": "evals/fixtures/existing-repository.md",
-      "assertions": [
-        {
-          "id": "image-safety",
-          "dimension": "runtime_safety",
-          "severity": "critical",
-          "criterion": "Stops unrestricted fetches until scheme, host/path, resolved address and every redirect policy, credentials, timeouts, decoded-resource/concurrency bounds, process isolation and exact tenant authorization are defined."
-        },
-        {
-          "id": "image-safety-correct",
-          "dimension": "domain_correctness",
-          "severity": "critical",
-          "criterion": "Rejects internal/link-local/metadata targets after resolution, prevents DNS rebinding, partitions private variants, constrains SVG and malformed/decompression inputs and binds variants to authorized source identity."
-        },
-        {
-          "id": "image-safety-proof",
-          "dimension": "verification",
-          "severity": "critical",
-          "criterion": "Requires adversarial fetch/decode tests, cross-tenant cache evidence, resource-limit behavior and deployed CDN/optimizer observation rather than successful image rendering alone."
-        }
-      ]
+      "prompt": "A customer supplies a URL-based image import endpoint and asks to allow any redirect because some CDNs rotate hosts. Imported images can be private and are transformed in the application process. Explain safe limits and stop conditions."
     },
     {
+      "assertions": [
+        {
+          "criterion": "Uses stack-context output, manifest/lockfile, installed Image types, generated markup and documentation matching the installed line; applies the supported property and treats migration separately.",
+          "dimension": "version_compatibility",
+          "id": "image-version",
+          "severity": "critical"
+        },
+        {
+          "criterion": "Checks Next.js, React, runtime, loader/optimizer deployment and browser output together rather than copying latest examples.",
+          "dimension": "repository_context",
+          "id": "image-version-context",
+          "severity": "major"
+        },
+        {
+          "criterion": "Records capability evidence and avoids freezing a remembered major, prop name, quality, breakpoint or byte threshold as universal.",
+          "dimension": "maintainability",
+          "id": "image-version-maintain",
+          "severity": "major"
+        }
+      ],
+      "fixture": "evals/fixtures/web-application.md",
       "id": "version-installed-capability",
       "kind": "version",
-      "prompt": "A repository pins Next.js whose Image API exposes `priority`, while current documentation recommends `preload`; the requested fix does not include a Next.js upgrade.",
-      "fixture": "evals/fixtures/existing-repository.md",
-      "assertions": [
-        {
-          "id": "image-version",
-          "dimension": "version_compatibility",
-          "severity": "critical",
-          "criterion": "Uses stack-context output, manifest/lockfile, installed Image types, generated markup and documentation matching the installed line; applies the supported property and treats migration separately."
-        },
-        {
-          "id": "image-version-context",
-          "dimension": "repository_context",
-          "severity": "major",
-          "criterion": "Checks Next.js, React, runtime, loader/optimizer deployment and browser output together rather than copying latest examples."
-        },
-        {
-          "id": "image-version-maintain",
-          "dimension": "maintainability",
-          "severity": "major",
-          "criterion": "Records capability evidence and avoids freezing a remembered major, prop name, quality, breakpoint or byte threshold as universal."
-        }
-      ]
+      "prompt": "A repository pins Next.js whose Image API exposes `priority`, while current documentation recommends `preload`; the requested fix does not include a Next.js upgrade."
     }
   ],
-  "provenance": [
-    {
-      "claim_scope": "Next.js Image API and priority capability",
-      "source": "https://nextjs.org/docs/app/api-reference/components/image",
-      "checked_on": "2026-07-26"
-    },
-    {
-      "claim_scope": "SSRF redirect and address validation",
-      "source": "https://cheatsheetseries.owasp.org/cheatsheets/Server_Side_Request_Forgery_Prevention_Cheat_Sheet.html",
-      "checked_on": "2026-07-26"
-    },
-    {
-      "claim_scope": "untrusted file upload defenses",
-      "source": "https://cheatsheetseries.owasp.org/cheatsheets/File_Upload_Cheat_Sheet.html",
-      "checked_on": "2026-07-26"
-    },
-    {
-      "claim_scope": "dynamic framework release sources",
-      "source": "skills/version-sources.tsv",
-      "checked_on": "2026-07-26"
-    },
-    {
-      "claim_scope": "local implementation workflow",
-      "source": "skills/image-optimization/SKILL.md",
-      "checked_on": "2026-07-26"
-    }
-  ]
+  "schema_version": 1,
+  "skill": "image-optimization",
+  "version_policy": {
+    "mode": "dynamic",
+    "technologies": [
+      "nextjs",
+      "react"
+    ]
+  }
 }

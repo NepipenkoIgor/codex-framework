@@ -1,0 +1,4 @@
+interface:
+  display_name: "Framework Management"
+  short_description: "Audit and maintain the native Codex framework"
+  default_prompt: "Audit or update this Codex framework while preserving native ownership, routing quality, and executable evidence."

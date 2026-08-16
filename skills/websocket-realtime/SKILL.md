@@ -4,7 +4,7 @@ description: Implement WebSocket, SSE, SignalR, or Socket.IO transport with expl
 metadata:
   owner: codex-framework
   reviewed: "2026-07-27"
-  version: 2.3
+  version: 2.4
   argument-hint: "feature, transport and installed stack, auth/tenant/resource model, delivery/order/resume and scale constraints"
 ---
 
@@ -44,6 +44,6 @@ Implement `$ARGUMENTS` using only the references needed for the selected install
 
 ## Verification and output
 
-Test connect and per-message authorization, wrong-tenant room guesses, token expiry/revocation, malformed/oversized/flood messages, duplicate delivery, injected out-of-order and sequence-gap delivery with detection/reconciliation, disconnect during effect, resume inside/outside retention, reconnect exhaustion, stale queued commands, slow consumers/backpressure, proxy idle timeout, and graceful drain. When the selected deployment is multi-instance, also test backplane/adapter outage, duplicate fan-out, tenant isolation, and deployment compatibility. Verify caller-visible plus persisted outcome for mutations.
+Test connect and per-message authorization, wrong-tenant room guesses, token expiry/revocation, malformed/oversized/flood messages, duplicate delivery, injected out-of-order and sequence-gap delivery with detection/reconciliation, disconnect during effect, resume inside/outside retention, reconnect exhaustion, stale queued commands, slow consumers/backpressure, proxy idle timeout, and graceful drain. The executable verification plan is incomplete unless it explicitly includes both a guessed wrong-tenant join and injected out-of-order delivery, rather than relying only on general authorization or ordering checks. When the selected deployment is multi-instance, also test backplane/adapter outage, duplicate fan-out, tenant isolation, and deployment compatibility. Verify caller-visible plus persisted outcome for mutations.
 
 Report installed transport capability, auth/tenant/resource contract, protocol/version, delivery/order/resume/retention, backpressure/revocation/reconnect, scale/deploy behavior, executed checks, and residual proxy/provider risk.

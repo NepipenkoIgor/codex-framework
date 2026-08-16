@@ -1,9 +1,6 @@
 {
-  "schema_version": 1,
   "contract_status": "reviewed",
-  "skill": "automation-ai-workflows",
   "native_ownership": {
-    "responsibility": "Design a deterministic, replayable automation with the smallest bounded probabilistic model step, validated outputs, exact approvals and idempotent side effects.",
     "excludes": [
       "n8n-specific architecture is owned by automation-n8n-architecture.",
       "n8n workflow implementation is owned by automation-n8n-implement.",
@@ -14,21 +11,66 @@
       "automation-n8n-implement",
       "ai-agent-architecture",
       "prompt-engineering"
-    ]
+    ],
+    "responsibility": "Design a deterministic, replayable automation with the smallest bounded probabilistic model step, validated outputs, exact approvals and idempotent side effects."
   },
+  "provenance": [
+    {
+      "checked_on": "2026-07-26",
+      "claim_scope": "AI risk management framework",
+      "source": "https://www.nist.gov/itl/ai-risk-management-framework"
+    },
+    {
+      "checked_on": "2026-07-26",
+      "claim_scope": "prompt injection boundary",
+      "source": "https://cheatsheetseries.owasp.org/cheatsheets/LLM_Prompt_Injection_Prevention_Cheat_Sheet.html"
+    },
+    {
+      "checked_on": "2026-07-26",
+      "claim_scope": "AI SDK tool boundary",
+      "source": "https://ai-sdk.dev/docs/ai-sdk-core/tools-and-tool-calling"
+    },
+    {
+      "checked_on": "2026-07-26",
+      "claim_scope": "local workflow and reference routing",
+      "source": "skills/automation-ai-workflows/SKILL.md"
+    }
+  ],
+  "reference_routing": [
+    {
+      "expected": [
+        "skills/automation-ai-workflows/references/full-guide.md"
+      ],
+      "forbidden": [],
+      "id": "reference-1-full-guide-md",
+      "prompt": "Design a provider-neutral AI-assisted claims workflow with one bounded classifier/extractor, deterministic authorization and routing, versioned schemas, human approval, idempotent side effects, replay and evaluation-gated rollout."
+    },
+    {
+      "expected": [],
+      "forbidden": [
+        "skills/automation-ai-workflows/references/full-guide.md"
+      ],
+      "id": "reference-main-only",
+      "prompt": "Handle a routine automation ai workflows request using only the concise main workflow; no selected provider, index, workflow-pattern, or optional deep-dive detail is needed."
+    }
+  ],
   "risk": {
     "mode": "read_only",
     "rationale": "automation-ai-workflows produces diagnosis, design, or economic analysis only and must not modify repository or external state."
   },
-  "version_policy": {
-    "mode": "dynamic",
-    "technologies": [
-      "ai-sdk",
-      "openai",
-      "typescript"
-    ]
-  },
   "routing": {
+    "negative": [
+      {
+        "expected_skill": "ai-agent-architecture",
+        "id": "route-agent-autonomy",
+        "prompt": "Design a tool-using product agent that dynamically plans across resources, requires tenant memory governance and chooses tools over multiple turns."
+      },
+      {
+        "expected_skill": "automation-n8n-implement",
+        "id": "route-n8n-implementation",
+        "prompt": "Implement and configure the approved n8n workflow nodes, credentials, expressions, error branches, deployment and executable tests."
+      }
+    ],
     "positive": [
       {
         "id": "route-ai-workflow-design",
@@ -38,162 +80,120 @@
         "id": "route-replayable-approval",
         "prompt": "Design a complaint-response workflow where a bounded model drafts a reply only from approved case facts, schema validation can abstain to human review, and deterministic delivery handles duplicate triggers and timeout-after-provider-success. Approval must bind the exact recipients, content, and model/prompt version; replay must reconcile rather than send twice."
       }
-    ],
-    "negative": [
-      {
-        "id": "route-agent-autonomy",
-        "prompt": "Design a tool-using product agent that dynamically plans across resources, requires tenant memory governance and chooses tools over multiple turns.",
-        "expected_skill": "ai-agent-architecture"
-      },
-      {
-        "id": "route-n8n-implementation",
-        "prompt": "Implement and configure the approved n8n workflow nodes, credentials, expressions, error branches, deployment and executable tests.",
-        "expected_skill": "automation-n8n-implement"
-      }
     ]
   },
-  "reference_routing": [
-    {
-      "id": "reference-1-full-guide-md",
-      "prompt": "Design a provider-neutral AI-assisted claims workflow with one bounded classifier/extractor, deterministic authorization and routing, versioned schemas, human approval, idempotent side effects, replay and evaluation-gated rollout.",
-      "expected": [
-        "skills/automation-ai-workflows/references/full-guide.md"
-      ],
-      "forbidden": []
-    },
-    {
-      "id": "reference-main-only",
-      "prompt": "Handle a routine automation ai workflows request using only the concise main workflow; no selected provider, index, workflow-pattern, or optional deep-dive detail is needed.",
-      "expected": [],
-      "forbidden": [
-        "skills/automation-ai-workflows/references/full-guide.md"
-      ]
-    }
-  ],
   "scenarios": [
     {
+      "assertions": [
+        {
+          "criterion": "Designs AI-assisted automation only, leaving autonomous agents and n8n implementation to neighboring skills.",
+          "dimension": "native_ownership",
+          "id": "workflow-owner",
+          "severity": "major"
+        },
+        {
+          "criterion": "Uses fixture evidence for triggers, deterministic rules, side effects, provider/runtime, checkpoints, auth/approval and tests without inventing workflow nodes.",
+          "dimension": "repository_context",
+          "id": "workflow-repo",
+          "severity": "critical"
+        },
+        {
+          "criterion": "Draws deterministic state first, proves the irreducibly probabilistic step, defines versioned schema/abstention/review and persists idempotent checkpoints before model or effects.",
+          "dimension": "decision_workflow",
+          "id": "workflow-flow",
+          "severity": "critical"
+        },
+        {
+          "criterion": "Keeps authorization, validation, routing rules and side effects deterministic, treats model output as untrusted, binds approval to exact parameters and reconciles ambiguous outcomes/replay without duplicate effects.",
+          "dimension": "domain_correctness",
+          "id": "workflow-correct",
+          "severity": "critical"
+        },
+        {
+          "criterion": "Defines cases for duplicate triggers, invalid/ambiguous/adversarial output, human reject/expiry, provider failure, timeout-after-success, checkpoint replay and deterministic disable/rollback.",
+          "dimension": "verification",
+          "id": "workflow-verify",
+          "severity": "critical"
+        },
+        {
+          "criterion": "Reports state machine/model boundary, schemas, approval/idempotency/replay, evaluation/rollout, operational evidence and residual model risk.",
+          "dimension": "output_contract",
+          "id": "workflow-output",
+          "severity": "major"
+        },
+        {
+          "criterion": "Uses the smallest model step and versioned adapters, avoiding giant prompts, autonomous topology and copied confidence thresholds.",
+          "dimension": "maintainability",
+          "id": "workflow-maintain",
+          "severity": "major"
+        }
+      ],
+      "fixture": "evals/fixtures/ai-data-system.md",
       "id": "domain-critical-boundaries",
       "kind": "domain",
-      "prompt": "A proposed automation sends all inputs to an autonomous model, accepts free-text routing and retries the whole workflow after failure. A payment side effect runs before checkpointing and approval covers only the action name. Produce a deterministic design correction.",
-      "fixture": "evals/fixtures/existing-repository.md",
-      "assertions": [
-        {
-          "id": "workflow-owner",
-          "dimension": "native_ownership",
-          "severity": "major",
-          "criterion": "Designs AI-assisted automation only, leaving autonomous agents and n8n implementation to neighboring skills."
-        },
-        {
-          "id": "workflow-repo",
-          "dimension": "repository_context",
-          "severity": "critical",
-          "criterion": "Uses fixture evidence for triggers, deterministic rules, side effects, provider/runtime, checkpoints, auth/approval and tests without inventing workflow nodes."
-        },
-        {
-          "id": "workflow-flow",
-          "dimension": "decision_workflow",
-          "severity": "critical",
-          "criterion": "Draws deterministic state first, proves the irreducibly probabilistic step, defines versioned schema/abstention/review and persists idempotent checkpoints before model or effects."
-        },
-        {
-          "id": "workflow-correct",
-          "dimension": "domain_correctness",
-          "severity": "critical",
-          "criterion": "Keeps authorization, validation, routing rules and side effects deterministic, treats model output as untrusted, binds approval to exact parameters and reconciles ambiguous outcomes/replay without duplicate effects."
-        },
-        {
-          "id": "workflow-verify",
-          "dimension": "verification",
-          "severity": "critical",
-          "criterion": "Defines cases for duplicate triggers, invalid/ambiguous/adversarial output, human reject/expiry, provider failure, timeout-after-success, checkpoint replay and deterministic disable/rollback."
-        },
-        {
-          "id": "workflow-output",
-          "dimension": "output_contract",
-          "severity": "major",
-          "criterion": "Reports state machine/model boundary, schemas, approval/idempotency/replay, evaluation/rollout, operational evidence and residual model risk."
-        },
-        {
-          "id": "workflow-maintain",
-          "dimension": "maintainability",
-          "severity": "major",
-          "criterion": "Uses the smallest model step and versioned adapters, avoiding giant prompts, autonomous topology and copied confidence thresholds."
-        }
-      ]
+      "prompt": "A proposed automation sends all inputs to an autonomous model, accepts free-text routing and retries the whole workflow after failure. A payment side effect runs before checkpointing and approval covers only the action name. Produce a deterministic design correction."
     },
     {
+      "assertions": [
+        {
+          "criterion": "Rejects direct model execution and stale approval; requires server authorization, exact amount/recipient/version binding, durable operation identity and authoritative reconciliation before retry.",
+          "dimension": "runtime_safety",
+          "id": "workflow-safety",
+          "severity": "critical"
+        },
+        {
+          "criterion": "Separates recommendation from deterministic approved execution, invalidates parameter changes and makes replay return the prior operation/result rather than transfer again.",
+          "dimension": "domain_correctness",
+          "id": "workflow-safety-correct",
+          "severity": "critical"
+        },
+        {
+          "criterion": "Requires one provider-authoritative transfer, approval audit match, checkpoint state and duplicate/replay test evidence.",
+          "dimension": "verification",
+          "id": "workflow-safety-proof",
+          "severity": "critical"
+        }
+      ],
+      "fixture": "evals/fixtures/ai-data-system.md",
       "id": "safety-production-counterexample",
       "kind": "safety",
-      "prompt": "A model classifies a supplier request and directly initiates a bank transfer. The worker crashes after provider success, and replay receives a slightly changed amount under the old approval.",
-      "fixture": "evals/fixtures/existing-repository.md",
-      "assertions": [
-        {
-          "id": "workflow-safety",
-          "dimension": "runtime_safety",
-          "severity": "critical",
-          "criterion": "Rejects direct model execution and stale approval; requires server authorization, exact amount/recipient/version binding, durable operation identity and authoritative reconciliation before retry."
-        },
-        {
-          "id": "workflow-safety-correct",
-          "dimension": "domain_correctness",
-          "severity": "critical",
-          "criterion": "Separates recommendation from deterministic approved execution, invalidates parameter changes and makes replay return the prior operation/result rather than transfer again."
-        },
-        {
-          "id": "workflow-safety-proof",
-          "dimension": "verification",
-          "severity": "critical",
-          "criterion": "Requires one provider-authoritative transfer, approval audit match, checkpoint state and duplicate/replay test evidence."
-        }
-      ]
+      "prompt": "A model classifies a supplier request and directly initiates a bank transfer. The worker crashes after provider success, and replay receives a slightly changed amount under the old approval."
     },
     {
+      "assertions": [
+        {
+          "criterion": "Uses the skill-required repository stack-context step when execution is available, then derives authority from the lockfile, installed types and matching official docs; designs to exposed structured-output/tool/usage capabilities and separates migration. When execution is withheld, stating that required stack-context generation and underlying evidence are unavailable is sufficient without literal shell syntax, but it must not claim the step ran.",
+          "dimension": "version_compatibility",
+          "id": "workflow-version",
+          "severity": "critical"
+        },
+        {
+          "criterion": "Checks model/provider adapter, workflow runtime, schema validator, checkpoint store and side-effect provider together.",
+          "dimension": "repository_context",
+          "id": "workflow-version-context",
+          "severity": "major"
+        },
+        {
+          "criterion": "Keeps volatile provider mechanics in the selected reference/adapter and thresholds in evaluated product policy.",
+          "dimension": "maintainability",
+          "id": "workflow-version-maintain",
+          "severity": "major"
+        }
+      ],
+      "fixture": "evals/fixtures/ai-data-system.md",
       "id": "version-installed-capability",
       "kind": "version",
-      "prompt": "An existing workflow pins an SDK whose structured-output, tool and retry APIs differ from current examples. The design does not authorize migration.",
-      "fixture": "evals/fixtures/existing-repository.md",
-      "assertions": [
-        {
-          "id": "workflow-version",
-          "dimension": "version_compatibility",
-          "severity": "critical",
-          "criterion": "Derives stack evidence from the lockfile, installed types and matching official docs; designs to exposed structured-output/tool/usage capabilities and separates migration, without requiring a particular helper command."
-        },
-        {
-          "id": "workflow-version-context",
-          "dimension": "repository_context",
-          "severity": "major",
-          "criterion": "Checks model/provider adapter, workflow runtime, schema validator, checkpoint store and side-effect provider together."
-        },
-        {
-          "id": "workflow-version-maintain",
-          "dimension": "maintainability",
-          "severity": "major",
-          "criterion": "Keeps volatile provider mechanics in the selected reference/adapter and thresholds in evaluated product policy."
-        }
-      ]
+      "prompt": "An existing workflow pins an SDK whose structured-output, tool and retry APIs differ from current examples. The design does not authorize migration."
     }
   ],
-  "provenance": [
-    {
-      "claim_scope": "AI risk management framework",
-      "source": "https://www.nist.gov/itl/ai-risk-management-framework",
-      "checked_on": "2026-07-26"
-    },
-    {
-      "claim_scope": "prompt injection boundary",
-      "source": "https://cheatsheetseries.owasp.org/cheatsheets/LLM_Prompt_Injection_Prevention_Cheat_Sheet.html",
-      "checked_on": "2026-07-26"
-    },
-    {
-      "claim_scope": "AI SDK tool boundary",
-      "source": "https://ai-sdk.dev/docs/ai-sdk-core/tools-and-tool-calling",
-      "checked_on": "2026-07-26"
-    },
-    {
-      "claim_scope": "local workflow and reference routing",
-      "source": "skills/automation-ai-workflows/SKILL.md",
-      "checked_on": "2026-07-26"
-    }
-  ]
+  "schema_version": 1,
+  "skill": "automation-ai-workflows",
+  "version_policy": {
+    "mode": "dynamic",
+    "technologies": [
+      "ai-sdk",
+      "openai",
+      "typescript"
+    ]
+  }
 }

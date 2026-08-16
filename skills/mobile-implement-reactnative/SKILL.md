@@ -31,7 +31,7 @@ Preserve current navigation, state, storage, list, styling, file, and test patte
 
 Treat native modules as versioned contracts with typed input/output, structured errors, permission handling, cancellation, threading, and unavailable-module behavior. Verify both JS and native implementations where affected.
 
-For OTA updates, verify runtime-version compatibility, native module/schema compatibility, rollout channel, asset/data migrations, crash monitoring, and rollback before publication. An OTA bundle cannot safely introduce native capabilities absent from the installed binary.
+For OTA updates, verify runtime-version compatibility, native module/schema compatibility, rollout channel, asset/data migrations, crash monitoring, and rollback before publication. Before publication, execute the repository/provider-supported rollback exercise against a non-production or otherwise explicitly authorized safe channel: identify the exact current/candidate/rollback runtime and update identities, roll forward, trigger or simulate the abort criterion, roll back, and read back the active update plus restored data/schema compatibility. A rollback artifact or owner without this executable evidence is insufficient. An OTA bundle cannot safely introduce native capabilities absent from the installed binary.
 
 Profile actual devices/build modes before changing memoization, virtualization, image caching, bridge/JSI placement, or animation. Select list/window/batch dimensions and performance budgets from measurements and accessibility behavior, not fixed item counts or pixels.
 
