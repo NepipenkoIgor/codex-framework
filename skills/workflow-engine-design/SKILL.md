@@ -29,6 +29,6 @@ Design `$ARGUMENTS` read-only.
 
 ## Verification and output
 
-Test crash before/after state and effect, duplicate/concurrent workers/signals, stale approval, timer across restart, cancellation races, timeout-after-effect, compensation partial failure, engine outage, replay without repeated effects and mixed-version workflows.
+Test crash before/after state and effect, duplicate/concurrent workers/signals, stale approval, timer across restart, cancellation races, timeout-after-effect, compensation partial failure, engine outage, replay without repeated effects and mixed-version workflows. Include an executable duplicate/concurrent-worker delivery case with controlled inputs/barriers and observable assertions that only one authorized transition/effect commits and losing deliveries reconcile safely; architectural at-least-once statements are not test evidence.
 
 Report state/transition authority, durable persistence, step/effect identities, retry/timer/human/cancellation semantics, compensation/replay/version migration, observability/manual recovery, alternatives and residual risk.

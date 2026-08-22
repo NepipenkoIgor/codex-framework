@@ -12,6 +12,8 @@ metadata:
 
 Create an evidence-grounded direction, not a generic style recipe. This skill owns the visual thesis and handoff; the matching frontend or design-system implementation skill owns repository changes.
 
+Keep a no-code direction request compact. Do not add stack-context status, credentials, process/tab ownership, retry/concurrency mechanics, deployment authority, rollback artifacts, or recovery-owner gates unless the supplied brief makes that specific constraint material to the visual direction or requested handoff.
+
 ## Ground the brief
 
 1. Read the user brief, product and audience evidence, real content, existing brand/tokens/components, relevant routes and screenshots, platform constraints, and any explicit accessibility, localization, performance, or browser requirements.

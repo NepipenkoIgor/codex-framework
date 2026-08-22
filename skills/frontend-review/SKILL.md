@@ -14,7 +14,7 @@ Review `$ARGUMENTS` read-only. Findings must identify a behavior-changing defect
 
 ## Boundary and workflow
 
-1. Read applicable instructions, the actual diff and callers, manifests/lockfiles, generated types/config, nearby tests, and public browser/server contracts.
+1. Read applicable instructions, the actual diff and callers, manifests/lockfiles, generated types/config, nearby tests, and public browser/server contracts. In the report, call an artifact inspected only when it was actually supplied or opened; keep all other inspection or execution as a pending plan and never infer inspection from an artifact's existence.
 2. Reconstruct expected behavior across fresh load/navigation, SSR/hydration, loading/empty/error/retry, focus/keyboard, responsive/theme, authorization, cache, and mutation states affected by the diff.
 3. Trace high-risk paths first: server/client ownership, stale async work, data exposure, mutation validation/authorization/idempotency, rendering/hydration, event/focus lifecycle, and performance-sensitive loops.
 4. Use the repository's installed framework capability and authoritative commands. A newer documented API is not a defect when the pinned supported stack does not expose it.

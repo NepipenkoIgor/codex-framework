@@ -26,7 +26,7 @@ Audit `$ARGUMENTS` read-only. Do not edit code, designs, tokens, or external sta
 - native semantics, keyboard/focus behavior, accessible names, and design-system accessibility contracts, routing broad WCAG conformance work to `accessibility-audit`;
 - token/source drift, generated-output drift, one-off exceptions, duplicated primitives, and platform-specific requirements.
 
-An arbitrary value may be a legitimate documented exception. A disabled control may be appropriate when its reason and alternative are clear; `pointer-events: none` is not a universal disabled-state requirement and can remove useful pointer semantics. Keyboard focus must remain perceivable, while `:focus-visible` may intentionally avoid a mouse-focus ring. Judge behavior against the authoritative contract and input modality, not blanket myths.
+An arbitrary value may be a legitimate documented exception and must not be reported as drift solely because it differs from a repeated value. A disabled control must be judged by why it is unavailable and whether an understandable alternative exists; `pointer-events: none` is not a universal disabled-state requirement and can remove useful pointer semantics. Keyboard focus must remain perceivable, while `:focus-visible` may intentionally differ by input modality and avoid a mouse-focus ring. Make these exception, disabled-alternative and modality checks explicit in the audit plan and findings; listing states alone is insufficient.
 
 ## Evidence safety
 

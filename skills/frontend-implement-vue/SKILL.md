@@ -9,7 +9,7 @@ metadata:
 
 # Vue Implementation
 
-Inspect Vue/Nuxt manifests, lockfile, SFC style, JS/TS usage, router/store/SSR conventions and tests. Use only APIs exposed by installed Vue/Nuxt/types. Before material mutation, resolve exact task-owned targets, owner and write authority/permissions plus effect-appropriate rollback/recovery.
+Inspect Vue/Nuxt manifests, lockfile, SFC style, JS/TS usage, router/store/SSR conventions and tests. Use only APIs exposed by installed Vue/Nuxt/types. Explicitly check each applicable relationship among runtime engine ranges, dependency peers, Vue/Nuxt/compiler coupling, test runner and deployment runtime; mark absent or unavailable dimensions rather than replacing them with a generic compatibility claim. Before material mutation, resolve exact task-owned targets, owner and write authority/permissions plus effect-appropriate rollback/recovery.
 
 - Preserve established Options API, Composition API, JavaScript or TypeScript style. Do not convert working components as incidental modernization.
 - Keep props readonly, emit explicit, computed values pure and watchers/effects scoped with cleanup. Use composables for cohesive reusable behavior, not every function.

@@ -15,7 +15,7 @@ Write behavior-focused Vue tests without replacing the repository's runner, DOM 
 
 ## Workflow
 
-1. Inspect instructions, manifests and lockfiles, test config/setup, nearby tests, target component/composable/route, and installed Vue/Nuxt capabilities. Verify every selected version-sensitive API or command against installed/generated types, CLI/configuration schema, or matching official documentation. Before mutation, resolve exact task-owned test/fixture targets when repository evidence identifies them, package ownership and write authority, plus a reversible diff and isolated cleanup path; otherwise block execution pending discovery.
+1. Inspect instructions, manifests and lockfiles, test config/setup, nearby tests, target component/composable/route, and installed Vue/Nuxt capabilities. Verify every selected version-sensitive API or command against installed/generated types, CLI/configuration schema, or matching official documentation. Explicitly check each applicable relationship among runtime engine ranges, dependency peers, Vue/Nuxt/compiler coupling, test runner/DOM harness and deployment runtime; mark absent or unavailable dimensions. Before mutation, resolve exact task-owned test/fixture targets when repository evidence identifies them, package ownership and write authority, plus a reversible diff and isolated cleanup path; otherwise block execution pending discovery.
 2. Choose the execution boundary:
    - pure transform: unit test;
    - component/reactivity contract: Vue Test Utils component test with required plugins and provides;
