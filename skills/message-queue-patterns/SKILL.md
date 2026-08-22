@@ -14,6 +14,8 @@ Implement `$ARGUMENTS` against the configured broker and client capabilities.
 
 Treat producer durability and consumer correctness as one end-to-end contract even when the reported incident is consumer-side. Do not omit the producer transaction/outbox boundary, broker acknowledgement/confirm responsibility, schema-registry capability or ambiguous-publish recovery from discovery, design, fault tests or the final report.
 
+This skill owns transport, delivery and replay mechanics. Preserve payment or other domain policy with its domain owner and preserve higher-level event boundaries, event meaning and service topology with the event-architecture owner; broker implementation must not silently redefine either.
+
 ## Workflow
 
 1. Inspect manifests/lockfiles, broker/client configuration, topic/queue declarations, producer transaction, message schemas and registry, consumer groups, offset/ack mode, retry/dead-letter topology, retention, deployment lifecycle, existing telemetry, recent failure/redelivery evidence, and tests. Preserve pins and verify unfamiliar APIs against installed types/config and matching official docs.

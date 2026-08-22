@@ -18,6 +18,7 @@ Audit `$ARGUMENTS` read-only. Do not edit code, designs, tokens, or external sta
 2. Identify authority in order of repository/product evidence: approved design source or specification, token source and generated outputs, shared primitives and documented variants, then repeated rendered product patterns. Do not invent a token scale or declare the most common value correct.
 3. Inspect source plus rendered states. Static search is candidate discovery, not proof of a visual or interaction defect.
 4. Mark inaccessible/authenticated/browser states untested rather than extrapolating counts or site-wide conclusions.
+5. When a finding depends on installed frontend behavior, explicitly check each applicable runtime engine, dependency peer, compiler/framework, test-runner/browser harness and deployment-runtime relationship; mark withheld, absent or unavailable dimensions instead of using a generic compatibility claim.
 
 ## Review dimensions
 

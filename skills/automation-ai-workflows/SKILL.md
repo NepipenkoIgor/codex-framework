@@ -25,7 +25,7 @@ This skill owns the probabilistic boundary and read-only workflow design. When t
 
 ## Workflow
 
-1. Draw the deterministic state machine and identify the irreducibly probabilistic step. Prove why deterministic rules cannot satisfy it; if they can, remove the model.
+1. Draw the deterministic state machine and identify the irreducibly probabilistic step. Demonstrate with the task's ambiguity, open-ended input or evaluation evidence why deterministic rules cannot satisfy it; merely labeling a classification probabilistic is not proof. If deterministic rules can satisfy it, remove the model.
 2. Define input/output schemas, confidence/abstention rules, and human escalation.
 3. Before invoking the model, durably persist the accepted workflow identity, immutable input reference, authorization context and resumable checkpoint. Implement idempotent side effects and subsequent checkpoints before adding the model.
 4. Build a representative evaluation set including adversarial, ambiguous, empty, and provider-failure cases.
@@ -37,4 +37,5 @@ This skill owns the probabilistic boundary and read-only workflow design. When t
 - Deterministic state machine and model boundary
 - Schemas, confidence/escalation, security, and budget controls
 - Evaluation, disable-control, rollback, and failure-recovery evidence
+- Concrete read-only rollout and promotion plan: cohort/canary sequence, entry/exit gates, accountable approver, stop/disable conditions, rollback and in-flight reconciliation. Report deployment as unexecuted unless the authorized implementation owner actually ran it.
 - Operational metrics and residual model risk

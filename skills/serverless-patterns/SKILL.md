@@ -35,6 +35,6 @@ Use least-privilege identities, secret stores, structured redacted logs, correla
 
 ## Verification and output
 
-Test exact provider event fixtures, malformed/unauthorized/wrong-tenant input, duplicate and concurrent delivery, timeout-after-effect, partial batches, downstream throttling, cold/warm state leakage, retry exhaustion/redrive, and deployed configuration compatibility. Local emulators are useful but not provider proof.
+Test exact provider event fixtures, malformed/unauthorized/wrong-tenant input, duplicate and concurrent delivery, timeout-after-effect, partial batches, downstream throttling, cold/warm state leakage, retry exhaustion/redrive, and deployed configuration compatibility. Exercise tenant isolation independently on a cold invocation and across warm reuse, asserting both denial and absence of cross-tenant persisted/provider effects; performance measurements alone are not isolation evidence. Local emulators are useful but not provider proof.
 
 Report installed provider/runtime/IaC pins, triggers and guarantees, auth/resource checks, idempotency/reconciliation, limits/concurrency/retry/DLQ, cold/warm evidence, commands/results, deployed paths verified, and residual provider risk.
