@@ -1,24 +1,24 @@
 {
   "schemaVersion": 1,
-  "reviewedAt": "2026-08-15T09:12:37+00:00",
-  "codexVersion": "codex-cli 0.147.0",
-  "latestReleaseTag": "rust-v0.147.0",
-  "changelogReviewedThrough": "2026-08-13",
+  "reviewedAt": "2026-08-22T16:24:12+00:00",
+  "codexVersion": "codex-cli 0.149.0",
+  "latestReleaseTag": "rust-v0.149.0",
+  "changelogReviewedThrough": "2026-08-20",
   "sources": [
     {
       "kind": "manual",
       "url": "https://developers.openai.com/codex/",
-      "sha256": "a71e18659761b9e71fa636d978a4dfb7b7a4dca0bfdf312f56e8c5ed1032748c"
+      "sha256": "463efca119f6b3df8247ad5aa1a4af604dd1da122aa8808f517e88bacf8ad44d"
     },
     {
       "kind": "changelog",
       "url": "https://learn.chatgpt.com/docs/changelog",
-      "sha256": "bdabf01bf63368d7f9bdaf7a4590efc4ac2699ce8db932192e4d5733610f02c4"
+      "sha256": "d1b644bde73e095757d754d87db6d2daa010a2ee8db13edbcc32632cb80881bb"
     },
     {
       "kind": "release",
-      "url": "https://github.com/openai/codex/releases/tag/rust-v0.147.0",
-      "sha256": "5c4c607f2d53595ee9a1e400ed7bb93a82b130626297169fc4c1c206b9f39432"
+      "url": "https://api.github.com/repos/openai/codex/releases/latest",
+      "sha256": "1dbe3bb09fcae4019b0a7c3fcb15045de47430a8776540c01ae2546349c81917"
     }
   ],
   "capabilities": [
@@ -48,14 +48,87 @@
     },
     {
       "id": "task-ergonomics",
-      "nativeFeature": "Task names, pins, sections, forks, and handoff",
+      "nativeFeature": "Task names, pins, sections, handoff, history-backed forks, native task dashboards, and queued task messages",
       "decision": "adopted",
-      "localOverlap": "Local status dashboards and handoff files duplicate native task state.",
-      "action": "Use native task ergonomics for long work only when the user requested the corresponding task boundary.",
+      "localOverlap": "Local task registries, message queues, status dashboards, fork wrappers, and handoff files duplicate native task state and coordination.",
+      "action": "Use a fork only for an explicitly requested history-backed alternative, a new task for independent context, and a subagent for bounded current-request work; keep parallel writers in separate worktrees and use native task messaging and management.",
       "evidence": [
         "AGENTS.md",
         "templates/global/AGENTS.md",
         "README.md"
+      ]
+    },
+    {
+      "id": "native-doctor-diagnostics",
+      "nativeFeature": "Codex doctor endpoint-protection, network, desktop, update, storage, and runtime diagnostics",
+      "decision": "adopted",
+      "localOverlap": "Reimplementing provider, desktop, update, or runtime health probes in framework scripts would drift from the native diagnostic surface.",
+      "action": "Delegate platform diagnostics to native codex doctor and keep framework-doctor limited to framework installation, ownership, prompt, pack, hook, and evidence checks.",
+      "evidence": [
+        "scripts/framework-doctor.sh",
+        "scripts/framework-doctor-native.py",
+        "README.md"
+      ]
+    },
+    {
+      "id": "fork-permission-restoration",
+      "nativeFeature": "Resume and fork restoration of persisted working directory and active permission profile with configured-default resolution when persisted state is invalid",
+      "decision": "adopted",
+      "localOverlap": "A framework permission override would hide the native effective profile, while assuming restoration always succeeds could continue consequential work with broader configured defaults.",
+      "action": "After resume or fork, verify the effective working directory and permission profile before consequential work; stop on mismatch and never treat default resolution as authorization for broader access.",
+      "evidence": [
+        "templates/global/AGENTS.md",
+        "README.md",
+        "docs/framework-audit-2026-08-21.md"
+      ]
+    },
+    {
+      "id": "async-mcp-hooks",
+      "nativeFeature": "Asynchronous hooks and hook-initiated MCP tool calls",
+      "decision": "retained",
+      "localOverlap": "Using background or MCP hooks for routing, retries, task steering, context injection, or external mutations would violate the framework's deterministic hook boundary.",
+      "action": "Retain one synchronous local PreToolUse safety hook; route background work and external actions through native tasks, automations, connectors, or the active agent.",
+      "evidence": [
+        "AGENTS.md",
+        ".codex/config.toml",
+        "scripts/hooks/pre-tool-use.sh",
+        "README.md"
+      ]
+    },
+    {
+      "id": "skill-catalog-budget",
+      "nativeFeature": "Configurable native skill-catalog token budget and recent or character-routed skill selection",
+      "decision": "retained",
+      "localOverlap": "A framework-side skill prompt injector or router would duplicate native discovery and selection.",
+      "action": "Keep the native catalog default while prompt-input evidence shows complete core discovery without truncation; change the native budget only from measured catalog pressure, never add a local router.",
+      "evidence": [
+        "scripts/framework-doctor.sh",
+        "skills/core.txt",
+        "README.md"
+      ]
+    },
+    {
+      "id": "shared-thread-snapshots",
+      "nativeFeature": "Read-only shared snapshots of local Codex threads",
+      "decision": "permission-gated",
+      "localOverlap": "A framework transcript exporter or auto-share workflow could expose sensitive history and would duplicate native snapshot controls and revocation.",
+      "action": "Use native sharing only on explicit request after reviewing the snapshot audience and content; never auto-share, and keep export or redaction wrappers absent.",
+      "evidence": [
+        "templates/global/AGENTS.md",
+        "README.md",
+        "docs/framework-audit-2026-08-21.md"
+      ]
+    },
+    {
+      "id": "conversation-export",
+      "nativeFeature": "Complete TUI conversation export to Markdown or the clipboard with /export",
+      "decision": "permission-gated",
+      "localOverlap": "Automatic transcript export or a framework exporter could disclose prompts, tool output, credentials, or proprietary context and would duplicate native export controls.",
+      "action": "Export only on explicit user request after reviewing the exact destination and transcript content; never auto-export or treat native secret-pattern handling as complete disclosure review.",
+      "evidence": [
+        "templates/global/AGENTS.md",
+        "README.md",
+        "docs/framework-audit-2026-08-21.md"
       ]
     },
     {
@@ -86,7 +159,7 @@
       "nativeFeature": "GitHub integration, codex review, and approval review",
       "decision": "adopted",
       "localOverlap": "General PR wrappers and an always-on custom reviewer duplicate native review surfaces.",
-      "action": "Use native review for routine work and reserve one read-only custom reviewer for high-risk falsification.",
+      "action": "Use native review for routine work and reserve one read-only custom reviewer, spawned without inherited conversation history and given only a neutral evidence bundle, for high-risk falsification.",
       "evidence": [
         "AGENTS.md",
         ".codex/agents/reviewer.toml",

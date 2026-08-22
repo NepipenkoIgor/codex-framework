@@ -258,10 +258,17 @@ falsification_review_contract() {
   # shellcheck disable=SC2016
   grep -q '^## Agent profiles and review$' "$ROOT/AGENTS.md" \
     && grep -q 'run exactly one independent read-only falsification pass' "$ROOT/AGENTS.md" \
+    && grep -q 'no inherited conversation turns or prior-agent history' "$ROOT/AGENTS.md" \
+    && grep -q 'only a neutral evidence bundle' "$ROOT/AGENTS.md" \
+    && grep -q 'cannot prove the no-history boundary' "$ROOT/AGENTS.md" \
     && grep -q 'at most one revision cycle unless the user requests a deeper audit' "$ROOT/AGENTS.md" \
     && grep -q 'Act as an independent falsifier' "$ROOT/.codex/agents/reviewer.toml" \
+    && grep -q 'fresh context with no prior conversation or agent history' "$ROOT/.codex/agents/reviewer.toml" \
+    && grep -q 'report the independence contract as invalid instead of certifying' "$ROOT/.codex/agents/reviewer.toml" \
     && grep -q 'Every actionable finding must include severity, concrete evidence' "$ROOT/.codex/agents/reviewer.toml" \
-    && grep -q 'avoid recursive debate loops' "$ROOT/templates/global/AGENTS.md"
+    && grep -q 'no inherited conversation turns or prior-agent history' "$ROOT/templates/global/AGENTS.md" \
+    && grep -q 'avoid recursive debate loops' "$ROOT/templates/global/AGENTS.md" \
+    && python3 "$ROOT/scripts/framework-review-context-check.py"
 }
 
 interactive_development_contract() {
@@ -284,6 +291,7 @@ native_feature_adoption_contract() {
   grep -Eqi 'Scheduled tasks/automations' "$instructions" \
     && grep -Eqi 'recurring execution.*,? monitoring|monitoring.*,? reminders' "$instructions" \
     && grep -Eqi 'task names.*,? pins.*,? sections.*,? handoff.*,? forks' "$instructions" \
+    && python3 "$ROOT/scripts/framework-task-topology-check.py" "$instructions" \
     && grep -Eqi 'GitHub integration.*codex review|codex review.*GitHub integration' "$instructions" \
     && grep -Eqi 'Record & Replay.*user-demonstrated|Record & Replay.*demonstrated.*workflow' "$instructions" \
     && grep -Eqi 'plugin trust/install.*explicit native user gates|never bypass.*plugin trust/install' "$instructions"
