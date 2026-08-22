@@ -14,7 +14,7 @@ Read [the full framework/component guide](references/full-guide.md) only for the
 
 ## Establish the implementation contract
 
-1. Read instructions, manifests/lockfiles, authoritative token/design sources, existing primitives and consumers, generated outputs, build/distribution config, and behavior/accessibility/visual tests.
+1. Read instructions, manifests/lockfiles, authoritative token/design sources, existing primitives and consumers, generated outputs, build/distribution config, and behavior/accessibility/visual tests. State each artifact as inspected only after it was actually supplied or opened; otherwise list its inspection as pending and do not convert its existence into evidence.
 2. Generate stack context. Verify version-sensitive APIs against installed types/schema/CLI help and matching official documentation; preserve pins unless migration is explicitly authorized.
 3. Resolve token/component source of truth, public API, theme and SSR/first-paint behavior, package/version compatibility, deprecation policy, exact pilot consumers, mutation owner and write authority/permissions before editing; define a reversible token/component/consumer rollback.
 4. Prefer native HTML semantics and behavior. Add ARIA only where native semantics cannot express the required contract, then implement its keyboard/focus/state behavior.

@@ -7,7 +7,7 @@ Apply these defaults in every repository unless a closer project instruction ove
 - Read local instructions before editing, preserve unrelated work, and verify changed behavior.
 - Use native plans and goals for genuinely multi-step work; continue until done or genuinely blocked.
 - Delegate only independent work, keep contracts and integration with the parent, and isolate parallel writers in worktrees.
-- After ordinary verification of a high-risk change, use one independent read-only reviewer to try to falsify the result; accept only evidence-backed findings, rerun affected checks, and avoid recursive debate loops. Skip this for routine low-risk changes.
+- After high-risk checks, spawn a read-only reviewer with no inherited conversation turns or prior-agent history. Give request/criteria, diff, paths/contracts, results—not implementer reasoning, memory, commentary. Without native no-history spawn, review is unavailable. One revision only; avoid recursive debate loops. Skip routine work.
 - Report only real agents, checks, files, risks, and blockers. Skills are workflows, not agents.
 - When a repository has no closer branch convention, name new branches for human intent with `feat/`, `fix/`, `refactor/`, `docs/`, `test/`, `chore/`, `perf/`, `build/`, `ci/`, `revert/`, `release/`, or `hotfix/` plus a concise kebab-case outcome. Do not expose the implementation agent, model, vendor, or automation surface in a branch name; `codex/`, `agent/`, `gpt/`, `claude/`, and `ai/` are prohibited.
 - Prefer native Codex capabilities over local orchestration, memory, browser, git, plugin, or MCP wrappers.
@@ -29,8 +29,10 @@ Apply these defaults in every repository unless a closer project instruction ove
 ## Native task ergonomics and automation
 
 - Use native Scheduled tasks/automations for requested recurring execution, monitoring, reminders, and later follow-up when available; never add polling daemons, retry loops, or lifecycle hooks for this purpose.
-- Use native task names, pins, sections, handoff, and forks when long work benefits from navigation, a durable decision point, or an isolated alternative hypothesis. Create or fork a user-visible task only when the user requested that boundary; never create local status or handoff machinery.
-- Prefer native GitHub integration or `codex review` for routine review. Keep the custom read-only reviewer for one bounded high-risk falsification pass.
+- Use native task names, pins, sections, handoff, and forks for long-work navigation or an isolated alternative. Choose a fork only when the new task needs the source task's completed history; choose a new task when it should start without that history, and a subagent when it remains a bounded part of the current request. Create or fork a user-visible task only when the user requested that boundary. A running turn is not forked history, and parallel writers require separate worktrees. Use native task messaging and task management instead of local queues, status files, or handoff machinery.
+- After resume or fork, verify the effective working directory and permission profile before consequential work. An invalid persisted profile can resolve to the configured default; a mismatch is an explicit stop-and-resolve boundary, not broader authorization.
+- Export or share task history only on explicit user request after reviewing its content and audience. Native redaction is not proof that no sensitive data remains.
+- Prefer native GitHub integration or `codex review` for routine review.
 - Offer Record & Replay only for a user-demonstrated repetitive interactive workflow. Recording, Computer Use, site/CDP access, plugin trust/install, Auto-review, and consequential connector permissions remain explicit native user gates.
 - Automatically use matching installed and approved native capabilities. When installation, sign-in, trust, or permission is missing, explain the one-time gate and continue safe independent work.
 - Treat native memories, imported agent history, and Computer History as optional recall sources, never as authority for required project rules or current external state. Keep durable requirements in repository instructions and revalidate environment/provider identity before mutation.

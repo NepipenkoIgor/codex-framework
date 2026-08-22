@@ -31,6 +31,6 @@ Identify the applicable repository target, governing instructions and implementa
 
 ## Verification and output
 
-Test aggregate invariants, concurrent commands, constraint conflicts, tenant/resource authorization, transaction rollback, outbox crash window, duplicate/reordered events and context translation with executable examples or model scenarios.
+Test aggregate invariants, concurrent commands, constraint conflicts, tenant/resource authorization, transaction rollback, outbox crash window, duplicate/reordered events and context translation with executable examples or model scenarios. Whenever the design publishes an event after commit, the executable plan must include inputs, actions and observable assertions for the crash window, idempotent duplicate delivery, reordering and reconciliation; do not defer those cases as conditionally inapplicable.
 
 Report evidence for/against DDD, ubiquitous language, contexts/map, aggregates/invariants/concurrency, persistence/events/integration, simpler alternatives rejected, verification and residual ambiguity.

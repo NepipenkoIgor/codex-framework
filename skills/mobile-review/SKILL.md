@@ -14,7 +14,7 @@ Review $ARGUMENTS.
 
 Read instructions, diff and callers, manifests/lockfiles, native configuration, routing/state/storage/API contracts, tests, and release/runtime policy. Establish the installed framework/toolchain and affected platforms from evidence. Verify version-sensitive claims against local types/configuration or matching official documentation; do not recommend latest patterns that require an unrequested migration.
 
-Trace changed execution paths and report only actionable defects with severity, concrete evidence, file/line, affected behavior, and a reproduction or missing executable check. Do not treat stylistic preference, lack of memoization, unpinned transitive packages, a root/jailbreak heuristic, or use of an unfashionable library as a defect without a demonstrated contract or risk.
+Trace changed execution paths in risk order: first establish the affected caller-visible/native path and authority/data/lifecycle invariants, then falsify the highest-impact path, and only then run dependent static, build, device and lifecycle checks whose prerequisites are supported by earlier evidence. Report only actionable defects with severity, concrete evidence, file/line, affected behavior, and a reproduction or missing executable check. Do not treat stylistic preference, lack of memoization, unpinned transitive packages, a root/jailbreak heuristic, or use of an unfashionable library as a defect without a demonstrated contract or risk.
 
 ## Review boundaries
 
@@ -29,4 +29,4 @@ Check tests at the correct layer, including process death/restoration, native co
 
 ## Output
 
-List findings highest severity first. If none are substantiated, say so and name residual untested boundaries. Summarize installed version evidence and checks reviewed; do not claim code is secure, performant, encrypted, offline-safe, or cross-platform solely from configuration or passing unit tests.
+List findings highest severity first. If none are substantiated, say so and name residual untested boundaries. For every planned test, static check, build and visible lifecycle interaction, state the expected acceptance evidence before execution and then distinguish actual result from unavailable evidence. Summarize installed version evidence and checks reviewed; do not claim code is secure, performant, encrypted, offline-safe, or cross-platform solely from configuration or passing unit tests.

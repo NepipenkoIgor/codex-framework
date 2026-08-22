@@ -22,7 +22,7 @@ For each stage record: business outcome, authoritative input, deterministic alte
 
 ## Evaluation and Rollout
 
-Build representative slices for ambiguous/empty/adversarial input, schema failure, indirect injection, provider drift, duplicate triggers, timeout-after-success, approval changes and downstream partial failure. Evaluate task outcome, abstention/review, safety, latency and cost together. Roll out by an authorized cohort/canary plan with gates derived from baseline and product harm, plus tested rollback and in-flight reconciliation.
+Build representative slices for ambiguous/empty/adversarial input, schema failure, indirect injection, provider drift, duplicate triggers, timeout-after-success, approval changes and downstream partial failure. Evaluate task outcome, abstention/review, safety, latency and cost together. Define an authorized cohort/canary rollout plan with gates derived from baseline and product harm, plus tested rollback and in-flight reconciliation; execution belongs to the authorized implementation or deployment owner, not this read-only design skill.
 
 ## Provider Capability
 

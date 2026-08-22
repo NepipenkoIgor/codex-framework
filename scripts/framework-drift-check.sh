@@ -38,8 +38,15 @@ grep -Eqi 'apply the safe cleanup in the same (framework )?task' "$ROOT/AGENTS.m
 grep -q 'Daybreak Blue never implies Daybreak Red authorization' "$ROOT/AGENTS.md" || fail 'native cyber-access approval boundary is missing'
 grep -q '^## Agent profiles and review$' "$ROOT/AGENTS.md" || fail 'falsification-review contract is missing'
 grep -q 'exactly one independent read-only falsification pass' "$ROOT/AGENTS.md" || fail 'falsification-review loop is not hard-bounded'
+grep -q 'no inherited conversation turns or prior-agent history' "$ROOT/AGENTS.md" || fail 'falsification reviewer does not require fresh context'
+grep -q 'only a neutral evidence bundle' "$ROOT/AGENTS.md" || fail 'falsification reviewer evidence bundle is not neutral and bounded'
+grep -q 'cannot prove the no-history boundary' "$ROOT/AGENTS.md" || fail 'falsification reviewer does not fail closed when context independence is unavailable'
 grep -q 'at most one revision cycle unless the user requests a deeper audit' "$ROOT/AGENTS.md" || fail 'additional review lacks an explicit user gate'
+grep -q 'fresh context with no prior conversation or agent history' "$ROOT/.codex/agents/reviewer.toml" || fail 'reviewer profile does not enforce fresh-context review'
+grep -q 'report the independence contract as invalid instead of certifying' "$ROOT/.codex/agents/reviewer.toml" || fail 'reviewer profile can certify a biased evidence bundle'
+python3 "$ROOT/scripts/framework-review-context-check.py" || fail 'fresh-context review semantics are missing or contradictory'
 for instructions in "$ROOT/templates/global/AGENTS.md"; do
+  grep -q 'no inherited conversation turns or prior-agent history' "$instructions" || fail "fresh-context reviewer policy is missing: ${instructions#"$ROOT"/}"
   grep -Eqi 'repository-native development server.*early|start or attach.*repository-native development server' "$instructions" || fail "interactive dev server contract is missing: ${instructions#"$ROOT"/}"
   grep -Eqi 'visible.*in-app Browser|in-app Browser.*visible' "$instructions" || fail "visible in-app Browser default is missing: ${instructions#"$ROOT"/}"
   grep -Eqi 'reuse.*Browser binding|reuse the browser binding' "$instructions" || fail "Browser tab recovery contract is missing: ${instructions#"$ROOT"/}"
@@ -48,6 +55,7 @@ for instructions in "$ROOT/templates/global/AGENTS.md"; do
   grep -Eqi 'visible repository-configured simulator, emulator, or device' "$instructions" || fail "visible mobile target default is missing: ${instructions#"$ROOT"/}"
   grep -Eqi 'Scheduled tasks/automations' "$instructions" && grep -Eqi 'recurring execution.*,? monitoring|monitoring.*,? reminders' "$instructions" || fail "native scheduled automation policy is missing: ${instructions#"$ROOT"/}"
   grep -Eqi 'task names.*,? pins.*,? sections.*,? handoff.*,? forks' "$instructions" || fail "native long-task ergonomics policy is missing: ${instructions#"$ROOT"/}"
+  python3 "$ROOT/scripts/framework-task-topology-check.py" "$instructions" || fail "native task topology semantics are missing or contradictory: ${instructions#"$ROOT"/}"
   grep -Eqi 'Record & Replay.*user-demonstrated|Record & Replay.*demonstrated.*workflow' "$instructions" || fail "Record and Replay user-gate policy is missing: ${instructions#"$ROOT"/}"
 done
 test -s "$ROOT/docs/interactive-development.md" || fail 'interactive development lifecycle documentation is missing'

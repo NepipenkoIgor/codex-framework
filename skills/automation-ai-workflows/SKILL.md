@@ -10,7 +10,7 @@ metadata:
 
 # AI-Assisted Automation
 
-Generate project stack context and inspect manifests/lockfiles, installed model/provider adapter and types, workflow runtime, schema validator, checkpoint store, side-effect provider and matching official documentation as one capability chain. Verify the pinned SDK's exposed usage-reporting and accounting fields, units, terminal semantics and error/partial-response behavior from installed types plus matching documentation; if the SDK cannot report a required unit, keep the gap explicit and meter only from an authoritative external boundary rather than inventing usage. Existing pins are authority and migration is separate. Read [the full pattern guide](references/full-guide.md) when the task needs provider/tool, approval, checkpoint, replay or side-effect patterns; load only the relevant section and keep volatile provider mechanics behind the selected adapter.
+Generate project stack context and inspect manifests/lockfiles, installed model/provider adapter and types, workflow runtime, schema validator, checkpoint store, side-effect provider and matching official documentation as one capability chain. Produce one explicit compatibility matrix covering the pinned SDK/adapter, workflow runtime, schema validator, checkpoint store and side-effect provider together; separate per-component checks do not prove the end-to-end chain. Verify the pinned SDK's exposed usage-reporting and accounting fields, units, terminal semantics and error/partial-response behavior from installed types plus matching documentation; if the SDK cannot report a required unit, keep the gap explicit and meter only from an authoritative external boundary rather than inventing usage. Existing pins are authority and migration is separate. Read [the full pattern guide](references/full-guide.md) when the task needs provider/tool, approval, checkpoint, replay or side-effect patterns; load only the relevant section and keep volatile provider mechanics behind the selected adapter.
 
 This skill owns the probabilistic boundary and read-only workflow design. When the requested deliverable is executable n8n nodes, credentials, deployment or runtime repair, hand implementation to `automation-n8n-implement` (or diagnosis to `automation-n8n-debug`) after preserving this design contract. If n8n is absent, state that evidence rather than silently absorbing neighboring ownership.
 
@@ -25,7 +25,7 @@ This skill owns the probabilistic boundary and read-only workflow design. When t
 
 ## Workflow
 
-1. Draw the deterministic state machine and identify the irreducibly probabilistic step. Prove why deterministic rules cannot satisfy it; if they can, remove the model.
+1. Draw the deterministic state machine and identify the irreducibly probabilistic step. Demonstrate with the task's ambiguity, open-ended input or evaluation evidence why deterministic rules cannot satisfy it; merely labeling a classification probabilistic is not proof. If deterministic rules can satisfy it, remove the model.
 2. Define input/output schemas, confidence/abstention rules, and human escalation.
 3. Before invoking the model, durably persist the accepted workflow identity, immutable input reference, authorization context and resumable checkpoint. Implement idempotent side effects and subsequent checkpoints before adding the model.
 4. Build a representative evaluation set including adversarial, ambiguous, empty, and provider-failure cases.
@@ -37,4 +37,5 @@ This skill owns the probabilistic boundary and read-only workflow design. When t
 - Deterministic state machine and model boundary
 - Schemas, confidence/escalation, security, and budget controls
 - Evaluation, disable-control, rollback, and failure-recovery evidence
+- Concrete read-only rollout and promotion plan: cohort/canary sequence, entry/exit gates, accountable approver, stop/disable conditions, rollback and in-flight reconciliation. Report deployment as unexecuted unless the authorized implementation owner actually ran it.
 - Operational metrics and residual model risk

@@ -12,7 +12,7 @@ Design or implement the LLM evaluation requested in $ARGUMENTS.
 
 ## Define the decision
 
-Read repository instructions, manifests/lockfiles, serving path, prompt/model/provider/retrieval versions, datasets, telemetry, tests, CI, and privacy policy. Report only artifacts actually supplied or observed; mark unavailable telemetry or policy as an evidence gap and do not claim it was inspected. State what decision the evaluation supports, the unit of analysis, target population, important harms, practical effect worth detecting, and who may approve deployment.
+Read repository instructions, manifests/lockfiles, serving path, prompt/model/provider/retrieval versions, datasets, telemetry, tests, CI, and privacy policy. Report every artifact as inspected only when it was actually supplied or opened; existence, a planned check, or adjacent runtime configuration is not inspection evidence. Mark unavailable serving, CI, telemetry or policy evidence as a gap. State what decision the evaluation supports, the unit of analysis, target population, important harms, practical effect worth detecting, and who may approve deployment.
 
 Before mutating a dataset, CI rule or promotion gate, resolve the exact targets, owning team, write authority, reversible diff/disable path and rollback evidence; otherwise remain read-only and hand off the blocked mutation.
 

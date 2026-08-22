@@ -23,7 +23,7 @@ Implement `$ARGUMENTS` in the existing repository. This is the generic fallback,
 ## Workflow
 
 1. Read instructions, manifests/lockfiles, target routes/components, shared primitives, API/schema/auth contracts, nearby tests, and authoritative commands. Discover the repository-native dev server and affected route, then start or attach early and open that route in the visible in-app Browser. Reuse the browser binding across tab recovery and track exact task-owned server, port, and tab identity.
-2. Generate stack context before version-sensitive work. Preserve repository language and pins; use installed types/config/CLI capability and matching official docs. Do not introduce TypeScript, a framework upgrade, a state library, or a validation library incidentally.
+2. Generate stack context before version-sensitive work. Preserve repository language and pins; use installed types/config/CLI capability and matching official docs. Check every applicable compatibility relationship across runtime engine ranges, dependency peers, compiler/framework coupling, test runner and deployment runtime; explicitly mark dimensions absent or unavailable. Do not introduce TypeScript, a framework upgrade, a state library, or a validation library incidentally.
 3. Define caller-visible acceptance across success, loading, empty, error, retry, responsive, keyboard/focus, and fresh-load/navigation states that matter.
 4. Resolve exact task-owned mutation targets, write authority/permissions, ownership of data loading, state, validation, mutation, cache invalidation and server/client serialization, plus effect-appropriate rollback/recovery before editing.
 5. Implement the smallest cohesive change using existing primitives and conventions; inspect the actual diff.

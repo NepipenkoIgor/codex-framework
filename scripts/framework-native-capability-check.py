@@ -19,7 +19,7 @@ LEDGER = ROOT / "docs" / "native-capability-ledger.json"
 MAX_AGE = dt.timedelta(days=7)
 DECISIONS = {"adopted", "replaced", "removed", "retained", "permission-gated"}
 SOURCE_KINDS = {"manual", "changelog", "release"}
-OFFICIAL_HOSTS = {"developers.openai.com", "learn.chatgpt.com", "github.com"}
+OFFICIAL_HOSTS = {"developers.openai.com", "learn.chatgpt.com", "github.com", "api.github.com"}
 TOP_KEYS = {
     "schemaVersion", "reviewedAt", "codexVersion", "latestReleaseTag",
     "changelogReviewedThrough", "sources", "capabilities",
@@ -55,6 +55,13 @@ def release_snapshot(value: object) -> bytes:
         for key in ("tag_name", "name", "body", "published_at", "target_commitish", "html_url")
     }
     return json.dumps(stable, ensure_ascii=False, sort_keys=True, separators=(",", ":")).encode()
+
+
+def source_url(data: dict[str, object], kind: str) -> str:
+    for source in data.get("sources", []):
+        if isinstance(source, dict) and source.get("kind") == kind and isinstance(source.get("url"), str):
+            return source["url"]
+    raise ValueError(f"missing source URL: {kind}")
 
 
 def validate(data: dict[str, object], now: dt.datetime | None = None) -> list[str]:
@@ -180,7 +187,7 @@ def live_failures(data: dict[str, object]) -> list[str]:
         if str(data["changelogReviewedThrough"]) not in bodies["changelog"]:
             failures.append("reviewed changelog boundary is absent from the current official changelog")
     request = urllib.request.Request(
-        "https://api.github.com/repos/openai/codex/releases/latest",
+        source_url(data, "release"),
         headers={"Accept": "application/vnd.github+json", "User-Agent": "ai-codex-framework-capability-check"},
     )
     try:
@@ -213,6 +220,12 @@ def self_test(data: dict[str, object]) -> None:
     invalid = copy.deepcopy(data)
     invalid["sources"][0]["sha256"] = "not-a-digest"
     assert any("source fingerprint is malformed" in item for item in validate(invalid)), "malformed source digest was accepted"
+    invalid = copy.deepcopy(data)
+    for source in invalid["sources"]:
+        if source["kind"] == "release":
+            source["url"] = "https://api.github.com/repos/openai/codex/releases/tags/rust-v0.149.0"
+    assert source_url(invalid, "release").endswith("/releases/tags/rust-v0.149.0"), \
+        "live release lookup is not sourced from the recorded ledger URL"
     assert changelog_dates("released 2027-01-15 and 2026-12-31") == [dt.date(2026, 12, 31), dt.date(2027, 1, 15)], \
         "changelog date parsing is tied to one year"
     print("native capability ledger self-test: passed")

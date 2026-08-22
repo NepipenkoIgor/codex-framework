@@ -14,6 +14,8 @@ Implement `$ARGUMENTS` against the configured broker and client capabilities.
 
 Treat producer durability and consumer correctness as one end-to-end contract even when the reported incident is consumer-side. Do not omit the producer transaction/outbox boundary, broker acknowledgement/confirm responsibility, schema-registry capability or ambiguous-publish recovery from discovery, design, fault tests or the final report.
 
+This skill owns transport, delivery and replay mechanics. Preserve payment or other domain policy with its domain owner and preserve higher-level event boundaries, event meaning and service topology with the event-architecture owner; broker implementation must not silently redefine either.
+
 ## Workflow
 
 1. Inspect manifests/lockfiles, broker/client configuration, topic/queue declarations, producer transaction, message schemas and registry, consumer groups, offset/ack mode, retry/dead-letter topology, retention, deployment lifecycle, existing telemetry, recent failure/redelivery evidence, and tests. Preserve pins and verify unfamiliar APIs against installed types/config and matching official docs.
@@ -24,7 +26,7 @@ Treat producer durability and consumer correctness as one end-to-end contract ev
 6. Evolve schemas by explicit compatibility policy. Consumers tolerate unknown fields where the format allows, reject or quarantine unknown enum variants safely, and never reinterpret an old field silently. Roll out producer/consumer changes in an order supported by compatibility tests.
 7. Poison messages are classified and quarantined with the lossless original payload (encrypted and access-controlled according to data policy), schema/version, attempts, error, side-effect evidence, and trace context. User-facing reports redact payload secrets, but the protected quarantine record must retain enough exact payload evidence for schema-aware diagnosis and authorized replay. Prevent hot requeue loops. Replay is authorized, schema-aware, auditable, idempotent, and does not discard the original failure.
 8. Bound prefetch/poll batch, concurrency, processing deadline, retry delay, retention, and DLQ policy from measured workload, broker limits, downstream capacity, and recovery objectives—not universal values.
-9. Verify broker outage and ambiguous confirm; crash before the external/provider effect, after provider success but before durable local completion/ack, and after acknowledgement/commit; duplicate and out-of-order delivery; poison payload; rebalance during work; redelivery after ownership loss; an old consumer receiving a new enum without falling into a destructive default; schema rollback; DLQ evidence and replay; shutdown; and backlog recovery.
+9. Verify broker outage and ambiguous confirm; crash before the external/provider effect, after provider success but before durable local completion/ack, and after acknowledgement/commit; duplicate and out-of-order delivery; poison payload; rebalance during work; redelivery after ownership loss; an old consumer receiving a new enum without falling into a destructive default; schema rollback; DLQ evidence and replay; shutdown; and backlog recovery. For poison/new-enum/replay, give an executable scenario with exact fixture input, delivery/replay actions and observable assertions for healthy-message progress, bounded attempts, quarantine evidence, prior-effect reconciliation and deduplicated replay; listing desired properties is not a test plan.
 
 ## Required counterexamples
 

@@ -9,7 +9,7 @@ metadata:
 
 # React Implementation
 
-Inspect React/framework manifests, lockfile, renderer, compiler/build, routing, data layer and tests. React 18 pins remain authoritative; do not apply React 19-only APIs until installed types/runtime expose them or migration is requested.
+Inspect React/framework manifests, lockfile, renderer, compiler/build, routing, data layer and tests. Explicitly verify every applicable relationship across runtime engine ranges, React/renderer and other peer dependencies, compiler/framework/build coupling, test runner/DOM harness and deployment runtime; mark absent or unavailable dimensions rather than replacing them with a generic compatibility claim. React 18 pins remain authoritative; do not apply React 19-only APIs until installed types/runtime expose them or migration is requested.
 
 - Preserve existing component/state conventions. Keep state closest to its owner and lift/share it by actual coordination need, not arbitrary component boundaries or prop-depth limits.
 - Follow hook ordering and effect ownership; effects synchronize external systems, with cancellation/cleanup and Strict Mode-safe behavior.

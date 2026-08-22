@@ -12,7 +12,7 @@ metadata:
 
 ## Workflow
 
-1. Inspect identity, organization boundary, current membership/authorization policy, owner invariant, subscription and seat authority, audit/outbox contracts, external resources, manifests, migrations, and tests. Do not replace policy with a fixed role ladder.
+1. Inspect identity, organization boundary, current membership/authorization policy, owner invariant, subscription and seat authority, audit/outbox contracts, external resources, manifests, migrations, and tests. Call each artifact inspected only after it was supplied or opened; keep existence and planned inspection separate, and never infer manifest/lockfile inspection from general repository context. Do not replace policy with a fixed role ladder.
 2. Define subject, tenant, action, resource, membership state, role/capability/attribute conditions, ownership rule, separation-of-duty constraints, and who may change each field. Support policy-driven roles, capabilities or ABAC; fixed `owner/admin/member/viewer` is only valid when the product explicitly defines it.
 3. Define the owner invariant from policy. Some products require one owner, multiple owners, or no owner role at all. Enforce the chosen minimum/maximum atomically for active organizations and decide who may transfer, add, remove, or leave.
 4. Store invitation bearer tokens only as keyed hashes; bind invite to organization, normalized recipient identity, intended policy attributes, issuer, generation, expiry from policy, and single-use state. Acceptance reauthenticates the recipient and transactionally consumes the invite, checks policy, reserves a seat, creates/updates membership, and writes outbox/audit intent.
