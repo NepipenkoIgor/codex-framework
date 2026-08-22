@@ -4,6 +4,7 @@ analytics-implementation
 analytics-strategy
 firebase-patterns
 gdpr-compliance
+google-search-console
 in-app-notifications
 reporting-dashboards
 saas-onboarding

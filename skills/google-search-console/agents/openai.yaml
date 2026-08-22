@@ -1,0 +1,4 @@
+interface:
+  display_name: "Google Search Console"
+  short_description: "Audit, configure, and debug Google Search Console"
+  default_prompt: "Use $google-search-console to audit and debug this site in Google Search Console."
