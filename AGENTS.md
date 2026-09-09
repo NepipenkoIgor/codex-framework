@@ -1,8 +1,8 @@
 # AI Codex Framework
 
-This repository is a thin native Codex extension layer. Codex owns planning, models, approvals, sandboxing, plugins, MCP, Browser, worktrees, git integrations, agent communication, and subagent lifecycle; do not recreate them with wrappers, prompt gates, retries, or memory injection.
+This thin native extension leaves planning, models, approvals, sandboxing, plugins, MCP, Browser, worktrees, git, agent communication, and lifecycle to Codex; do not wrap them with prompt gates, retries, or memory injection.
 
-Generic cross-repository behavior—planning, project/environment authority, fail-closed errors, capability discovery, task automation, and interactive development—is owned once by the global working agreement installed by this framework. This file adds only closer framework-repository rules and must not restate or weaken those defaults.
+Generic cross-repository behavior is owned once by the global working agreement. This file adds only closer framework rules; do not restate or weaken those defaults.
 
 ## Execution
 
@@ -24,19 +24,17 @@ Generic cross-repository behavior—planning, project/environment authority, fai
 
 ## Skills and integrations
 
-Use the smallest matching skill set. Prefer installed native plugins and MCP servers over project wrappers. Start connectors read-only and enable writes only when required. Use the in-app Browser for observable UI verification; retain screenshots only when DOM, console, and network evidence are insufficient. Do not add filesystem, git, or browser MCP servers that duplicate native tools.
+Use the smallest matching skills and prefer native plugins/MCP over wrappers. Start connectors read-only. Use the in-app Browser for UI evidence and screenshots only when DOM/console/network are insufficient. Do not duplicate filesystem, git, or Browser tools with MCP.
 
 ## Native capability currency
 
-- Every framework review, audit, improvement, consolidation, or release begins by reading the current official Codex manual, complete changelog delta since the ledger baseline, and latest stable release notes, then comparing them with `docs/native-capability-ledger.json`.
-- For each relevant delta, record one evidence-backed decision: adopt, replace a local implementation, remove an obsolete override, retain with a concrete native gap, or keep permission-gated. Search wrappers, hooks, profiles, prompts, scripts, plugins, and MCP servers before deciding.
-- Apply the safe cleanup in the same framework task. Update ledger time/version/source/decision/evidence fields and run `python3 scripts/framework-native-capability-check.py --live`; release fails on stale or unverifiable currency.
-- This mechanism is framework-only and must not enter ordinary application startup context.
+- Every framework review, audit, improvement, consolidation, or release reads the current official Codex manual, complete changelog delta since the ledger baseline, and latest stable release notes, then compares `docs/native-capability-ledger.json`.
+- For each delta, search local surfaces and record adopt, replace, remove, retain-with-gap, or permission-gated. When implementation is authorized, apply the safe cleanup in the same framework task, update ledger evidence, and run `python3 scripts/framework-native-capability-check.py --live`; stale currency blocks release. For an explicitly read-only, audit-only, or plan-only request, do not mutate: report the exact cleanup and keep release status unverified until a later authorized implementation updates the ledger.
+- This is framework-only, never ordinary application startup context.
 - Daybreak use requires explicit identity, workspace/organization, project, model, product surface, and engagement scope. Daybreak Blue never implies Daybreak Red authorization.
 
 ## Repository boundaries
 
-- Hooks may enforce narrow deterministic safety policy. They must not scan unrelated worktree state, inject context, route prompts, select models, generate plans, manage agents, persist memory, or retry.
-- Update authoritative API documentation/schema with contract changes. Follow repository release workflow and use GitHub integration or `codex review` where supported.
-- Desktop and CLI share `AGENTS.md`, `.codex/config.toml`, skills, profiles, and hooks. Never branch behavior by surface.
-- Keep durable facts in tracked documentation and conversation continuity in native task memory. Avoid startup payloads, generated briefs, repeated role/policy prompts, full skill-map injection, and screenshot-heavy evidence.
+- Hooks enforce only narrow deterministic safety: no unrelated scans, context injection, prompt/model/plan/agent routing, memory, or retries.
+- Update API docs/schema with contracts and follow the release workflow. Desktop and CLI share `AGENTS.md`, `.codex/config.toml`, skills, profiles, and hooks; never branch by surface.
+- Track durable facts in docs and continuity in native memory. Avoid startup payloads, generated briefs, repeated policy, full skill maps, and screenshot-heavy evidence.

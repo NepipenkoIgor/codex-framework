@@ -1,24 +1,82 @@
 {
-  "schemaVersion": 1,
-  "reviewedAt": "2026-08-22T16:24:12+00:00",
-  "codexVersion": "codex-cli 0.149.0",
-  "latestReleaseTag": "rust-v0.149.0",
-  "changelogReviewedThrough": "2026-08-20",
+  "schemaVersion": 2,
+  "reviewedAt": "2026-09-09T18:09:54+00:00",
+  "codexVersion": "codex-cli 0.153.4",
+  "baselineReleaseTag": "rust-v0.149.0",
+  "latestReleaseTag": "rust-v0.153.4",
+  "changelogReviewedThrough": "2026-09-08",
   "sources": [
     {
       "kind": "manual",
       "url": "https://developers.openai.com/codex/",
-      "sha256": "463efca119f6b3df8247ad5aa1a4af604dd1da122aa8808f517e88bacf8ad44d"
+      "sha256": "1054faa7085722a9fe9c578b458e746d1b385a0e357231d2a25b4f5748951277"
     },
     {
       "kind": "changelog",
       "url": "https://learn.chatgpt.com/docs/changelog",
-      "sha256": "d1b644bde73e095757d754d87db6d2daa010a2ee8db13edbcc32632cb80881bb"
+      "sha256": "e5d2f3b21a72b2b3b0a80b4d3a1322a8b9cd052cd0e2cfd4e93226358b33d4b4"
     },
     {
       "kind": "release",
       "url": "https://api.github.com/repos/openai/codex/releases/latest",
-      "sha256": "1dbe3bb09fcae4019b0a7c3fcb15045de47430a8776540c01ae2546349c81917"
+      "sha256": "125de93cdb8041b9713728243dbf2674b0f062285335381cc35598a8ff36a98b"
+    }
+  ],
+  "releaseCoverage": [
+    {
+      "tag": "rust-v0.149.1",
+      "publishedAt": "2026-08-24T00:28:28Z",
+      "capabilityIds": ["runtime-maintenance-release"]
+    },
+    {
+      "tag": "rust-v0.150.0",
+      "publishedAt": "2026-08-26T19:37:28Z",
+      "capabilityIds": ["task-ergonomics", "conversation-export", "async-mcp-hooks"]
+    },
+    {
+      "tag": "rust-v0.150.1",
+      "publishedAt": "2026-08-27T01:56:54Z",
+      "capabilityIds": ["native-token-optimizations"]
+    },
+    {
+      "tag": "rust-v0.151.0",
+      "publishedAt": "2026-08-29T09:55:39Z",
+      "capabilityIds": ["portable-plugins", "fork-permission-restoration", "native-agent-lifecycle", "async-mcp-hooks"]
+    },
+    {
+      "tag": "rust-v0.152.0",
+      "publishedAt": "2026-09-01T01:58:32Z",
+      "capabilityIds": ["mcp-output-limits", "plan-tool-availability", "fork-permission-restoration"]
+    },
+    {
+      "tag": "rust-v0.152.1",
+      "publishedAt": "2026-09-01T22:33:02Z",
+      "capabilityIds": ["native-doctor-diagnostics"]
+    },
+    {
+      "tag": "rust-v0.153.0",
+      "publishedAt": "2026-09-03T01:37:38Z",
+      "capabilityIds": ["plugin-marketplace-cli", "task-ergonomics", "async-user-questions", "experimental-context-management", "fork-permission-restoration"]
+    },
+    {
+      "tag": "rust-v0.153.1",
+      "publishedAt": "2026-09-03T21:02:56Z",
+      "capabilityIds": ["native-model-defaults"]
+    },
+    {
+      "tag": "rust-v0.153.2",
+      "publishedAt": "2026-09-03T23:53:12Z",
+      "capabilityIds": ["native-model-defaults"]
+    },
+    {
+      "tag": "rust-v0.153.3",
+      "publishedAt": "2026-09-04T19:01:32Z",
+      "capabilityIds": ["native-model-defaults"]
+    },
+    {
+      "tag": "rust-v0.153.4",
+      "publishedAt": "2026-09-04T23:25:48Z",
+      "capabilityIds": ["native-model-defaults"]
     }
   ],
   "capabilities": [
@@ -158,12 +216,14 @@
       "id": "native-review",
       "nativeFeature": "GitHub integration, codex review, and approval review",
       "decision": "adopted",
-      "localOverlap": "General PR wrappers and an always-on custom reviewer duplicate native review surfaces.",
-      "action": "Use native review for routine work and reserve one read-only custom reviewer, spawned without inherited conversation history and given only a neutral evidence bundle, for high-risk falsification.",
+      "localOverlap": "General PR wrappers and an always-on custom reviewer duplicate native review surfaces. Native custom-agent discovery does not reliably load symlinked TOML profiles from the personal agents directory.",
+      "action": "Use native review for routine work and reserve one read-only custom reviewer, spawned without inherited conversation history and given only a neutral evidence bundle, for high-risk falsification. Install framework profiles as collision-safe managed regular files and verify their content through the effective-state doctor.",
       "evidence": [
         "AGENTS.md",
         ".codex/agents/reviewer.toml",
-        "README.md"
+        "README.md",
+        "scripts/setup.sh",
+        "scripts/framework-doctor.sh"
       ]
     },
     {
@@ -220,6 +280,110 @@
       "evidence": [
         "README.md",
         "scripts/surface-parity-check.sh"
+      ]
+    },
+    {
+      "id": "native-token-optimizations",
+      "nativeFeature": "Stable request compression, remote compaction v2, skill search, cached web search, prompt caching, MCP catalog caching, and provider token telemetry",
+      "decision": "adopted",
+      "localOverlap": "Local cache, transcript replay, prompt injection, compaction, or tool-catalog wrappers would duplicate native ownership and could hide actual provider usage.",
+      "action": "Leave stable optimizations at native defaults, bound retained tool output as an evidence-backed local preference, keep auto-compaction model-owned, and separate prompt input, raw rollout output, and provider token telemetry in the token budget gate.",
+      "evidence": [
+        ".codex/config.toml",
+        "scripts/framework-token-budget-check.py",
+        "docs/token-efficiency.md"
+      ]
+    },
+    {
+      "id": "rollout-token-budget-preview",
+      "nativeFeature": "Experimental rollout token budgets and reminders",
+      "decision": "retained",
+      "localOverlap": "Deterministic framework byte and configuration budgets cover repository-owned prompt surfaces but cannot replace provider-owned total rollout accounting.",
+      "action": "Keep the preview feature disabled, use stable raw usage events and prompt-input diagnostics, and reconsider native rollout enforcement only after it becomes stable.",
+      "evidence": [
+        "scripts/framework-token-budget-check.py",
+        "docs/token-efficiency.md",
+        "docs/native-capability-review.md"
+      ]
+    },
+    {
+      "id": "mcp-output-limits",
+      "nativeFeature": "Per-MCP-tool output token limits and structured MCP errors",
+      "decision": "adopted",
+      "localOverlap": "A framework MCP truncation proxy would duplicate native per-tool limits and obscure the provider error boundary.",
+      "action": "Use native per-tool output_token_limit only when measured output pressure justifies it; preserve structured MCP errors and do not add a proxy.",
+      "evidence": [
+        "templates/global/AGENTS.md",
+        "docs/token-efficiency.md",
+        "docs/native-capability-review.md"
+      ]
+    },
+    {
+      "id": "runtime-maintenance-release",
+      "nativeFeature": "Stable maintenance release with no separately documented framework-relevant behavior",
+      "decision": "retained",
+      "localOverlap": "Inventing a local action for a release whose notes contain only a comparison link would fabricate a capability delta.",
+      "action": "Record the release as reviewed and retain the prior framework decisions without manufacturing an adoption claim.",
+      "evidence": [
+        "docs/native-capability-review.md"
+      ]
+    },
+    {
+      "id": "plan-tool-availability",
+      "nativeFeature": "Native planning tool availability is configuration and surface dependent",
+      "decision": "retained",
+      "localOverlap": "A local plan file or shell planner would duplicate native goals and plans when the tool is available.",
+      "action": "Use native goals or plans when exposed, continue directly when they are not, and never create a repository plan surrogate.",
+      "evidence": [
+        "templates/global/AGENTS.md",
+        "skills/framework-management/SKILL.md"
+      ]
+    },
+    {
+      "id": "async-user-questions",
+      "nativeFeature": "Asynchronous request_user_input while compatible model and tool surfaces are available",
+      "decision": "adopted",
+      "localOverlap": "A polling prompt or background question queue would duplicate native question delivery.",
+      "action": "Use the native question tool only when it is actually exposed; otherwise ask directly at a real stop boundary without inventing an async layer.",
+      "evidence": [
+        "templates/global/AGENTS.md",
+        "docs/native-capability-review.md"
+      ]
+    },
+    {
+      "id": "experimental-context-management",
+      "nativeFeature": "Experimental context-management mode",
+      "decision": "retained",
+      "localOverlap": "Enabling an under-development context manager or recreating it locally would weaken native stability and evidence retention.",
+      "action": "Keep experimental context management disabled until it is stable; use native production compaction and compression defaults.",
+      "evidence": [
+        ".codex/config.toml",
+        "docs/token-efficiency.md",
+        "docs/native-capability-review.md"
+      ]
+    },
+    {
+      "id": "native-model-defaults",
+      "nativeFeature": "Native model catalog and default-model updates including Astra visibility",
+      "decision": "adopted",
+      "localOverlap": "A project model pin or framework model router would prevent automatic native default adoption and become stale.",
+      "action": "Keep repository and ordinary profiles unpinned. Treat any user-owned global model pin as an explicit external choice and report that it overrides new native defaults without rewriting it.",
+      "evidence": [
+        ".codex/config.toml",
+        "templates/global/AGENTS.md",
+        "docs/token-efficiency.md"
+      ]
+    },
+    {
+      "id": "plugin-marketplace-cli",
+      "nativeFeature": "Native plugin CLI with local and remote marketplace install, list, update, and removal flows",
+      "decision": "replaced",
+      "localOverlap": "A framework-specific plugin installer or duplicated hooks-only distribution would compete with native plugin lifecycle ownership.",
+      "action": "Use native plugin marketplace commands for plugin lifecycle. Retain setup only for global instructions, profiles, and direct project packs that native plugins do not own.",
+      "evidence": [
+        ".agents/plugins/marketplace.json",
+        "README.md",
+        "scripts/setup.sh"
       ]
     },
     {

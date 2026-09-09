@@ -3,15 +3,15 @@ name: frontend-test-angular
 description: Add behavior-focused Angular unit, component, harness, signal, HTTP, and integration tests using the repository's installed runner and supported TestBed APIs. Use when executable Angular test coverage is requested; do not use for feature implementation alone.
 metadata:
   owner: codex-framework
-  reviewed: "2026-07-26"
-  version: 2.2
+  reviewed: "2026-09-09"
+  version: 2.3
   domain: frontend
   keywords: [angular, testing, testbed, vitest, jasmine, karma, signal, harness, http]
 ---
 
 # Frontend Test — Angular
 
-Run `python3 scripts/framework-stack-context.py project <path>` and inspect `angular.json`, package/lock files, Angular core, TypeScript, every applicable base/app/test `tsconfig`, test target/builder, Zone-versus-zoneless configuration, setup, installed DOM emulator, existing spies/timers, HTTP client/testing providers and their ordering, the target's production HTTP/provider configuration, and nearby tests as one compatibility unit. Treat Zone, zoneless, runner and timer mode as unresolved until the actual configuration proves them; never infer zoneless mode merely from Vitest or incompatibility with Zone `fakeAsync`. Checking the installed HTTP testing providers and ordering is unconditional even when the requested behavior has no HTTP boundary; that check does not by itself require adding an HTTP test. Preserve the installed runner and conventions, and verify version-sensitive APIs against installed types plus matching Angular and runner documentation. Current new Angular CLI projects use Vitest, but an existing Karma/Jasmine, Jest, Web Test Runner or other supported setup is authority; migration is separate scope.
+Run `python3 scripts/framework-stack-context.py project <path>` and inspect `angular.json`, package/lock files, installed Angular core and TypeScript versions, every applicable base/app/test `tsconfig`, test target/builder, Zone-versus-zoneless configuration, setup, installed DOM emulator, existing spies/timers, HTTP client/testing providers and their ordering, the target's production HTTP/provider configuration, and nearby tests as one compatibility unit. Treat Zone, zoneless, runner and timer mode as unresolved until the actual configuration proves them; never infer zoneless mode merely from Vitest or incompatibility with Zone `fakeAsync`. Checking the installed HTTP testing providers and ordering is unconditional even when the requested behavior has no HTTP boundary; that check does not by itself require adding an HTTP test. Preserve the installed runner and conventions, and verify synchronization/timer choices against installed TestBed types plus matching Angular and runner documentation. Current new Angular CLI projects use Vitest, but an existing Karma/Jasmine, Jest, Web Test Runner or other supported setup is authority; migration is separate scope.
 
 ## Test Contract
 
@@ -27,7 +27,7 @@ Run `python3 scripts/framework-stack-context.py project <path>` and inspect `ang
 2. Reuse repository helpers and runner syntax. Mock at external boundaries; do not replace the unit under test with its own mock.
 3. Cover success plus meaningful failure/race: loading, empty, server error, explicit timeout and caller-visible timeout outcome, cancellation, stale result, retry/duplicate, permission state and cleanup as applicable. Assert request and component state after timeout rather than inferring it from retry exhaustion.
 4. For HTTP, assert method, URL/query/body/headers only where contractually relevant; flush each request deterministically and verify none remain.
-5. Run the narrow authoritative test command, then affected suite/type/build checks. Diagnose environment limitations rather than weakening assertions.
+5. Run the narrow authoritative test command, then affected suite/type/build checks. The executable plan must cover HTTP expect/flush/error and no-pending-request assertions when HTTP applies, signal/effect/resource synchronization, stale async completion, cleanup, and observation under the configured OnPush/default and Zone/zoneless mode; if a boundary is genuinely absent, cite task evidence. Diagnose environment limitations rather than weakening assertions.
 
 ## Verification
 

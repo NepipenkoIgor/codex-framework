@@ -44,14 +44,15 @@ else
 fi
 
 for profile in architect reviewer tester; do
-  link="$FRAMEWORK_CODEX_HOME/agents/codex-framework-$profile.toml"
-  [ -L "$link" ] || { fail "missing installed profile: $profile"; continue; }
-  [ "$(cd "$(dirname "$link")" && realpath "$link")" = "$ROOT/.codex/agents/$profile.toml" ] \
-    || fail "installed profile has wrong target: $profile"
+  installed="$FRAMEWORK_CODEX_HOME/agents/codex-framework-$profile.toml"
+  source="$ROOT/.codex/agents/$profile.toml"
+  [ -f "$installed" ] && [ ! -L "$installed" ] \
+    || { fail "installed profile is missing or still symlinked: $profile"; continue; }
+  cmp -s "$installed" "$source" || fail "installed profile is stale: $profile"
 done
 rule_link="$FRAMEWORK_CODEX_HOME/rules/codex-framework-safety.rules"
 if [ -L "$rule_link" ] && [ "$(cd "$(dirname "$rule_link")" && realpath "$rule_link")" = "$ROOT/.codex/rules/safety.rules" ]; then
-  ok 'profiles and safety rules resolve to this framework checkout'
+  ok 'profile copies and safety rule match this framework checkout'
 else
   fail 'installed safety rule is missing or points to another checkout'
 fi
@@ -71,9 +72,9 @@ if python3 "$ROOT/scripts/framework-link-install.py" --check \
   --link "$FRAMEWORK_CODEX_HOME/frameworks/codex-framework=$ROOT" \
   --link "$FRAMEWORK_CODEX_HOME/bin/codex-framework-stack-context=$ROOT/scripts/framework-stack-context.py" \
   --link "$FRAMEWORK_CODEX_HOME/bin/codex-framework-doctor=$ROOT/scripts/framework-doctor.sh" \
-  --link "$FRAMEWORK_CODEX_HOME/agents/codex-framework-architect.toml=$ROOT/.codex/agents/architect.toml" \
-  --link "$FRAMEWORK_CODEX_HOME/agents/codex-framework-reviewer.toml=$ROOT/.codex/agents/reviewer.toml" \
-  --link "$FRAMEWORK_CODEX_HOME/agents/codex-framework-tester.toml=$ROOT/.codex/agents/tester.toml" \
+  --file "$FRAMEWORK_CODEX_HOME/agents/codex-framework-architect.toml=$ROOT/.codex/agents/architect.toml" \
+  --file "$FRAMEWORK_CODEX_HOME/agents/codex-framework-reviewer.toml=$ROOT/.codex/agents/reviewer.toml" \
+  --file "$FRAMEWORK_CODEX_HOME/agents/codex-framework-tester.toml=$ROOT/.codex/agents/tester.toml" \
   --link "$FRAMEWORK_CODEX_HOME/rules/codex-framework-safety.rules=$ROOT/.codex/rules/safety.rules" >/dev/null; then
   ok 'auxiliary framework links match explicit ownership state'
 else
@@ -147,6 +148,14 @@ else
   fail 'project hook configuration is invalid'
 fi
 
+note 'effective install checks above describe the linked development checkout; they do not certify a release'
+
+if python3 "$ROOT/scripts/framework-token-budget-check.py" >/dev/null; then
+  ok 'framework-owned token budgets are enforced without overriding native optimization defaults'
+else
+  fail 'framework-owned token budget or native-default optimization contract drifted'
+fi
+
 if [ "$CHECK_PROMPT_INPUT" -eq 1 ]; then
   prompt_json="$(mktemp "${TMPDIR:-/tmp}/codex-framework-prompt-input.XXXXXX.json")"
   if codex debug prompt-input 'Framework doctor metadata check' > "$prompt_json" \
@@ -184,9 +193,9 @@ fi
 
 if [ "$CHECK_EVIDENCE" -eq 1 ]; then
   if python3 "$ROOT/scripts/framework-release-evidence.py" check; then
-    ok 'release evidence matches the current source digest'
+    ok 'certified release evidence matches the committed source digest'
   else
-    fail 'release evidence is missing or stale'
+    fail 'certified release evidence is missing or stale even if linked development files are effective'
   fi
 fi
 

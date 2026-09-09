@@ -18,6 +18,7 @@ MAX_AGE = dt.timedelta(days=7)
 ARTIFACT_POLICY = "compact-validator-attestation-v1"
 GATE_COMMANDS = {
     "deterministicHealth": ["bash", "scripts/framework-health.sh"],
+    "tokenEfficiency": ["python3", "scripts/framework-token-budget-check.py", "--live"],
     "effectiveInstallDoctor": ["bash", "scripts/framework-doctor.sh", "--skip-evidence"],
     "nativeSkillLoaderCanary": ["bash", "scripts/framework-skill-loader-live-eval.sh"],
     "liveVersionResolution": ["bash", "scripts/framework-version-drift-check.sh", "--live"],

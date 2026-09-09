@@ -3,8 +3,8 @@ name: backend-implement-nestjs
 description: Implement NestJS backend behavior using the repository's installed modules, adapter, validation, persistence, auth, configuration, error, logging, and test conventions. Use when Nest-specific structure dominates; do not load a generic Node implementation skill for the same task.
 metadata:
   owner: codex-framework
-  reviewed: "2026-07-27"
-  version: 2.1
+  reviewed: "2026-09-09"
+  version: 2.2
   domain: backend
   keywords: [nestjs, nodejs, typescript, controller, provider, guard, pipe, interceptor]
 ---
@@ -28,6 +28,6 @@ metadata:
 
 ## Verification
 
-Run repository-authoritative focused tests and affected type/lint/build/integration/migration checks. Cover global bootstrap parity, invalid input, 401, 403/wrong tenant or resource, duplicate/concurrent requests, conflict, provider timeout-after-effect and rollback. Verify persisted outcomes, not only controller calls or status codes.
+Run repository-authoritative focused tests and affected type/lint/build/integration/migration checks. Exercise invalid input, 401, 403/wrong tenant or resource, duplicate/concurrent requests, database uniqueness and transaction conflict, provider timeout-after-effect, reconciliation and rollback through the real global bootstrap pipeline or an executable bootstrap-equivalent harness. Verify persisted single outcomes, not only controller calls or status codes; listing bootstrap preservation as implementation intent is not bootstrap-parity evidence.
 
 Report installed capability, module/contract changes, validation/auth/transaction/idempotency choices, provider lifetime for every request/tenant mutable value (never an unbounded singleton), and the database uniqueness constraint or equivalent database-enforced single-claim mechanism used for consequential idempotency. Include commands/results and untested deployment/provider risk.

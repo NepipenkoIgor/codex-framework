@@ -22,6 +22,8 @@ if git -C "$ROOT" rev-parse --git-dir >/dev/null 2>&1; then
   check 'project config is eligible for source control, not ignored local state' bash -c "! git -C '$ROOT' check-ignore -q .codex/config.toml"
 fi
 check 'shared native agent concurrency is bounded' grep -Eq '^max_concurrent_threads_per_session = 4$' "$CONFIG"
+check 'tool output retention is bounded' grep -Eq '^tool_output_token_limit = 4000$' "$CONFIG"
+check 'native-default optimization pins are absent' bash -c "! grep -Eq '^(web_search|enable_request_compression|remote_compaction_v2|skill_search)[[:space:]]*=' '$CONFIG'"
 check 'native Codex owns agent delegation depth' bash -c "! grep -Eq '^max_depth[[:space:]]*=' '$CONFIG'"
 check 'no surface-specific runtime branch exists' bash -c "! rg -n -i 'surface[[:space:]]*=' '$ROOT'/scripts '$ROOT'/.codex --glob '!runs/**' --glob '!hooks/events.jsonl'"
 check 'no startup prompt payload is injected' bash -c "! grep -Eq 'SessionStart|UserPromptSubmit|PostToolUse' '$CONFIG'"

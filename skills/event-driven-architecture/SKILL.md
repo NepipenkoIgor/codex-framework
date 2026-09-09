@@ -3,8 +3,8 @@ name: event-driven-architecture
 description: Design read-only domain-event, schema-evolution, publication, consumption, ordering, replay, privacy, and recovery contracts across bounded contexts. Use when event-driven architecture decisions are unresolved; do not use for straightforward queue or broker implementation.
 metadata:
   owner: codex-framework
-  reviewed: "2026-07-27"
-  version: 1.5
+  reviewed: "2026-09-09"
+  version: 1.6
   argument-hint: "business invariants, producers/consumers, broker/store, ordering and delivery needs, schema/privacy/replay constraints"
 ---
 
@@ -39,4 +39,4 @@ Minimize PII in immutable events; prefer stable subject references or encrypted/
 
 Test transaction/outbox crash windows, duplicate/concurrent delivery, effect-before-ack and timeout-after-effect, consumer crash/restart, schema compatibility with historical fixtures, partition ordering/gaps, poison/redrive, full replay without duplicate external effects, tenant isolation, PII deletion propagation, and projection reconciliation.
 
-Report event catalog/ownership, invariants and consistency boundaries, publication/delivery/idempotency/ack, ordering/partitioning, schema evolution, replay/rebuild, privacy/deletion, failure/observability, alternatives rejected, and residual risk.
+Report event catalog/ownership, invariants and consistency boundaries, publication/delivery/idempotency/ack, ordering/partitioning, schema evolution, replay/rebuild, privacy/deletion, failure/observability, alternatives rejected, and residual risk. Explicitly record whether CQRS and event sourcing were selected or rejected and the task evidence for that decision; neither is a universal event-driven default.

@@ -21,7 +21,7 @@ install_hooks() {
       printf 'native hook config already valid: %s\n' "$TARGET_CONFIG"
       return 0
     fi
-    printf 'existing config has no compatible native hook contract: %s\n' "$TARGET_CONFIG" >&2
+    printf 'existing config has no compatible native safety hook: %s\n' "$TARGET_CONFIG" >&2
     printf 'refusing to overwrite user configuration; merge the framework safety hook explicitly\n' >&2
     return 1
   fi

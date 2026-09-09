@@ -3,8 +3,8 @@ name: payment-integration
 description: Implement provider payment collection, checkout, refunds, marketplaces, and payment webhooks with monetary integrity and auditable state transitions. Use when provider plumbing or money movement changes; route product subscription transitions, proration, seats, cancellation/resume, and portal-return behavior to subscription-lifecycle, and do not use for pricing-page UI without a payment contract.
 metadata:
   owner: codex-framework
-  reviewed: "2026-07-26"
-  version: 2.1
+  reviewed: "2026-09-09"
+  version: 2.2
   argument-hint: "provider, payment model, currencies, ledger/source of truth, webhook events, compliance scope"
 ---
 
@@ -29,7 +29,7 @@ For Stripe work, read the [Stripe capability guide](references/full-guide.md) on
 2. Inspect repository/provider configuration, models, webhook route, transaction boundary, nearby tests and authorize the exact customer, tenant, resource, amount source, currency, provider account, mode/environment, and callback targets. Stop when provider account, mode or acting authority remains unresolved.
 3. Implement the provider boundary and local state transitions with idempotency, transaction protection, durable acceptance, and reconciliation. Serialize or transactionally protect cumulative concurrent refunds; reconcile provider success followed by local failure before another refund proceeds.
 4. Verify signed webhooks using raw request bytes and the secret for the exact endpoint; tolerate duplicate/out-of-order delivery and distinct events for the same object transition.
-5. Test immediate success and decline, authentication-required, delayed-method success plus delayed rejection/return/expiry, timeout, retry, concurrent duplicate, refund, cancellation, dispute, fulfillment failure, and reconciliation paths. Tamper with the submitted amount independently of authenticated customer/tenant identity and order IDs; prove provider and local state use server-authoritative money and cannot be redirected or disclosed.
+5. Against an exactly resolved provider sandbox or test-mode account, test immediate success and decline, authentication-required, delayed-method success plus delayed rejection/return/expiry, timeout, same and concurrent retry, duplicate/out-of-order events, refund, cancellation, dispute, fulfillment failure, reconciliation repair and caller-visible entitlement state. Tamper with the submitted amount independently of authenticated customer/tenant identity and order IDs; prove provider and local state use server-authoritative money and cannot be redirected or disclosed. If the sandbox/test-mode account cannot be resolved, keep these checks and any live enablement blocked rather than substituting mocks as provider evidence.
 6. Verify sandbox/test-mode operations, audit records, alerts, and a concrete compensation/disable/reconciliation plan before any explicitly authorized live write or enablement. Never treat redirect or configuration success alone as proof of payment or entitlement. For refunds and other irreversible provider actions, prove the caller-visible result/status communication as well as provider, ledger and entitlement outcomes.
 
 ## Output Contract

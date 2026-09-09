@@ -3,8 +3,8 @@ name: e2e-test
 description: Implement browser end-to-end tests for critical user-visible web flows using the repository's installed runner, authentication, data, and server lifecycle conventions. Use when executable browser coverage is requested.
 metadata:
   owner: codex-framework
-  reviewed: "2026-07-27"
-  version: 2.0
+  reviewed: "2026-09-09"
+  version: 2.1
   argument-hint: "critical flows, browsers/viewports, auth roles, test environment/data APIs, CI runner"
 ---
 
@@ -12,7 +12,7 @@ Implement end-to-end tests for $ARGUMENTS.
 
 ## Preserve the harness
 
-Read instructions, manifests/lockfiles, existing E2E configuration/helpers, app routes and accessibility, authentication/session model, data setup APIs, environment ownership, CI/sharding, server commands and readiness endpoints. Start or attach to the repository-native server early and inspect the critical route in the visible in-app Browser before and after test implementation. Use the installed runner and repository scripts; do not impose Playwright, fixed browser projects, Node version, retries, workers, commands, timeouts or framework recipes from memory.
+Read instructions, manifests/lockfiles, existing E2E configuration/helpers, app routes and accessibility, authentication/session model, data setup APIs, environment ownership, CI/sharding, server commands and readiness endpoints. Treat that list as required discovery, not evidence already obtained: claim a specific surface was inspected only when the task fixture explicitly establishes that surface or the current run actually reads it, and keep withheld values unavailable. Start or attach to the repository-native server early and inspect the critical route in the visible in-app Browser before and after test implementation. Use the installed runner and repository scripts; do not impose Playwright, fixed browser projects, Node version, retries, workers, commands, timeouts or framework recipes from memory.
 
 Verify runner/framework APIs using installed types/CLI/config schema or matching official docs. For greenfield work, use `scripts/framework-stack-context.py`. Avoid stale framework-specific APIs, including remembered Angular stabilization or zoneless names.
 

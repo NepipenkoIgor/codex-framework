@@ -75,11 +75,9 @@ test -s "$ROOT/templates/global/AGENTS.md" || fail 'global guidance template is 
 grep -q 'Prefer native Codex capabilities' "$ROOT/templates/global/AGENTS.md" || fail 'global native-capability guidance is missing'
 test ! -e "$ROOT/.codex/agents/explorer.toml" || fail 'custom explorer shadows the built-in agent'
 test ! -e "$ROOT/.codex/agents/builder.toml" || fail 'custom builder duplicates the built-in worker'
-test -s "$ROOT/plugins/ai-codex-framework/.codex-plugin/plugin.json" || fail 'plugin manifest is missing'
-test -s "$ROOT/plugins/ai-codex-framework/hooks/hooks.json" || fail 'plugin hook bundle is missing'
+test ! -e "$ROOT/plugins/ai-codex-framework" || fail 'legacy duplicate hooks plugin remains'
 test -s "$ROOT/.agents/plugins/marketplace.json" || fail 'repo plugin marketplace is missing'
 test -s "$ROOT/plugins/codex-frontend-design/.codex-plugin/plugin.json" || fail 'frontend-design plugin pilot is missing'
-cmp -s "$ROOT/scripts/hooks/pre-tool-use.sh" "$ROOT/plugins/ai-codex-framework/scripts/pre-tool-use.sh" || fail 'plugin pre-tool hook drifted from runtime hook'
 test -s "$ROOT/.codex/rules/safety.rules" || fail 'native safety rules are missing'
 if grep -Eq '/Users/|/home/' "$ROOT/.codex/config.toml"; then
   fail 'machine-specific path remains in project config'

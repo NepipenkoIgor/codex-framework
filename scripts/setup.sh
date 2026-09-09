@@ -83,13 +83,15 @@ link_args=(
   --link "$FRAMEWORK_CODEX_HOME/frameworks/codex-framework=$REPO_DIR"
   --link "$FRAMEWORK_CODEX_HOME/bin/codex-framework-stack-context=$REPO_DIR/scripts/framework-stack-context.py"
   --link "$FRAMEWORK_CODEX_HOME/bin/codex-framework-doctor=$REPO_DIR/scripts/framework-doctor.sh"
-  --link "$FRAMEWORK_CODEX_HOME/agents/codex-framework-architect.toml=$REPO_DIR/.codex/agents/architect.toml"
-  --link "$FRAMEWORK_CODEX_HOME/agents/codex-framework-reviewer.toml=$REPO_DIR/.codex/agents/reviewer.toml"
-  --link "$FRAMEWORK_CODEX_HOME/agents/codex-framework-tester.toml=$REPO_DIR/.codex/agents/tester.toml"
   --link "$FRAMEWORK_CODEX_HOME/rules/codex-framework-safety.rules=$REPO_DIR/.codex/rules/safety.rules"
 )
+profile_args=(
+  --file "$FRAMEWORK_CODEX_HOME/agents/codex-framework-architect.toml=$REPO_DIR/.codex/agents/architect.toml"
+  --file "$FRAMEWORK_CODEX_HOME/agents/codex-framework-reviewer.toml=$REPO_DIR/.codex/agents/reviewer.toml"
+  --file "$FRAMEWORK_CODEX_HOME/agents/codex-framework-tester.toml=$REPO_DIR/.codex/agents/tester.toml"
+)
 # All auxiliary collisions are checked before the skill installer can write.
-python3 "$REPO_DIR/scripts/framework-link-install.py" --preflight "${link_args[@]}"
+python3 "$REPO_DIR/scripts/framework-link-install.py" --preflight "${link_args[@]}" "${profile_args[@]}"
 
 install_args=(
   --root "$REPO_DIR"
@@ -104,7 +106,7 @@ for pack in $SELECTED_PACKS; do
 done
 python3 "$REPO_DIR/scripts/framework-install.py" "${install_args[@]}"
 
-python3 "$REPO_DIR/scripts/framework-link-install.py" "${link_args[@]}"
+python3 "$REPO_DIR/scripts/framework-link-install.py" "${link_args[@]}" "${profile_args[@]}"
 
 if [ -e "$GLOBAL_GUIDANCE_TARGET" ] || [ -L "$GLOBAL_GUIDANCE_TARGET" ]; then
   if [ "$GLOBAL_GUIDANCE_TARGET" -ef "$GLOBAL_GUIDANCE_SOURCE" ]; then
@@ -124,7 +126,7 @@ Removed legacy framework skill namespaces:
   $LEGACY_INSTALL_ROOT
   $LEGACY_PACK_ROOT
 Installed native agents:
-  $FRAMEWORK_CODEX_HOME/agents/codex-framework-*.toml -> $REPO_DIR/.codex/agents/*.toml
+  $FRAMEWORK_CODEX_HOME/agents/codex-framework-*.toml (managed copies from $REPO_DIR/.codex/agents/*.toml)
 Installed native rules:
   $FRAMEWORK_CODEX_HOME/rules/codex-framework-safety.rules -> $REPO_DIR/.codex/rules/safety.rules
 Installed dynamic stack resolver:
@@ -132,7 +134,7 @@ Installed dynamic stack resolver:
 Installed effective-state doctor:
   $FRAMEWORK_CODEX_HOME/bin/codex-framework-doctor -> $REPO_DIR/scripts/framework-doctor.sh
 Packaged plugin:
-  $REPO_DIR/plugins/ai-codex-framework (optional hooks bundle; curated skills remain unchanged)
+  $REPO_DIR/.agents/plugins/marketplace.json (native plugin marketplace; curated skills remain unchanged)
 Installed global guidance:
   $GLOBAL_GUIDANCE_STATUS
 

@@ -14,17 +14,17 @@ concurrency:
   cancel-in-progress: true
 
 env:
-  CODEX_CLI_VERSION: 0.149.0
+  CODEX_CLI_VERSION: 0.153.4
 
 jobs:
   deterministic:
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           fetch-depth: 0
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
           node-version: 22
       - name: Install framework system dependencies
@@ -35,8 +35,8 @@ jobs:
         run: |
           find scripts plugins -type f -name '*.sh' -print0 | xargs -0 -n1 bash -n
           python3 -m compileall -q scripts
-          python3 -m json.tool plugins/ai-codex-framework/.codex-plugin/plugin.json >/dev/null
-          python3 -m json.tool plugins/ai-codex-framework/hooks/hooks.json >/dev/null
+          python3 -m json.tool .agents/plugins/marketplace.json >/dev/null
+          python3 -m json.tool plugins/codex-frontend-design/.codex-plugin/plugin.json >/dev/null
       - name: Framework source health
         run: bash scripts/framework-health.sh
       - name: Project pack and doctor fixtures
