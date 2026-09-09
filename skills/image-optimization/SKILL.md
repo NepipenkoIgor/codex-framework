@@ -3,8 +3,8 @@ name: image-optimization
 description: Implement responsive image delivery, framework optimizers, upload transformation, caching, priority hints, and untrusted-image defenses. Use when image loading or processing is the primary outcome; do not use for generic performance analysis or file storage alone.
 metadata:
   owner: codex-framework
-  reviewed: "2026-07-26"
-  version: 2.0
+  reviewed: "2026-09-09"
+  version: 2.1
   argument-hint: "installed framework, image sources, privacy, transformations, performance budget, upload threat model"
 ---
 
@@ -47,7 +47,7 @@ For existing projects, generate stack context with `python3 scripts/framework-st
 - Measured delivery budget and responsive/priority decisions
 - Cache/privacy and optimizer security contract
 - Upload/SVG/metadata handling
-- Installed-version and official-documentation evidence
+- Installed framework, React and runtime versions plus official-documentation evidence for the selected image API and deployment path
 - Verification results and residual CDN/decoder/browser risk
 
 Official references: [Next.js Image](https://nextjs.org/docs/app/api-reference/components/image), [OWASP SSRF Prevention](https://cheatsheetseries.owasp.org/cheatsheets/Server_Side_Request_Forgery_Prevention_Cheat_Sheet.html), and [OWASP File Upload](https://cheatsheetseries.owasp.org/cheatsheets/File_Upload_Cheat_Sheet.html).

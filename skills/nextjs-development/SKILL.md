@@ -3,8 +3,8 @@ name: nextjs-development
 description: Implement, debug, review, or test Next.js App Router behavior across Server and Client Components, Server Actions, Route Handlers, caching, authentication, and request boundaries. Use when Next.js runtime semantics dominate; do not use for generic React components, framework-neutral backend work, or migration planning alone.
 metadata:
   owner: codex-framework
-  reviewed: "2026-07-26"
-  version: 1.1
+  reviewed: "2026-09-09"
+  version: 1.2
   argument-hint: "mode, route or feature, observed behavior, repository path"
 ---
 

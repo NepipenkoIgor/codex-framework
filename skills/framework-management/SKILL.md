@@ -2,7 +2,7 @@
 name: framework-management
 description: Audit and maintain this native Codex framework, including skills, profiles, hooks, setup, documentation, routing, and corpus governance. Use when changing or evaluating the framework itself; do not use for ordinary application implementation or repository setup.
 metadata:
-  version: 2.2
+  version: 2.3
   argument-hint: "mode (audit/create/update/consolidate/validate), scope, acceptance criteria"
   owner: framework-maintainers
   reviewed: "2026-09-09"
@@ -27,7 +27,7 @@ README.md                 behavior and installation
 ## Workflow
 
 1. Read the relevant contract, files, maps, and checks before editing; classify the request as audit, create, update, consolidate, deprecate, or validate.
-2. Read the current official Codex manual, the complete changelog delta since `docs/native-capability-ledger.json`, and the latest stable release notes. Run the live native-capability check; memory or the installed CLI alone is insufficient.
+2. Read the current official Codex manual, the complete changelog delta since `docs/native-capability-ledger.json`, and the latest stable release notes. Run the registered resolver and official source live; distinguish stable releases from preview channels, preserve existing project pins unless migration is authorized, and never certify freshness from memory, a static snapshot, or the installed CLI alone.
 3. For every relevant native delta, search instructions, profiles, hooks, scripts, skills, plugins, and MCP configuration for overlap. Record adopt, replace, remove, retain with a concrete native gap, or permission-gated.
 4. When implementation is authorized, apply safe evidence-backed replacement/removal in the same task. For an explicitly read-only, audit-only, or plan-only request, make no changes: deliver the evidence-backed cleanup plan and leave certification pending. Do not rebuild a native feature behind another wrapper.
 5. Before mutation, resolve exact task-owned targets, authority/permissions, ownership, and a reversible effect; preserve approval boundaries and unrelated work.

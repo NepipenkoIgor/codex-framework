@@ -3,8 +3,8 @@ name: message-queue-patterns
 description: Implement broker-backed producers and consumers with durable publish, acknowledgements, redelivery-safe effects, schema evolution, ordering, poison handling, and recovery. Use when an external message broker carries application work or events; do not use for in-process background jobs, event-driven architecture design, or HTTP webhooks.
 metadata:
   owner: codex-framework
-  reviewed: "2026-07-26"
-  version: 2.0
+  reviewed: "2026-09-09"
+  version: 2.1
   argument-hint: "broker, topic/queue, producer transaction, message contract, consumer effect, ordering, replay"
 ---
 
@@ -26,7 +26,7 @@ This skill owns transport, delivery and replay mechanics. Preserve payment or ot
 6. Evolve schemas by explicit compatibility policy. Consumers tolerate unknown fields where the format allows, reject or quarantine unknown enum variants safely, and never reinterpret an old field silently. Roll out producer/consumer changes in an order supported by compatibility tests.
 7. Poison messages are classified and quarantined with the lossless original payload (encrypted and access-controlled according to data policy), schema/version, attempts, error, side-effect evidence, and trace context. User-facing reports redact payload secrets, but the protected quarantine record must retain enough exact payload evidence for schema-aware diagnosis and authorized replay. Prevent hot requeue loops. Replay is authorized, schema-aware, auditable, idempotent, and does not discard the original failure.
 8. Bound prefetch/poll batch, concurrency, processing deadline, retry delay, retention, and DLQ policy from measured workload, broker limits, downstream capacity, and recovery objectives—not universal values.
-9. Verify broker outage and ambiguous confirm; crash before the external/provider effect, after provider success but before durable local completion/ack, and after acknowledgement/commit; duplicate and out-of-order delivery; poison payload; rebalance during work; redelivery after ownership loss; an old consumer receiving a new enum without falling into a destructive default; schema rollback; DLQ evidence and replay; shutdown; and backlog recovery. For poison/new-enum/replay, give an executable scenario with exact fixture input, delivery/replay actions and observable assertions for healthy-message progress, bounded attempts, quarantine evidence, prior-effect reconciliation and deduplicated replay; listing desired properties is not a test plan.
+9. Verify broker outage and ambiguous confirm; crash before the external/provider effect, after provider success but before durable local completion/ack, and after acknowledgement/commit; duplicate and out-of-order delivery; poison payload; rebalance during work; redelivery after ownership loss; an old consumer receiving a new enum without falling into a destructive default; schema rollback; DLQ evidence and replay; shutdown; backlog recovery; and provider reconciliation. For every listed fault, give executable fixture inputs, delivery/failure actions and observable broker, store, provider and caller-visible assertions; marking results pending or listing desired properties is not a test plan. For poison/new-enum/replay, also replay or redeliver the same replayed identity a second time and assert no duplicate prior effect, alongside healthy-message progress, bounded attempts, quarantine evidence, schema upgrade/rollback and reconciliation.
 
 ## Required counterexamples
 
