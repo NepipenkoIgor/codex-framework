@@ -57,6 +57,7 @@ run_gate() {
 python3 "$ROOT/scripts/framework-release-evidence.py" self-test
 
 run_gate deterministicHealth bash scripts/framework-health.sh
+run_gate tokenEfficiency python3 scripts/framework-token-budget-check.py --live
 run_gate effectiveInstallDoctor bash scripts/framework-doctor.sh --skip-evidence
 run_gate nativeSkillLoaderCanary bash scripts/framework-skill-loader-live-eval.sh
 run_gate liveVersionResolution bash scripts/framework-version-drift-check.sh --live

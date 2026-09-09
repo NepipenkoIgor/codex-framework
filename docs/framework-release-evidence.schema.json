@@ -26,14 +26,14 @@
     },
     "gateEvidence": {
       "type": "array",
-      "minItems": 6,
-      "maxItems": 6,
+      "minItems": 7,
+      "maxItems": 7,
       "items": {
         "type": "object",
         "additionalProperties": false,
         "required": ["name", "command", "exitCode", "output", "outputSha256"],
         "properties": {
-          "name": {"enum": ["deterministicHealth", "effectiveInstallDoctor", "nativeSkillLoaderCanary", "liveVersionResolution", "nativeCapabilityCurrency", "skillCorpusCertification"]},
+          "name": {"enum": ["deterministicHealth", "tokenEfficiency", "effectiveInstallDoctor", "nativeSkillLoaderCanary", "liveVersionResolution", "nativeCapabilityCurrency", "skillCorpusCertification"]},
           "command": {"type": "array", "minItems": 2, "items": {"type": "string", "minLength": 1}},
           "exitCode": {"const": 0},
           "output": {"type": "string", "minLength": 1},

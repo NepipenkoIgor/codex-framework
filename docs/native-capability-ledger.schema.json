@@ -3,11 +3,12 @@
   "title": "Codex Native Capability Review Ledger",
   "type": "object",
   "additionalProperties": false,
-  "required": ["schemaVersion", "reviewedAt", "codexVersion", "latestReleaseTag", "changelogReviewedThrough", "sources", "capabilities"],
+  "required": ["schemaVersion", "reviewedAt", "codexVersion", "baselineReleaseTag", "latestReleaseTag", "changelogReviewedThrough", "sources", "releaseCoverage", "capabilities"],
   "properties": {
-    "schemaVersion": {"const": 1},
+    "schemaVersion": {"const": 2},
     "reviewedAt": {"type": "string", "format": "date-time"},
     "codexVersion": {"type": "string", "minLength": 1},
+    "baselineReleaseTag": {"type": "string", "pattern": "^rust-v[0-9]+\\.[0-9]+\\.[0-9]+$"},
     "latestReleaseTag": {"type": "string", "pattern": "^rust-v[0-9]+\\.[0-9]+\\.[0-9]+$"},
     "changelogReviewedThrough": {"type": "string", "format": "date"},
     "sources": {
@@ -21,6 +22,25 @@
           "kind": {"enum": ["manual", "changelog", "release"]},
           "url": {"type": "string", "format": "uri"},
           "sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"}
+        }
+      }
+    },
+    "releaseCoverage": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["tag", "publishedAt", "capabilityIds"],
+        "properties": {
+          "tag": {"type": "string", "pattern": "^rust-v[0-9]+\\.[0-9]+\\.[0-9]+$"},
+          "publishedAt": {"type": "string", "format": "date-time"},
+          "capabilityIds": {
+            "type": "array",
+            "minItems": 1,
+            "uniqueItems": true,
+            "items": {"type": "string", "pattern": "^[a-z0-9-]+$"}
+          }
         }
       }
     },

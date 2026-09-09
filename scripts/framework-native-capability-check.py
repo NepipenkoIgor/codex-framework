@@ -21,10 +21,11 @@ DECISIONS = {"adopted", "replaced", "removed", "retained", "permission-gated"}
 SOURCE_KINDS = {"manual", "changelog", "release"}
 OFFICIAL_HOSTS = {"developers.openai.com", "learn.chatgpt.com", "github.com", "api.github.com"}
 TOP_KEYS = {
-    "schemaVersion", "reviewedAt", "codexVersion", "latestReleaseTag",
-    "changelogReviewedThrough", "sources", "capabilities",
+    "schemaVersion", "reviewedAt", "codexVersion", "baselineReleaseTag", "latestReleaseTag",
+    "changelogReviewedThrough", "sources", "releaseCoverage", "capabilities",
 }
 CAPABILITY_KEYS = {"id", "nativeFeature", "decision", "localOverlap", "action", "evidence"}
+RELEASE_KEYS = {"tag", "publishedAt", "capabilityIds"}
 
 
 def command_text(*command: str) -> str:
@@ -34,6 +35,13 @@ def command_text(*command: str) -> str:
 
 def sha256_bytes(value: bytes) -> str:
     return hashlib.sha256(value).hexdigest()
+
+
+def release_version(tag: str) -> tuple[int, int, int]:
+    match = re.fullmatch(r"rust-v(\d+)\.(\d+)\.(\d+)", tag)
+    if not match:
+        raise ValueError(f"invalid stable release tag: {tag}")
+    return tuple(int(value) for value in match.groups())
 
 
 def changelog_dates(body: str) -> list[dt.date]:
@@ -67,7 +75,7 @@ def source_url(data: dict[str, object], kind: str) -> str:
 def validate(data: dict[str, object], now: dt.datetime | None = None) -> list[str]:
     failures: list[str] = []
     now = now or dt.datetime.now(dt.timezone.utc)
-    if set(data) != TOP_KEYS or data.get("schemaVersion") != 1:
+    if set(data) != TOP_KEYS or data.get("schemaVersion") != 2:
         failures.append("ledger top-level schema is missing or unexpected")
     try:
         reviewed_at = dt.datetime.fromisoformat(str(data["reviewedAt"]))
@@ -85,6 +93,14 @@ def validate(data: dict[str, object], now: dt.datetime | None = None) -> list[st
     if not isinstance(release_tag, str) or not release_tag.startswith("rust-v") \
             or current_codex.removeprefix("codex-cli ") not in release_tag:
         failures.append("latestReleaseTag does not match the reviewed Codex runtime")
+    baseline_tag = data.get("baselineReleaseTag")
+    try:
+        baseline_valid = isinstance(baseline_tag, str) and isinstance(release_tag, str) \
+            and release_version(baseline_tag) < release_version(release_tag)
+    except ValueError:
+        baseline_valid = False
+    if not baseline_valid:
+        failures.append("baselineReleaseTag is missing, invalid, or does not precede the reviewed release")
     try:
         through = dt.date.fromisoformat(str(data["changelogReviewedThrough"]))
         if through > now.date():
@@ -147,6 +163,40 @@ def validate(data: dict[str, object], now: dt.datetime | None = None) -> list[st
                     failures.append(f"{identifier} has missing or external evidence: {value}")
         if not {"adopted", "removed", "permission-gated"}.issubset(decisions):
             failures.append("ledger must demonstrate adopted, removed, and permission-gated decisions")
+    coverage = data.get("releaseCoverage")
+    coverage_tags: list[str] = []
+    if not isinstance(coverage, list) or not coverage:
+        failures.append("stable release coverage is missing")
+    else:
+        for release in coverage:
+            if not isinstance(release, dict) or set(release) != RELEASE_KEYS:
+                failures.append("release coverage entry is malformed")
+                continue
+            tag = release.get("tag")
+            if not isinstance(tag, str) or not re.fullmatch(r"rust-v\d+\.\d+\.\d+", tag) or tag in coverage_tags:
+                failures.append(f"release coverage tag is missing or duplicated: {tag}")
+            else:
+                coverage_tags.append(tag)
+            try:
+                published = dt.datetime.fromisoformat(str(release.get("publishedAt")).replace("Z", "+00:00"))
+                if published.tzinfo is None:
+                    raise ValueError("timezone missing")
+            except ValueError:
+                failures.append(f"release coverage timestamp is invalid: {tag}")
+            capability_ids = release.get("capabilityIds")
+            if not isinstance(capability_ids, list) or not capability_ids or len(set(capability_ids)) != len(capability_ids):
+                failures.append(f"release coverage capabilityIds are missing or duplicated: {tag}")
+            elif any(identifier not in identifiers for identifier in capability_ids):
+                failures.append(f"release coverage references an unknown capability: {tag}")
+        if coverage_tags and coverage_tags[-1] != data.get("latestReleaseTag"):
+            failures.append("release coverage must end at latestReleaseTag")
+        try:
+            versions = [release_version(tag) for tag in coverage_tags]
+            if versions != sorted(versions) or len(set(versions)) != len(versions) \
+                    or (isinstance(baseline_tag, str) and versions and versions[0] <= release_version(baseline_tag)):
+                failures.append("release coverage must be unique, ordered, and newer than baselineReleaseTag")
+        except ValueError:
+            failures.append("release coverage contains an invalid stable release tag")
     return failures
 
 
@@ -205,6 +255,30 @@ def live_failures(data: dict[str, object]) -> list[str]:
             failures.append(
                 f"official Codex release content changed: ledger fingerprint {sources['release'].get('sha256')}, current {current_fingerprint}"
             )
+    releases_url = "https://api.github.com/repos/openai/codex/releases?per_page=100"
+    try:
+        releases_request = urllib.request.Request(
+            releases_url, headers={"Accept": "application/vnd.github+json", "User-Agent": "ai-codex-framework-capability-check"}
+        )
+        with urllib.request.urlopen(releases_request, timeout=20) as response:
+            releases = json.load(response)
+        stable = [item for item in reversed(releases)
+                  if isinstance(item, dict) and not item.get("draft") and not item.get("prerelease")]
+        stable_tags = [item.get("tag_name") for item in stable]
+        baseline = data.get("baselineReleaseTag")
+        latest_tag = data.get("latestReleaseTag")
+        start = stable_tags.index(baseline) + 1
+        end = stable_tags.index(latest_tag) + 1
+        expected = stable_tags[start:end]
+        recorded = [item.get("tag") for item in data.get("releaseCoverage", []) if isinstance(item, dict)]
+        if recorded != expected:
+            failures.append(f"stable release coverage is incomplete: expected {expected}, recorded {recorded}")
+        published_by_tag = {item.get("tag_name"): item.get("published_at") for item in stable}
+        for item in data.get("releaseCoverage", []):
+            if isinstance(item, dict) and published_by_tag.get(item.get("tag")) != item.get("publishedAt"):
+                failures.append(f"stable release timestamp drifted: {item.get('tag')}")
+    except Exception as error:
+        failures.append(f"official Codex stable-release coverage lookup failed: {error}")
     return failures
 
 
@@ -228,6 +302,10 @@ def self_test(data: dict[str, object]) -> None:
         "live release lookup is not sourced from the recorded ledger URL"
     assert changelog_dates("released 2027-01-15 and 2026-12-31") == [dt.date(2026, 12, 31), dt.date(2027, 1, 15)], \
         "changelog date parsing is tied to one year"
+    invalid = copy.deepcopy(data)
+    invalid["releaseCoverage"] = invalid["releaseCoverage"][:-1]
+    assert any("release coverage" in item for item in validate(invalid)), \
+        "partial stable-release coverage was accepted"
     print("native capability ledger self-test: passed")
 
 
