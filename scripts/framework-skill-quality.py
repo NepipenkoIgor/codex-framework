@@ -41,6 +41,7 @@ GENERIC_DESCRIPTION = re.compile(
     re.IGNORECASE,
 )
 MODEL_CALL_TIMEOUT_SECONDS = 300
+MODEL_TERMINATION_GRACE_SECONDS = 2
 ROUTING_BATCH_SIZE = 32
 EVALUATOR_MODEL = os.environ.get("CODEX_EVAL_MODEL", "gpt-5.6-sol")
 EVALUATOR_REASONING_EFFORT = os.environ.get("CODEX_EVAL_REASONING_EFFORT", "high")
@@ -86,7 +87,14 @@ def managed_run(command: list[str], *, timeout: int | None = None, **kwargs: Any
             os.killpg(process.pid, signal.SIGTERM)
         except ProcessLookupError:
             pass
-        process.wait()
+        try:
+            process.wait(timeout=MODEL_TERMINATION_GRACE_SECONDS)
+        except subprocess.TimeoutExpired:
+            try:
+                os.killpg(process.pid, signal.SIGKILL)
+            except ProcessLookupError:
+                pass
+            process.wait()
         raise
     finally:
         with ACTIVE_PROCESSES_LOCK:
@@ -1373,6 +1381,7 @@ def full_live(artifact_dir: Path, routing_artifact: Path, jobs: int, resume: boo
 def self_test() -> None:
     require(sha256_bytes(b"x") == hashlib.sha256(b"x").hexdigest(), "sha helper")
     require(30 <= MODEL_CALL_TIMEOUT_SECONDS <= 600, "model evaluator timeout must remain bounded")
+    require(1 <= MODEL_TERMINATION_GRACE_SECONDS <= 10, "model evaluator termination grace must remain bounded")
     require(EVALUATOR_MODEL and EVALUATOR_REASONING_EFFORT, "evaluator identity must be pinned")
     require(16 <= ROUTING_BATCH_SIZE <= 64, "routing batches must amortize repeated catalog context without becoming unbounded")
     routing_groups: dict[tuple[str, tuple[str, ...]], int] = defaultdict(int)
@@ -1400,6 +1409,27 @@ def self_test() -> None:
             break
         time.sleep(0.05)
     require(not worker_alive, "evaluator signal handler left a model-call process alive")
+    timeout_started = time.monotonic()
+    timeout_observed = False
+    try:
+        managed_run(
+            [
+                sys.executable,
+                "-c",
+                "import signal,time; signal.signal(signal.SIGTERM, signal.SIG_IGN); time.sleep(60)",
+            ],
+            stdin=subprocess.DEVNULL,
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+            timeout=0.2,
+        )
+    except subprocess.TimeoutExpired:
+        timeout_observed = True
+    require(timeout_observed, "managed model-call timeout must remain observable")
+    require(
+        time.monotonic() - timeout_started < MODEL_TERMINATION_GRACE_SECONDS + 2,
+        "managed model-call timeout did not kill a TERM-resistant process within the bounded grace",
+    )
     require(
         blocking_assertion_results([{"id": "major-counterexample", "severity": "major", "status": "fail"}]),
         "major assertion failure must block",
