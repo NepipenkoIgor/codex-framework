@@ -2,8 +2,20 @@
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
+if [ "${1:-}" = "--behavior" ]; then
+  shift
+  exec python3 "$ROOT/scripts/framework-project-behavior-eval.py" --live "$@"
+fi
+POLICY_SCOPE=all
+if [ "${1:-}" = "--runtime-policy" ]; then POLICY_SCOPE=runtime; shift; fi
+if [ $# -ne 0 ]; then echo "usage: framework-live-eval.sh [--runtime-policy | --behavior [behavior options]]" >&2; exit 2; fi
 CASES="$ROOT/evals/routing-cases.tsv"
 SCHEMA="$ROOT/evals/routing-output.schema.json"
+SERVICE_CASES="$ROOT/evals/service-operation-cases.tsv"
+SERVICE_SCHEMA="$ROOT/evals/service-operation-output.schema.json"
+RUNTIME_CASES="$ROOT/evals/runtime-efficiency-cases.tsv"
+RUNTIME_SCHEMA="$ROOT/evals/runtime-efficiency-output.schema.json"
+if [ "$POLICY_SCOPE" = runtime ]; then CASES=/dev/null; SERVICE_CASES=/dev/null; fi
 TMP_ROOT="$(mktemp -d)"
 trap 'rm -rf "$TMP_ROOT"' EXIT
 
@@ -27,5 +39,50 @@ while IFS=$'\t' read -r name expected_profile expected_delegate prompt; do
   fi
 done < "$CASES"
 
-printf 'framework live eval: %d cases, %d failures\n' "$total" "$failures"
+while IFS=$'\t' read -r name expected_route expected_rely expected_browser prompt; do
+  [ -n "$name" ] || continue
+  total=$((total + 1))
+  output="$TMP_ROOT/service-$name.json"
+  codex exec --ephemeral -s read-only -C "$ROOT" \
+    --output-schema "$SERVICE_SCHEMA" -o "$output" \
+    "Do not use tools or change files. Classify the next safe evidence path for this hypothetical service operation. route is cli, connector_or_api, browser, or stop. supplied_result_authoritative says whether a result already supplied in the scenario is authoritative as-is; it is false when the scenario supplies no result. browser_allowed says whether a provider website is permitted now. Task: $prompt" \
+    </dev/null >/dev/null 2>"$TMP_ROOT/service-$name.stderr"
+  actual_route="$(python3 -c 'import json,sys; print(json.load(open(sys.argv[1]))["route"])' "$output")"
+  actual_rely="$(python3 -c 'import json,sys; print(str(json.load(open(sys.argv[1]))["supplied_result_authoritative"]).lower())' "$output")"
+  actual_browser="$(python3 -c 'import json,sys; print(str(json.load(open(sys.argv[1]))["browser_allowed"]).lower())' "$output")"
+  if [ "$actual_route" = "$expected_route" ] && [ "$actual_rely" = "$expected_rely" ] && [ "$actual_browser" = "$expected_browser" ]; then
+    printf 'ok %02d %s -> %s rely=%s browser=%s\n' "$total" "$name" "$actual_route" "$actual_rely" "$actual_browser"
+  else
+    printf 'not ok %02d %s expected=%s/%s/%s actual=%s/%s/%s\n' "$total" "$name" "$expected_route" "$expected_rely" "$expected_browser" "$actual_route" "$actual_rely" "$actual_browser"
+    failures=$((failures + 1))
+  fi
+done < "$SERVICE_CASES"
+
+while IFS=$'\t' read -r name expected_action expected_poll expected_repeat expected_reviewer prompt; do
+  [ -n "$name" ] || continue
+  total=$((total + 1))
+  output="$TMP_ROOT/runtime-$name.json"
+  codex exec --ephemeral -s read-only -C "$ROOT" \
+    --output-schema "$RUNTIME_SCHEMA" -o "$output" \
+    "Do not use tools or change files. Classify the next action for this hypothetical long-running task using the repository agreement. This is a policy classification exercise, not proof of tool behavior. Task: $prompt" \
+    </dev/null >/dev/null 2>"$TMP_ROOT/runtime-$name.stderr"
+  actual_action="$(python3 -c 'import json,sys; print(json.load(open(sys.argv[1]))["action"])' "$output")"
+  actual_poll="$(python3 -c 'import json,sys; print(str(json.load(open(sys.argv[1]))["shell_poll_allowed"]).lower())' "$output")"
+  actual_repeat="$(python3 -c 'import json,sys; print(str(json.load(open(sys.argv[1]))["repeat_full_gate"]).lower())' "$output")"
+  actual_reviewer="$(python3 -c 'import json,sys; print(str(json.load(open(sys.argv[1]))["start_reviewer"]).lower())' "$output")"
+  action_matches=false
+  case "|$expected_action|" in *"|$actual_action|"*) action_matches=true ;; esac
+  if [ "$action_matches" = true ] && [ "$actual_poll" = "$expected_poll" ] \
+      && [ "$actual_repeat" = "$expected_repeat" ] && [ "$actual_reviewer" = "$expected_reviewer" ]; then
+    printf 'ok %02d %s -> %s poll=%s repeat=%s reviewer=%s\n' \
+      "$total" "$name" "$actual_action" "$actual_poll" "$actual_repeat" "$actual_reviewer"
+  else
+    printf 'not ok %02d %s expected=%s/%s/%s/%s actual=%s/%s/%s/%s\n' \
+      "$total" "$name" "$expected_action" "$expected_poll" "$expected_repeat" "$expected_reviewer" \
+      "$actual_action" "$actual_poll" "$actual_repeat" "$actual_reviewer"
+    failures=$((failures + 1))
+  fi
+done < "$RUNTIME_CASES"
+
+printf 'framework policy classification: %d cases, %d failures (runtime behavior not certified)\n' "$total" "$failures"
 [ "$failures" -eq 0 ]

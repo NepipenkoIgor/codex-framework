@@ -2,15 +2,15 @@
 name: framework-management
 description: Audit and maintain this native Codex framework, including skills, profiles, hooks, setup, documentation, routing, and corpus governance. Use when changing or evaluating the framework itself; do not use for ordinary application implementation or repository setup.
 metadata:
-  version: 2.3
+  version: 2.4
   argument-hint: "mode (audit/create/update/consolidate/validate), scope, acceptance criteria"
   owner: framework-maintainers
-  reviewed: "2026-09-09"
+  reviewed: "2026-09-14"
 ---
 
 # Framework Management
 
-Keep Codex native capabilities authoritative. The framework may add reusable domain knowledge, focused profiles, deterministic safety policy, and validation; it must not recreate planning, goals, model routing, agent lifecycle, Browser/GitHub integration, plugins, MCP, or memory.
+Codex owns planning, goals, model routing, agent lifecycle, Browser/GitHub, plugins, MCP and memory. Add only reusable domain knowledge, focused profiles, deterministic safety policy and validation.
 
 ## Architecture
 
@@ -32,6 +32,7 @@ README.md                 behavior and installation
 4. When implementation is authorized, apply safe evidence-backed replacement/removal in the same task. For an explicitly read-only, audit-only, or plan-only request, make no changes: deliver the evidence-backed cleanup plan and leave certification pending. Do not rebuild a native feature behind another wrapper.
 5. Before mutation, resolve exact task-owned targets, authority/permissions, ownership, and a reversible effect; preserve approval boundaries and unrelated work.
 6. Update affected skills, core/packs, maps, checks, README, and the native-capability ledger together. Verify the actual diff and changed behavior.
+7. Audit routing against the global agreement. A missing plugin or unsupported CLI subcommand does not prove UI-only need: inspect authenticated CLI/API/connector coverage in the same scope. Provider Browser requires both demonstrated UI-only or visual need and a stated CLI/API gap.
 
 The parent owns contracts, shared writes, integration, and final reporting. For token-sensitive work, preserve native caching/compaction and use `scripts/framework-token-budget-check.py`; do not infer savings without provider or native prompt-input evidence.
 

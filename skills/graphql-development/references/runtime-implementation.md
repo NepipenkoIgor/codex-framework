@@ -21,4 +21,4 @@ Load only for the installed server/client runtime. Confirm plugin hooks, validat
 - Generated server/client types are derived artifacts. Pin the generator with the project, review diffs, run drift checks, and never silently rewrite consumer contracts during an unrelated change.
 - Federation gateways and subgraphs need composition, mixed-version, ownership, auth, partial-failure and query-plan evidence before rollout.
 
-Verify object/field/wrong-tenant authorization, alias/fragment cost bypass, old persisted operations, N+1 and loader isolation, page mutation, null/error propagation, subscription revocation/backpressure, schema composition, generated types and caller-visible behavior.
+Verify the applicable object/field/wrong-tenant authorization, alias/fragment cost bypass, N+1, null/error propagation and caller-visible contracts. For features present in the target, also verify old persisted operations, loader isolation, pagination under mutation, subscription revocation/backpressure and generated-type drift. Schema-composition and mixed-subgraph checks apply only to a federated target; their absence does not require adding federation.

@@ -3,8 +3,8 @@ name: modal-dialog-patterns
 description: Implement modal dialogs, nonmodal dialogs, drawers, sheets, and alert dialogs with correct focus, dismissal, layering, and mutation semantics. Use when overlay interaction is primary; do not use for a broad accessibility retrofit or unrelated frontend refactor.
 metadata:
   owner: codex-framework
-  reviewed: "2026-07-26"
-  version: 2.0
+  reviewed: "2026-09-14"
+  version: 2.1
   argument-hint: "interaction type, trigger/focus context, dismissal policy, installed framework primitive, mutation consequence"
 ---
 
@@ -48,6 +48,7 @@ Derive stack context from repository manifests and lockfiles, installed types/co
 
 ## Output Contract
 
+- Applicable WAI-ARIA/APG and HTML semantic requirements and their source; distinguish this basis from installed primitive APIs and unverified browser support
 - Interaction and dismissal semantics
 - Focus/layer/scroll ownership
 - Mutation idempotency and unsaved-state behavior

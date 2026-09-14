@@ -3,8 +3,8 @@ name: mobile-refactor
 description: Refactor existing Flutter, React Native, Expo, iOS, or Android mobile code while preserving observable behavior and platform contracts. Use when restructuring or migration is the requested outcome; use framework-specific implementation skills for new features and mobile-review for findings only.
 metadata:
   owner: codex-framework
-  reviewed: "2026-07-27"
-  version: 2.0
+  reviewed: "2026-09-14"
+  version: 2.1
   argument-hint: "target files, Flutter/RN/native stack, behavior to preserve, measured problem, allowed migration scope"
 ---
 
@@ -12,7 +12,7 @@ Refactor $ARGUMENTS.
 
 ## Scope the preservation contract
 
-Read instructions, manifests/lockfiles, target and callers, native projects, routing/state/storage, tests, analytics, accessibility, lifecycle, offline and release/update contracts. Record installed stack capabilities. Existing pins remain authority; verify version-specific patterns locally or in matching official docs. Use `scripts/framework-stack-context.py` only for greenfield stack selection, not to smuggle an upgrade into a refactor.
+Read instructions, manifests/lockfiles, target and callers, native projects, routing/state/storage, tests, analytics, accessibility, lifecycle, offline and release/update contracts. Record installed stack capabilities. Existing pins remain authority; verify version-specific patterns locally or in matching official docs. Use project stack context for checkout-owned pins; reserve latest-version resolution for authorized greenfield selection or migration.
 
 Before material mutation, resolve exact task-owned app/native/configuration targets, owning team and write authority/permissions, plus a reversible diff and migration rollback/recovery boundary.
 
@@ -32,5 +32,7 @@ Make changes incrementally behind stable interfaces where possible. For state, n
 ## Verification and output
 
 Run existing characterization tests first when feasible, add focused regression tests, then run repository-authoritative affected checks. Verify relevant device/build/lifecycle/process-death, accessibility, offline, native, and update paths. Compare measured performance only in equivalent environments; do not claim improvement from code shape.
+
+For each affected platform, verify persisted-data compatibility with representative pre-change data. When a migration is in scope, exercise upgrade, restart/restoration and the contracted rollback/recovery path, including secure storage where affected. A migration design alone is not execution evidence; report any untested platform or data path explicitly.
 
 Report preserved behavior, evidence motivating the refactor, changed boundaries, migration/rollback, actual checks and device measurements, and unverified platform risks.

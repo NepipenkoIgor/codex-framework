@@ -20,7 +20,7 @@ if python3 "$ROOT/scripts/framework-doctor-native.py" "$FIXTURE/native-failure.j
 fi
 
 CODEX_HOME="$FRAMEWORK_CODEX_HOME" CODEX_SKILLS_HOME="$FRAMEWORK_SKILLS_HOME" \
-  bash "$ROOT/scripts/setup.sh" >/dev/null
+  bash "$ROOT/scripts/setup.sh" --development >/dev/null
 
 CODEX_HOME="$FRAMEWORK_CODEX_HOME" CODEX_SKILLS_HOME="$FRAMEWORK_SKILLS_HOME" \
   bash "$ROOT/scripts/framework-doctor.sh" --framework-only --skip-evidence --skip-prompt-input >/dev/null
@@ -33,7 +33,7 @@ if CODEX_HOME="$FRAMEWORK_CODEX_HOME" CODEX_SKILLS_HOME="$FRAMEWORK_SKILLS_HOME"
 fi
 
 CODEX_HOME="$FRAMEWORK_CODEX_HOME" CODEX_SKILLS_HOME="$FRAMEWORK_SKILLS_HOME" \
-  bash "$ROOT/scripts/setup.sh" >/dev/null
+  bash "$ROOT/scripts/setup.sh" --development >/dev/null
 CODEX_HOME="$FRAMEWORK_CODEX_HOME" CODEX_SKILLS_HOME="$FRAMEWORK_SKILLS_HOME" \
   bash "$ROOT/scripts/framework-doctor.sh" --framework-only --skip-evidence --skip-prompt-input >/dev/null
 

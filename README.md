@@ -6,11 +6,20 @@ A thin, native Codex extension layer for reusable engineering skills, project in
 
 Codex owns planning, models, skill selection, approvals, sandboxing, worktrees, plugins, MCP, browser control, native agent messaging, and agent orchestration. This repository does not ship shell routers, prompt gates, context injection, model fallback chains, issue/PR wrappers, synthetic agent workflows, or local conversation-memory engines.
 
+## Automatic project adaptation
+
+Open a project and give Codex a task. The global agreement asks it to discover the minimum project map from existing code, manifests, scripts, CI and docs; no manually prepared AGENTS.md is required. Later tasks inspect changed and affected areas, deepen understanding during work, and update useful verified contracts/docs/tests within scope. External identity and authority are revalidated before consequential actions. No discovery daemon, mandatory generated brief, context cache or automatic memory write is added. See [project understanding](docs/project-understanding.md).
+
 ## Install
 
+Use Python 3.11+ for framework checks. Ordinary installation must run from a clean detached Git checkout at the intended reviewed commit. Keep development in a separate worktree; do not edit the installed checkout.
+
 ```bash
-bash scripts/setup.sh
+git worktree add --detach /path/to/framework-installed <reviewed-commit>
+bash /path/to/framework-installed/scripts/setup.sh
 ```
+
+For deliberate local framework development only, `bash scripts/setup.sh --development` permits mutable source links. This is an explicit opt-in, not a stable release. Setup records source SHA, detached/branch state and content digest; doctor reports source drift, including changes between two dirty states. Source identity does not certify release checks or prove a running task has reloaded instructions. To roll back, run setup from the previous clean detached checkout; only recorded managed resources may be replaced.
 
 Start a new Codex session after installation. Codex discovers the installed skills and agents directly. Plugin lifecycle belongs to native `codex plugin` commands and the repository marketplace; setup installs only the intentionally minimal universal core, profiles, and project safety surfaces that plugins do not own.
 
@@ -26,7 +35,7 @@ The installer uses the canonical native USER skill location, `~/.agents/skills`,
 Install opt-in domain packs explicitly:
 
 ```bash
-bash scripts/setup.sh --pack frontend --pack fullstack
+bash /path/to/framework-installed/scripts/setup.sh --pack frontend --pack fullstack
 ```
 
 Available pack names are discovered from `skills/packs/*.txt`; current domains include `engineering`, `frontend`, `backend`, `fullstack`, `mobile`, `ai`, `automation`, `infra`, and `product`. Every non-core local skill has exactly one owning pack and is not loaded globally by default.
@@ -81,9 +90,13 @@ High-risk changes get one native falsification-review pass after implementation 
 
 Use native `codex review` or the GitHub integration for routine pull-request review. The custom `reviewer` exists for the narrower high-risk falsification contract above, not as a replacement for native review surfaces.
 
+Long-running goals advance through bounded execution epochs instead of one unbounded root turn. Each epoch owns one coherent batch, explicit checkpoint conditions, and at most one delivery lifecycle. External operations receive one status read and one bounded attached wait; continued requested monitoring moves to a native thread heartbeat, while unrequested waiting yields a checkpoint. Check evidence is reused while its source identity, command/configuration, environment, and provider inputs remain unchanged. See `docs/runtime-efficiency.md` for dependency-aware batching, execution lanes, reviewer identity, and rollout measures.
+
 ## Skills and integrations
 
-Skills are a maintained local library, not a blanket prompt payload. `scripts/setup.sh` installs the curated universal core from `skills/core.txt`; `skills/packs/*.txt` provide explicit domain sets. Prefer native connectors or authenticated CLIs over wrappers for service/API operations; GitHub API work uses its connector or `gh`. Browser remains first-party for product UI acceptance and is used for service sites only when evidence is visual/UI-only or no exact connector/CLI operation exists. Use DOM, console, and network before screenshots. Add MCP servers only for external context Codex does not already provide.
+Skills are a maintained local library, not a blanket prompt payload. `scripts/setup.sh` installs the curated universal core from `skills/core.txt`; `skills/packs/*.txt` provide explicit domain sets. Prefer native connectors or authenticated CLIs over wrappers for service/API operations; GitHub API work uses its connector or `gh`. Browser remains first-party for product UI acceptance and is used for service sites only for irreducibly visual/UI-only evidence after exact connector/CLI/API coverage is exhausted. Use DOM, console, and network before screenshots. Add MCP servers only for external context Codex does not already provide.
+
+Service commands are evidence only after both transport and semantics are verified. An exit-zero empty result, a partial project list, mixed warning/data output, or an unsupported subcommand cannot prove that provider state is empty or unavailable. Target-dependent commands must reconcile explicit flags, environment, repository configuration, credentials/profile, and every local link/cache selector before use. Conflicts fail closed; after an incomplete CLI path, Codex uses the same-scope authenticated connector or direct API before considering a provider website, which remains UI-only evidence rather than a substitute data API.
 
 Codex initially exposes only skill name, description, and path. That metadata catalog is bounded by the native context budget; the complete selected `SKILL.md` is loaded after selection, and routed references are read only when the skill requires them. Installing all 156 skills globally would reduce routing efficiency, so the default core remains one skill and domain packs stay project-scoped.
 
@@ -135,7 +148,7 @@ Generic behavior is defined once in the global working agreement. Repository and
 
 This repository leaves stable request compression, remote compaction, skill search, cached web search, model choice, effort, and auto-compaction thresholds at their native defaults. It retains one evidence-backed local preference: tool results retained in context are capped at 4,000 tokens. Hook installation validates only the deterministic safety hook and never rejects a valid project because optional optimization preferences differ. Existing user-owned config is preserved. The global agreement requires targeted reads and forbids model/effort downgrades solely for token savings.
 
-`scripts/framework-token-budget-check.py` fails on oversized always-on instructions, prompt/compaction overrides, explicit disabling of stable optimizations, model/effort pins, or a larger tool-output retention limit. `--live` inspects the native model-visible prompt without a model call, and `--rollout PATH` separates per-response provider usage, provider cumulative totals, and raw logged tool-output size without claiming that raw JSONL bytes were all retained in later model context. Baseline evidence, interpretation boundaries, and operating rules are in `docs/token-efficiency.md`.
+`scripts/framework-token-budget-check.py` fails on oversized always-on instructions, prompt/compaction overrides, explicit disabling of stable optimizations, model/effort pins, a larger tool-output retention limit, or deterministic busy-polling evidence in `--rollout PATH`. The rollout diagnostic uses thread-owned counters, detects event-counter resets, and separates response/turn/thread usage plus custom/function text and image output without claiming that raw JSONL bytes were retained in later context. Baseline evidence and interpretation boundaries are in `docs/token-efficiency.md`.
 
 ## Framework checks
 
@@ -160,7 +173,7 @@ SKILL_QUALITY_ARTIFACT_DIR=/tmp/skill-quality bash scripts/framework-skill-routi
 python3 scripts/framework-skill-quality.py semantic-live --skill nextjs-development --artifact-dir /tmp/skill-quality --routing-artifact /tmp/skill-quality/routing-nextjs-development.json
 python3 scripts/framework-skill-quality.py certify --skill nextjs-development --artifact-dir /tmp/skill-quality
 bash scripts/framework-health.sh
-# Optional model-backed routing regression check:
+# Optional model-backed delegation and service-operation regression checks:
 bash scripts/framework-live-eval.sh
 ```
 
@@ -169,3 +182,7 @@ For a fresh corpus-wide run, create an empty artifact directory, run `routing-li
 `framework-health.sh` validates source and is safe for CI. `framework-doctor.sh` separately reports the effective linked development checkout and certified release evidence: a dirty linked file can be active immediately but is not a certified release. The doctor also checks canonical skills, ownership state, profiles, rules, hooks, prompt metadata, project packs, and native diagnostics. `framework-skill-loader-live-eval.sh` uses an ephemeral native `codex exec` to prove initial-turn discovery, end-of-file visibility, required-reference loading, and an observable tool trace without the forbidden reference. It does not claim to force native auto-compaction: that boundary has no stable non-interactive trigger in the pinned CLI and must not be represented by a simulated local workflow. `framework-release.sh` validates schema-checked, prompt/output-digest-bound raw model evidence, then writes a retained compact per-skill attestation plus exact gate commands, outputs, and hashes to `docs/framework-release-evidence.json`. The manifest is bound to a real committed source tree; raw transcripts remain task-owned ephemeral data after certification. Evidence expires after seven days and whenever the source digest or active Codex CLI version changes.
 
 The deterministic checks validate native configuration, profile boundaries, plugin packaging, surface parity, wrapper removal, hook safety, skill ownership/review metadata, exact core/pack coverage, reachable references, unsafe cleanup recipes, dynamic release resolvers, numeric bootstrap pins, and a digest-bound contract for every skill. Quality is conjunctive across every assertion, case, and all ten dimensions; both major and critical failures block. The 542 fixture-backed scenarios include semantic GitHub/Browser routing and public-surface authority counterexamples and are distributed across ten bounded domain profiles rather than one universal repository fiction. Model-backed evaluators run from neutral home/working directories with repository and user instructions ignored. Routing uses three fresh trials and recomputes artifact majorities during consumption; semantic certification produces a draft, performs exactly one assertion-blind self-falsification/revision against the supplied skill and fixture, then sends only the revised answer to an independent hidden-criteria judge. See `docs/version-currency.md` and `docs/skill-quality-standard.md`.
+
+## Behavioral acceptance
+
+`bash scripts/framework-live-eval.sh` is policy classification only. `bash scripts/framework-live-eval.sh --runtime-policy` selects the changed runtime policy cases. Run `bash scripts/framework-live-eval.sh --behavior --artifact-dir /absolute/fresh/path` for tool-enabled native Codex tasks in disposable Python and Node projects, including extending an existing documented contract. No model/effort override is supplied. Independent graders check the result and successful command events; self-ratings are ignored. Use `python3 scripts/framework-project-behavior-eval.py --self-test` for grader counterexamples. Fixture success does not certify long-running Goal suspension, hosted Property acceptance, or a full release. Current fixtures cover initial discovery, actual runtime verification and updating an existing machine-readable input contract after extending behavior. Cross-session continuity, native wait/heartbeat behavior and long-running compaction still require additional live-project evidence.

@@ -69,13 +69,15 @@ for mapping in \
 done
 if python3 "$ROOT/scripts/framework-link-install.py" --check \
   --state "$LINK_STATE" \
+  --source-root "$ROOT" \
+  --guidance "$FRAMEWORK_CODEX_HOME/AGENTS.md=$ROOT/templates/global/AGENTS.md" \
   --link "$FRAMEWORK_CODEX_HOME/frameworks/codex-framework=$ROOT" \
   --link "$FRAMEWORK_CODEX_HOME/bin/codex-framework-stack-context=$ROOT/scripts/framework-stack-context.py" \
   --link "$FRAMEWORK_CODEX_HOME/bin/codex-framework-doctor=$ROOT/scripts/framework-doctor.sh" \
   --file "$FRAMEWORK_CODEX_HOME/agents/codex-framework-architect.toml=$ROOT/.codex/agents/architect.toml" \
   --file "$FRAMEWORK_CODEX_HOME/agents/codex-framework-reviewer.toml=$ROOT/.codex/agents/reviewer.toml" \
   --file "$FRAMEWORK_CODEX_HOME/agents/codex-framework-tester.toml=$ROOT/.codex/agents/tester.toml" \
-  --link "$FRAMEWORK_CODEX_HOME/rules/codex-framework-safety.rules=$ROOT/.codex/rules/safety.rules" >/dev/null; then
+  --link "$FRAMEWORK_CODEX_HOME/rules/codex-framework-safety.rules=$ROOT/.codex/rules/safety.rules"; then
   ok 'auxiliary framework links match explicit ownership state'
 else
   fail "auxiliary framework link ownership is stale or malformed: $LINK_STATE"
@@ -148,7 +150,7 @@ else
   fail 'project hook configuration is invalid'
 fi
 
-note 'effective install checks above describe the linked development checkout; they do not certify a release'
+note 'effective install checks above describe the linked source identity; they do not certify a release'
 
 if python3 "$ROOT/scripts/framework-token-budget-check.py" >/dev/null; then
   ok 'framework-owned token budgets are enforced without overriding native optimization defaults'

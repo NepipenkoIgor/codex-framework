@@ -1,6 +1,9 @@
 #!/bin/bash
 set -euo pipefail
 
+# Preflight must not create Python caches in a fresh user home.
+export PYTHONDONTWRITEBYTECODE=1
+
 REPO_DIR="$(cd "$(dirname "$0")/.." && pwd)"
 FRAMEWORK_CODEX_HOME="${CODEX_HOME:-$HOME/.codex}"
 USER_SKILLS_ROOT="${CODEX_SKILLS_HOME:-$HOME/.agents/skills}"
@@ -13,17 +16,23 @@ LINK_STATE="$FRAMEWORK_CODEX_HOME/frameworks/.codex-framework-links.json"
 GLOBAL_GUIDANCE_SOURCE="$REPO_DIR/templates/global/AGENTS.md"
 GLOBAL_GUIDANCE_TARGET="$FRAMEWORK_CODEX_HOME/AGENTS.md"
 SELECTED_PACKS=""
+SOURCE_ARGS=(--root "$REPO_DIR")
 
 while [ $# -gt 0 ]; do
   case "$1" in
     -h|--help)
       cat <<EOF
-usage: setup.sh [--pack NAME]...
+usage: setup.sh [--development] [--pack NAME]...
+
+Default: clean detached Git source required. --development explicitly links mutable source.
 
 Installs the universal framework core and optional project/domain packs.
 Available packs: $(find "$REPO_DIR/skills/packs" -maxdepth 1 -name '*.txt' -exec basename {} .txt \; | sort | tr '\n' ' ')
 EOF
       exit 0
+      ;;
+    --development)
+      SOURCE_ARGS+=(--development)
       ;;
     --pack)
       [ $# -ge 2 ] || { echo "--pack requires a pack name" >&2; exit 1; }
@@ -37,6 +46,8 @@ EOF
   esac
   shift
 done
+
+python3 "$REPO_DIR/scripts/framework-install-source.py" "${SOURCE_ARGS[@]}"
 
 SELECTED_PACKS="$(printf '%s' "$SELECTED_PACKS" | tr ' ' '\n' | awk 'NF && !seen[$0]++' | sort | tr '\n' ' ')"
 
@@ -80,11 +91,16 @@ report_dep() {
 
 link_args=(
   --state "$LINK_STATE"
+  --source-root "$REPO_DIR"
+  --guidance "$GLOBAL_GUIDANCE_TARGET=$GLOBAL_GUIDANCE_SOURCE"
   --link "$FRAMEWORK_CODEX_HOME/frameworks/codex-framework=$REPO_DIR"
   --link "$FRAMEWORK_CODEX_HOME/bin/codex-framework-stack-context=$REPO_DIR/scripts/framework-stack-context.py"
   --link "$FRAMEWORK_CODEX_HOME/bin/codex-framework-doctor=$REPO_DIR/scripts/framework-doctor.sh"
   --link "$FRAMEWORK_CODEX_HOME/rules/codex-framework-safety.rules=$REPO_DIR/.codex/rules/safety.rules"
 )
+if [[ " ${SOURCE_ARGS[*]} " == *" --development "* ]]; then
+  link_args+=(--development)
+fi
 profile_args=(
   --file "$FRAMEWORK_CODEX_HOME/agents/codex-framework-architect.toml=$REPO_DIR/.codex/agents/architect.toml"
   --file "$FRAMEWORK_CODEX_HOME/agents/codex-framework-reviewer.toml=$REPO_DIR/.codex/agents/reviewer.toml"
@@ -108,16 +124,7 @@ python3 "$REPO_DIR/scripts/framework-install.py" "${install_args[@]}"
 
 python3 "$REPO_DIR/scripts/framework-link-install.py" "${link_args[@]}" "${profile_args[@]}"
 
-if [ -e "$GLOBAL_GUIDANCE_TARGET" ] || [ -L "$GLOBAL_GUIDANCE_TARGET" ]; then
-  if [ "$GLOBAL_GUIDANCE_TARGET" -ef "$GLOBAL_GUIDANCE_SOURCE" ]; then
-    GLOBAL_GUIDANCE_STATUS="$GLOBAL_GUIDANCE_TARGET -> $GLOBAL_GUIDANCE_SOURCE"
-  else
-    GLOBAL_GUIDANCE_STATUS="preserved existing user guidance: $GLOBAL_GUIDANCE_TARGET"
-  fi
-else
-  ln -sfn "$GLOBAL_GUIDANCE_SOURCE" "$GLOBAL_GUIDANCE_TARGET"
-  GLOBAL_GUIDANCE_STATUS="$GLOBAL_GUIDANCE_TARGET -> $GLOBAL_GUIDANCE_SOURCE"
-fi
+GLOBAL_GUIDANCE_STATUS="$GLOBAL_GUIDANCE_TARGET (managed link if absent or explicitly owned; user guidance preserved)"
 
 cat <<EOF
 Installed skills:

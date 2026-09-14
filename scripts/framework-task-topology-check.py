@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Validate the native fork/new-task/subagent contract and reject semantic reversals."""
+"""Check required native task-topology text and known contradictory phrases; not semantic certification."""
 
 from __future__ import annotations
 
@@ -8,12 +8,13 @@ from pathlib import Path
 
 
 REQUIRED = (
-    "Choose a fork only when the new task needs the source task's completed history",
-    "choose a new task when it should start without that history",
-    "a subagent when it remains a bounded part of the current request",
+    "Fork only for a requested history-backed alternative",
+    "use a new task for independent context",
+    "a subagent for bounded current-request work",
+    "Create/fork user-visible tasks only when requested",
     "A running turn is not forked history",
     "parallel writers require separate worktrees",
-    "Use native task messaging and task management instead of local queues, status files, or handoff machinery",
+    "never local queues/status files/handoff machinery",
     "verify the effective working directory and permission profile before consequential work",
     "a mismatch is an explicit stop-and-resolve boundary",
     "Export or share task history only on explicit user request",
@@ -23,6 +24,7 @@ REVERSALS = (
     "fork only when the new task does not need the source task's completed history",
     "new task when it should inherit that history",
     "subagent when it is unrelated to the current request",
+    "create/fork user-visible tasks automatically",
     "running turn is forked history",
     "parallel writers may share a worktree",
     "use local queues, status files, or handoff machinery instead of native task messaging",
@@ -41,9 +43,10 @@ def validate(text: str) -> list[str]:
 def self_test(valid: str) -> None:
     assert not validate(valid), "authoritative task-topology contract failed its own validator"
     counterexamples = (
-        ("needs the source task's completed history", "does not need the source task's completed history"),
-        ("start without that history", "inherit that history"),
-        ("remains a bounded part of the current request", "is unrelated to the current request"),
+        ("requested history-backed alternative", "history-free alternative"),
+        ("new task for independent context", "new task to inherit history"),
+        ("subagent for bounded current-request work", "subagent for unrelated work"),
+        ("only when requested", "automatically"),
         ("A running turn is not forked history", "A running turn is forked history"),
         ("parallel writers require separate worktrees", "parallel writers may share a worktree"),
         ("before consequential work", "after consequential work"),
@@ -64,7 +67,7 @@ def main() -> int:
             print(f"- {failure}")
         return 1
     self_test(text)
-    print("native task topology check passed: authoritative rules and semantic reversals")
+    print("native task topology check passed: structural rules and known phrase reversals (behavior not certified)")
     return 0
 
 

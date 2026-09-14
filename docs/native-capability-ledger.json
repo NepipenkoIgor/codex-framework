@@ -1,82 +1,129 @@
 {
   "schemaVersion": 2,
-  "reviewedAt": "2026-09-09T18:09:54+00:00",
-  "codexVersion": "codex-cli 0.153.4",
+  "reviewedAt": "2026-09-14T18:39:50+00:00",
+  "codexVersion": "codex-cli 0.154.0",
   "baselineReleaseTag": "rust-v0.149.0",
-  "latestReleaseTag": "rust-v0.153.4",
-  "changelogReviewedThrough": "2026-09-08",
+  "latestReleaseTag": "rust-v0.154.0",
+  "changelogReviewedThrough": "2026-09-11",
   "sources": [
     {
       "kind": "manual",
       "url": "https://developers.openai.com/codex/",
-      "sha256": "1054faa7085722a9fe9c578b458e746d1b385a0e357231d2a25b4f5748951277"
+      "sha256": "6bcc3be7aece913347b1d10c4fd7fba65146aefb2c4d2e786c959268d679c544"
     },
     {
       "kind": "changelog",
       "url": "https://learn.chatgpt.com/docs/changelog",
-      "sha256": "e5d2f3b21a72b2b3b0a80b4d3a1322a8b9cd052cd0e2cfd4e93226358b33d4b4"
+      "sha256": "a158b1086ba3b1ff64a8fb26d55edf4c9228b838ad7aa32cb1ff714aafde02d6"
     },
     {
       "kind": "release",
       "url": "https://api.github.com/repos/openai/codex/releases/latest",
-      "sha256": "125de93cdb8041b9713728243dbf2674b0f062285335381cc35598a8ff36a98b"
+      "sha256": "95af6d0faa5af5055081c07f0e8e4d92c70d764a536d453baa4e2c350f8815e9"
     }
   ],
   "releaseCoverage": [
     {
       "tag": "rust-v0.149.1",
       "publishedAt": "2026-08-24T00:28:28Z",
-      "capabilityIds": ["runtime-maintenance-release"]
+      "capabilityIds": [
+        "runtime-maintenance-release"
+      ]
     },
     {
       "tag": "rust-v0.150.0",
       "publishedAt": "2026-08-26T19:37:28Z",
-      "capabilityIds": ["task-ergonomics", "conversation-export", "async-mcp-hooks"]
+      "capabilityIds": [
+        "task-ergonomics",
+        "conversation-export",
+        "async-mcp-hooks"
+      ]
     },
     {
       "tag": "rust-v0.150.1",
       "publishedAt": "2026-08-27T01:56:54Z",
-      "capabilityIds": ["native-token-optimizations"]
+      "capabilityIds": [
+        "native-token-optimizations"
+      ]
     },
     {
       "tag": "rust-v0.151.0",
       "publishedAt": "2026-08-29T09:55:39Z",
-      "capabilityIds": ["portable-plugins", "fork-permission-restoration", "native-agent-lifecycle", "async-mcp-hooks"]
+      "capabilityIds": [
+        "portable-plugins",
+        "fork-permission-restoration",
+        "native-agent-lifecycle",
+        "async-mcp-hooks"
+      ]
     },
     {
       "tag": "rust-v0.152.0",
       "publishedAt": "2026-09-01T01:58:32Z",
-      "capabilityIds": ["mcp-output-limits", "plan-tool-availability", "fork-permission-restoration"]
+      "capabilityIds": [
+        "mcp-output-limits",
+        "plan-tool-availability",
+        "fork-permission-restoration"
+      ]
     },
     {
       "tag": "rust-v0.152.1",
       "publishedAt": "2026-09-01T22:33:02Z",
-      "capabilityIds": ["native-doctor-diagnostics"]
+      "capabilityIds": [
+        "native-doctor-diagnostics"
+      ]
     },
     {
       "tag": "rust-v0.153.0",
       "publishedAt": "2026-09-03T01:37:38Z",
-      "capabilityIds": ["plugin-marketplace-cli", "task-ergonomics", "async-user-questions", "experimental-context-management", "fork-permission-restoration"]
+      "capabilityIds": [
+        "plugin-marketplace-cli",
+        "task-ergonomics",
+        "async-user-questions",
+        "experimental-context-management",
+        "fork-permission-restoration"
+      ]
     },
     {
       "tag": "rust-v0.153.1",
       "publishedAt": "2026-09-03T21:02:56Z",
-      "capabilityIds": ["native-model-defaults"]
+      "capabilityIds": [
+        "native-model-defaults"
+      ]
     },
     {
       "tag": "rust-v0.153.2",
       "publishedAt": "2026-09-03T23:53:12Z",
-      "capabilityIds": ["native-model-defaults"]
+      "capabilityIds": [
+        "native-model-defaults"
+      ]
     },
     {
       "tag": "rust-v0.153.3",
       "publishedAt": "2026-09-04T19:01:32Z",
-      "capabilityIds": ["native-model-defaults"]
+      "capabilityIds": [
+        "native-model-defaults"
+      ]
     },
     {
       "tag": "rust-v0.153.4",
       "publishedAt": "2026-09-04T23:25:48Z",
-      "capabilityIds": ["native-model-defaults"]
+      "capabilityIds": [
+        "native-model-defaults"
+      ]
+    },
+    {
+      "tag": "rust-v0.154.0",
+      "publishedAt": "2026-09-09T22:35:38Z",
+      "capabilityIds": [
+        "native-model-defaults",
+        "task-ergonomics",
+        "async-user-questions",
+        "fork-permission-restoration",
+        "portable-plugins",
+        "live-extension-refresh",
+        "async-mcp-hooks",
+        "native-doctor-diagnostics"
+      ]
     }
   ],
   "capabilities": [
@@ -90,6 +137,17 @@
         ".agents/plugins/marketplace.json",
         "plugins/codex-frontend-design/.codex-plugin/plugin.json",
         "docs/skills-governance.md"
+      ]
+    },
+    {
+      "id": "live-extension-refresh",
+      "nativeFeature": "Existing sessions refresh installed plugin tools, skills, and hooks after external plugin upgrades or rollbacks",
+      "decision": "adopted",
+      "localOverlap": "A framework watcher or session-reload hook would duplicate native extension refresh and could inject stale context.",
+      "action": "Use native plugin refresh. Global guidance remains run-scoped; validate effective target and installed source identity. Install from clean detached Git by default, development links only by explicit opt-in; no reload watcher.",
+      "evidence": [
+        "README.md",
+        "docs/native-capability-review.md"
       ]
     },
     {
@@ -125,7 +183,8 @@
       "evidence": [
         "scripts/framework-doctor.sh",
         "scripts/framework-doctor-native.py",
-        "README.md"
+        "README.md",
+        "scripts/framework-install-source.py"
       ]
     },
     {
@@ -396,6 +455,29 @@
         "AGENTS.md",
         "skills/security-audit/SKILL.md",
         "skills/threat-modeling/SKILL.md"
+      ]
+    },
+    {
+      "id": "native-python-sdk-events",
+      "nativeFeature": "Python SDK 0.154.0 ExternalMessage, per-turn options, history selection and typed notifications",
+      "decision": "retained",
+      "localOverlap": "Framework validators invoke native Codex CLI; no Python SDK transport, HookMetadata access or event-history replay implementation exists locally.",
+      "action": "Keep native CLI ownership. ExternalMessage carries tool authority rather than user authorization; include_turns selects returned history rather than model context. Do not add SDK event or replay wrappers. SDK users must respect typed payloads and partial late-attached streams.",
+      "evidence": [
+        "scripts/framework-skill-quality.py",
+        "templates/global/AGENTS.md",
+        "docs/native-capability-review.md"
+      ]
+    },
+    {
+      "id": "windows-voice-build-provenance",
+      "nativeFeature": "Cygwin Windows voice build-input and corresponding-source archives",
+      "decision": "retained",
+      "localOverlap": "Upstream CI-only build inputs are not user runtime packages and have no local framework voice-build counterpart.",
+      "action": "Retain native runtime installation; do not install CI-only Cygwin artifacts or create a voice toolchain from release-list presence.",
+      "evidence": [
+        ".github/workflows/framework.yml",
+        "docs/native-capability-review.md"
       ]
     }
   ]
