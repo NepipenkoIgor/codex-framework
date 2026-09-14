@@ -3,8 +3,8 @@ name: frontend-review
 description: Review frontend changes for concrete correctness, regression, performance, maintainability, and test risks. Use when a read-only findings report is requested; route broad WCAG, visual-system consistency, or security audits to their dedicated skills and do not implement fixes.
 metadata:
   owner: codex-framework
-  reviewed: "2026-07-27"
-  version: 2.1
+  reviewed: "2026-09-14"
+  version: 2.2
   argument-hint: "PR/diff/module, framework, expected behavior, review and verification scope"
 ---
 
@@ -31,9 +31,12 @@ Review `$ARGUMENTS` read-only. Findings must identify a behavior-changing defect
 - Report CSP only from an authoritative deployed/header policy, repository policy test, or explicit target. Inline styles are not universally invalid; nonces/hashes, framework behavior, CSP directives, and browser support determine impact. Never recommend `'unsafe-inline'` as a routine fix.
 - Treat hardcoded values as defects only when they violate an authoritative token/component contract or cause observable inconsistency.
 - Verify exact framework/runtime/package capability from project pins and installed artifacts before making version-sensitive claims. Determine and check every applicable cross-stack boundary exposed by the repository—runtime engine ranges, peer dependencies, compiler/framework coupling, test tooling, native/build tooling and deployment runtime—and explicitly mark absent or unavailable dimensions instead of silently omitting them.
+- Before a greenfield project has pins, resolve supported stable/LTS versions from official sources at execution time and verify cross-stack compatibility. Once created, its manifest and lockfile become authoritative for subsequent version and capability reviews.
 - A passing unit test, screenshot, or build does not prove authenticated, persisted, hydration, accessibility, or production behavior outside its boundary.
 - When acting authority, resource ownership, idempotency or effect recovery/rollback remains unresolved on a material mutation path, report that missing boundary as a blocker rather than assuming safety.
 
 ## Output
 
 Findings first, ordered by severity. Each finding includes exact file/line, affected execution path, expected versus observed behavior, reproduction or concrete counterexample, impact, and bounded fix direction. Then report checks/evidence used, open blockers, and residual risk. If no actionable finding is supported, say so explicitly.
+
+When missing evidence blocks a conclusion, give a concise sequence of next checks in risk order. Start from the affected diff and callers, trace the highest-risk execution path, resolve installed capability or target-policy uncertainty where it affects that path, and then select verification. Explain which result determines the next step so a list of unknowns remains actionable.
