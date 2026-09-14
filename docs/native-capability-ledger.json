@@ -1,6 +1,6 @@
 {
   "schemaVersion": 2,
-  "reviewedAt": "2026-09-14T14:38:17+00:00",
+  "reviewedAt": "2026-09-14T17:06:27+00:00",
   "codexVersion": "codex-cli 0.154.0",
   "baselineReleaseTag": "rust-v0.149.0",
   "latestReleaseTag": "rust-v0.154.0",
@@ -9,12 +9,12 @@
     {
       "kind": "manual",
       "url": "https://developers.openai.com/codex/",
-      "sha256": "3a7183ae1aeb222a356afe31cbc1128bf4797015363c2a4ed3598709fe7460b5"
+      "sha256": "ef0ff18403a332e13080b5265f312de37bd6ae48aee0180f5b56e1911910456b"
     },
     {
       "kind": "changelog",
       "url": "https://learn.chatgpt.com/docs/changelog",
-      "sha256": "77031db444774814ada36bbfaa5608d526b2ea80062c8f46f6b4b79de879a52b"
+      "sha256": "d57da2df622835052c6f97af2d85b6d9d01676f142be518789b4071ebf35f4a7"
     },
     {
       "kind": "release",
