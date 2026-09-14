@@ -3,8 +3,8 @@ name: event-driven-architecture
 description: Design read-only domain-event, schema-evolution, publication, consumption, ordering, replay, privacy, and recovery contracts across bounded contexts. Use when event-driven architecture decisions are unresolved; do not use for straightforward queue or broker implementation.
 metadata:
   owner: codex-framework
-  reviewed: "2026-09-09"
-  version: 1.6
+  reviewed: "2026-09-14"
+  version: 1.7
   argument-hint: "business invariants, producers/consumers, broker/store, ordering and delivery needs, schema/privacy/replay constraints"
 ---
 
@@ -21,6 +21,7 @@ Design `$ARGUMENTS` read-only. Do not assume event sourcing, CQRS, sagas, Kafka,
 ## Publication and consumption
 
 - Avoid dual writes: persist domain state and outbox intent atomically when they share a transactional store, or define the equivalent provider-specific atomic/CDC contract. Publication is normally at least once; consumers deduplicate by stable event/effect identity.
+- State the delivery guarantee separately from business-effect uniqueness in every design or replay assessment. Reject an assumed end-to-end exactly-once guarantee; identify the at-least-once publication boundary and the durable idempotency/reconciliation contract that prevents duplicate effects. A broker guarantee alone does not establish that external effects happen once.
 - A consumer must establish idempotency/claim before performing an irreversible effect, or reconcile an effect that can succeed before acknowledgement. Ack/checkpoint only after durable outcome and dedupe state; timeout does not imply failure.
 - Define bounded retries, backoff, poison/quarantine/DLQ, redrive authorization, dedupe retention, dependency outage behavior, and observability. Redrive is a production mutation, not a harmless read.
 - Define ordering only at the necessary partition/aggregate key. Cross-partition total order is not assumed; consumers handle duplicates, gaps, stale versions and concurrent events explicitly.
