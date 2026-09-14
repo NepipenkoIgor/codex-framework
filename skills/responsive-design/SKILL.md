@@ -3,14 +3,16 @@ name: responsive-design
 description: Implement responsive page and component layouts across viewport, container, zoom, text spacing, writing direction, and input modes. Use when adaptive layout behavior is primary; do not use for general styling or a broad accessibility audit.
 metadata:
   owner: codex-framework
-  reviewed: "2026-07-26"
-  version: 2.0
+  reviewed: "2026-09-14"
+  version: 2.1
   argument-hint: "content constraints, embedding containers, browser/device matrix, zoom/reflow target, framework and SSR behavior"
 ---
 
 # Responsive Design
 
 Derive stack context from manifests/lockfiles, installed types/configuration, actual DOM/content, containing blocks, design tokens, framework adapter, CSS processor, Tailwind/build plugins, content detection, browser targets, rendering mode, localization, SSR/hydration and visual/browser tests as one compatibility unit. A repository helper may summarize this evidence but is not required. Existing manifests and lockfiles are authority; for authorized greenfield work resolve stable/LTS releases from configured official sources at execution time, verify compatibility, and make the generated manifest and lockfile authoritative. Verify container-query, viewport-unit, image, and framework APIs against current official docs and installed capability.
+
+Record the derived stack context with its inspected sources. Call configuration or behavior inspected only when actually supplied or opened; a general statement that repository context was inspected does not establish every item above. If context or execution is unavailable, state the missing evidence and the concrete next inspection or available project-context command that will obtain it. Do not invent inspected plugin, image, localization or hydration facts.
 
 Load at most one relevant deep dive. Resolve the choice explicitly before implementation and report either the single selected reference or `none` with the task evidence showing that the main workflow is sufficient. Never conditionally name a reference without resolving whether it was loaded, and do not force an unrelated deep dive merely to satisfy routing. Do not load Tailwind detail merely because Tailwind is installed; select it only when installed utility syntax itself is the unresolved subject.
 
@@ -34,7 +36,7 @@ Load at most one relevant deep dive. Resolve the choice explicitly before implem
    If an unsafe responsive hotfix is already deployed, first resolve its exact affected flows, deployment target and rollback authority, define a measurable rollback trigger, and roll it back or isolate it before implementing the replacement.
 2. Define invariants and failure policy: what may wrap, stack, scroll, collapse, truncate, move, or remain visible. Preserve task order and access to functionality.
 3. Implement the smallest set of fluid rules. Add breakpoints only where measured content constraints fail; name repository tokens by intent rather than device folklore.
-4. Use container queries only after establishing the query container and fallback. Avoid style/layout containment that clips required overflow or changes sizing unexpectedly.
+4. Use container queries only after establishing the query container and required browser support. Any degraded compatibility path needs an explicit project contract and verification. Avoid style/layout containment that clips required overflow or changes sizing unexpectedly.
 5. Verify real content and interactions, not a list of canonical widths. Inspect computed layout and accessibility tree before adding more variants.
 
 ## Verification
@@ -42,7 +44,7 @@ Load at most one relevant deep dive. Resolve the choice explicitly before implem
 - Narrow/wide viewport and each distinct embedding container; intermediate widths around every content-driven breakpoint.
 - Browser zoom/reflow, text-only enlargement, WCAG text-spacing overrides, long translations, RTL, long URLs/numbers, dynamic errors, validation, virtual keyboard, and safe areas.
 - Keyboard, touch, mouse, coarse/fine pointer, orientation, focus visibility and order; target-size measurements with documented exceptions.
-- SSR response versus hydrated DOM, resize/orientation changes, no-JS behavior, slow hydration, and browser capability fallback.
+- SSR response versus hydrated DOM, resize/orientation changes, no-JS behavior, slow hydration, and any explicitly contracted browser compatibility path.
 - For every affected critical journey such as checkout, prove the complete user-visible success path still reaches its authoritative persisted/provider outcome at representative responsive states; visibility and interaction checks alone are insufficient.
 - Visual/browser tests plus DOM/accessibility assertions and affected build/tests. A screenshot at preset device widths is not sufficient proof.
 
