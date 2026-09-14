@@ -14,7 +14,7 @@ concurrency:
   cancel-in-progress: true
 
 env:
-  CODEX_CLI_VERSION: 0.153.4
+  CODEX_CLI_VERSION: 0.154.0
 
 jobs:
   deterministic:
@@ -46,9 +46,9 @@ jobs:
       - name: Fresh-checkout reproducibility
         run: |
           fixture="$(mktemp -d)"
-          git archive HEAD | tar -x -C "$fixture"
+          git worktree add --detach "$fixture" HEAD
+          trap 'git worktree remove --force "$fixture"' EXIT
           bash "$fixture/scripts/framework-health.sh"
-          rm -r "$fixture"
       - name: Release evidence rejects fabricated attestations
         run: python3 scripts/framework-release-evidence.py self-test
       - name: Release evidence is current for source and pinned runtime

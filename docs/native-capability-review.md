@@ -23,7 +23,7 @@ The ledger is durable governance evidence, not startup context, a prompt router,
 
 ## Current reviewed delta
 
-The 2026-09-09 review covers every stable release after `rust-v0.149.0` through `rust-v0.153.4` and the changelog through 2026-09-08:
+The 2026-09-12 review covers every stable release after `rust-v0.149.0` through `rust-v0.154.0` and the changelog through 2026-09-11:
 
 - `0.149.1`: the stable release notes contain no framework-relevant behavior beyond the comparison link. `0.150.1` retained-image accounting in compaction/token budgets stays runtime-owned.
 - `0.150.0`: task mentions/messaging, copy/title ergonomics, links, interrupt hooks, and compaction/multi-agent fixes are native; no task or hook lifecycle wrapper is retained.
@@ -32,6 +32,12 @@ The 2026-09-09 review covers every stable release after `rust-v0.149.0` through 
 - `0.153.0`: native local/remote plugin marketplace lifecycle replaces the hooks-only duplicate; recaps, TUI history/reconnection, approval scoping, resume/fork compression fixes, and async questions remain native. Experimental context management stays disabled.
 - `0.153.1` through `0.153.4`: the model catalog and Astra default remain native and repository profiles stay unpinned. A user-owned global model pin is reported as an external override, never silently rewritten.
 - The 2026-09-08 iOS task mentions, side questions, starting-state selection, delegation/review/queue fixes, and plugin-skill deduplication require no framework wrapper.
-- A second live review on 2026-09-09 observed changed manual and changelog response fingerprints caused by the consolidated documentation shell and the manual URL redirecting into the ChatGPT Learn docs. The changelog still ends at 2026-09-08 and the latest stable Codex CLI remains `0.153.4`, so this is recorded as source-surface drift with no new framework capability to adopt, replace, remove, or permission-gate.
+- `0.154.0`: native managed worktrees, inline asynchronous questions, Astra catalog exposure, copied-response formatting, permission restoration, MCP OAuth/catalog refresh, startup trust hardening, and background runtime fixes remain native. Existing sessions now refresh plugin tools, skills, and hooks after external plugin changes; global `AGENTS.md` discovery remains run-scoped, so instruction edits require a new run rather than a framework reload wrapper.
+- The 2026-09-09 changelog and stable release review changed all three official source fingerprints and advanced the active runtime to `0.154.0`; the ledger records that delta instead of treating source drift as a release-neutral refresh.
+- The 2026-09-11 desktop update adds Pets quick chat and Windows Appshots. Both remain native, availability- and permission-gated interaction surfaces; they introduce no framework workflow, polling, context, or screenshot wrapper. The refreshed manual/changelog fingerprints are recorded even though the latest stable CLI remains `0.154.0`.
 
 Token optimization follows the same native-first rule. Stable request compression, remote compaction, skill search, cached web search, prompt caching, MCP catalog caching, and provider usage events stay at native defaults. The framework may bound only its own persistent instructions, selected skill core, and retained tool output; `scripts/framework-token-budget-check.py` rejects regressions and separately labels native prompt input, raw logged output, per-response usage, and cumulative provider totals without creating a cache or compaction layer.
+
+## 2026-09-14 implementation review
+
+The current official manual, complete changelog interval from the ledger baseline, and stable release notes were reviewed in this task. Latest stable remains 0.154.0 and the latest dated changelog entry remains 2026-09-11; refreshed manual/changelog content fingerprints require renewed evidence, not an invented runtime upgrade. Keep native goal/task/worktree/automation and compaction ownership; remove lifecycle polling regex from safety hooks, retain measured native output limits, and use native non-interactive execution for isolated behavioral evaluation. Development links require explicit opt-in; effective source identity is distinct from release certification and loaded task instructions. No experimental context manager, task queue or memory injection is added.

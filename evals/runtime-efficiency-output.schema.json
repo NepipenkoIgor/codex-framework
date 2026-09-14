@@ -1,0 +1,24 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["action", "shell_poll_allowed", "repeat_full_gate", "start_reviewer", "reason"],
+  "properties": {
+    "action": {
+      "type": "string",
+      "enum": [
+        "continue_execution",
+        "bounded_wait",
+        "heartbeat",
+        "checkpoint",
+        "blocked_split",
+        "reuse_evidence",
+        "review_unavailable"
+      ]
+    },
+    "shell_poll_allowed": {"type": "boolean"},
+    "repeat_full_gate": {"type": "boolean"},
+    "start_reviewer": {"type": "boolean"},
+    "reason": {"type": "string", "minLength": 1}
+  }
+}

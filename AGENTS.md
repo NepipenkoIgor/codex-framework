@@ -6,7 +6,7 @@ Generic cross-repository behavior is owned once by the global working agreement.
 
 ## Execution
 
-1. For multi-step implementation with a clear outcome, start a native goal immediately and continue until done, genuinely blocked, or explicitly paused; do not create goals for questions, reviews, explanations, or plan-only requests.
+1. For multi-step implementation, start a native goal immediately and continue until done, genuinely blocked, or explicitly paused. Do not create goals for questions, reviews, explanations, or plan-only requests.
 2. Before version-sensitive work, generate ephemeral stack context with `scripts/framework-stack-context.py`; preserve existing pins unless migration is explicitly in scope.
 3. Verify the actual diff and changed behavior, then report residual risk without overstating release state.
 
@@ -20,7 +20,7 @@ Generic cross-repository behavior is owned once by the global working agreement.
 
 - Use the built-in `explorer` for read-only reconnaissance and `worker` for scoped implementation. Use `architect` for read-only contracts/migrations, `reviewer` for read-only correctness/security/regression review, and `tester` for targeted executable checks.
 - Keep writers in separate worktrees. Do not delegate recursively. Resolve shared contracts before parallel implementation.
-- After ordinary verification, run exactly one independent read-only falsification pass for security, migrations, schemas/APIs, concurrency/data integrity, permissions/deployment, cross-system change, or residual material ambiguity. Spawn the reviewer with no inherited conversation turns or prior-agent history, using the native fresh-context or no-history control. Give it only a neutral evidence bundle containing the original request and acceptance criteria, actual diff, affected paths, applicable repository contracts, and executed checks with results; exclude the implementer's plan, reasoning, conclusions, memories, and earlier review commentary. If the active surface cannot prove the no-history boundary, report independent review as unavailable rather than silently using inherited context. Require severity plus concrete file/reproduction/check evidence; the parent adjudicates and performs at most one revision cycle unless the user requests a deeper audit.
+- After ordinary verification, run exactly one independent read-only falsification pass per immutable diff and risk boundary for security, migrations, schemas/APIs, concurrency/data integrity, permissions/deployment, cross-system change, or residual material ambiguity. Spawn the reviewer with no inherited conversation turns or prior-agent history, using the native fresh-context or no-history control. Give it only a neutral evidence bundle containing the original request and acceptance criteria, actual diff, affected paths, applicable repository contracts, and executed checks with results; exclude the implementer's plan, reasoning, conclusions, memories, and earlier review commentary. If the active surface cannot prove the no-history boundary or the bundle is contract-invalid, report independent review as unavailable and do not retry it under a new name. Require severity plus concrete file/reproduction/check evidence; the parent adjudicates and performs at most one revision cycle unless the user requests a deeper audit.
 
 ## Skills and integrations
 

@@ -1,0 +1,15 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["route", "supplied_result_authoritative", "browser_allowed", "reason"],
+  "properties": {
+    "route": {
+      "type": "string",
+      "enum": ["cli", "connector_or_api", "browser", "stop"]
+    },
+    "supplied_result_authoritative": {"type": "boolean"},
+    "browser_allowed": {"type": "boolean"},
+    "reason": {"type": "string", "minLength": 1}
+  }
+}

@@ -32,7 +32,7 @@ The check enforces file byte ceilings, combined global/project instruction ceili
 The live diagnostic performs no model call:
 
 ```bash
-python3 scripts/framework-token-budget-check.py --live
+python3 scripts/framework-token-budget-check.py --project /absolute/project --live
 ```
 
 The release gate records this live diagnostic as `tokenEfficiency` before any model-backed corpus certification.
@@ -43,7 +43,11 @@ For a real task, inspect exact provider and tool-output evidence from its local 
 python3 scripts/framework-token-budget-check.py --rollout /absolute/path/to/rollout.jsonl
 ```
 
-The report labels `last_token_usage` as per-response usage and `total_token_usage` as cumulative provider totals. Provider-reported cached input is proof of cache use. Raw logged tool-output characters describe stored rollout evidence only, not retained model context or token savings. File presence, strict config success, and feature flags prove configuration acceptance only—not actual request compression, compaction, catalog-cache hits, or tool-result truncation. `cache_write_input_tokens = 0` alone is not proof of a cache hit or miss. ChatGPT plan usage does not provide a trustworthy dollar amount; API cost needs the actual model plus input, cached-input, output, and reasoning rates for the same response.
+The report deduplicates provider responses by response ID, separates cumulative/event counters, and labels observed root/child/unknown provenance without assuming one rollout includes child costs. Function and custom tool forms are recognized. Repetition is scoped to observed boundaries, but environment, changed state, authorization, check digest and reviewer identity can remain unavailable; command matches are then advisory. Full-gate identity is not inferred from `bun run check` or another project-specific substring. Malformed evidence remains an error. Default output omits per-turn detail; use `--details` only for an identified investigation. Raw logged text/image characters are not retained context or billable cost.
+
+Provider-reported cached input is proof of cache use. Raw logged tool-output characters describe stored rollout evidence only, not retained model context or token savings. The rollout diagnostic rejects malformed evidence. Poll-loop candidates, repeated command mentions, failed command events, response rate and window pressure are advisory: they do not establish unchanged target/state, authorization or check identity. Investigate the original events before attributing waste or failure. File presence and feature flags prove configuration acceptance only—not actual request compression, compaction, catalog-cache hits, or tool-result truncation. `cache_write_input_tokens = 0` alone is not proof of a cache hit or miss. ChatGPT plan usage does not provide a trustworthy dollar amount; API cost needs the actual model plus input, cached-input, output, and reasoning rates for the same response.
+
+The execution invariants that prevent these pathologies are defined in `docs/runtime-efficiency.md`. They preserve native Goals and automations while bounding execution epochs, external waits, verification reuse, and reviewer identity.
 
 ## Existing user-owned configuration
 
@@ -54,3 +58,7 @@ tool_output_token_limit = 4000
 ```
 
 Do not overwrite unrelated settings or pin native defaults, model, or effort as part of this optimization. A user-owned global model pin is an explicit personal choice; it also means a newly released native default model will not take effect until the user removes that pin.
+
+## Runtime acceptance
+
+Static prompt budgets and policy-classification tests do not prove efficient execution. The bounded project behavior suite runs actual native tools and independent result checks; real Property delivery, child usage and sustained Goal/heartbeat behavior remain separate acceptance evidence. The rollout analyzer is read-only diagnostics, never a scheduler or a safety-hook policy engine.

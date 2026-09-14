@@ -2,11 +2,13 @@
 
 The global working agreement installed by the Codex framework owns generic planning, project/environment authority, fail-closed errors, capability discovery, task automation, branch naming, resource ownership, and interactive Browser/mobile behavior. This file adds only project facts and closer overrides; do not copy the global policy here or weaken it with hidden fallbacks.
 
+This optional template is not an onboarding requirement. Discover existing project facts automatically; reuse their authoritative sources and fill only useful project-specific gaps within the task scope.
+
 ## Project contract
 
 - Repository shape: document application/package/workspace boundaries.
 - Stack authority: name the manifests and lockfiles that own versions.
-- Commands: list repository-native install, development, lint, typecheck, test, build, migration, and release commands that actually exist.
+- Commands: reference existing scripts/CI for install, development, checks, migrations and release; do not duplicate values.
 - Environment map: name local, test, staging, production, and preview targets plus their authority source.
 - Mutation boundary: state which environments/accounts/projects may be changed and what requires explicit approval.
 - Verification: name the provider-visible, runtime, UI/device, and caller-visible evidence required for completion.

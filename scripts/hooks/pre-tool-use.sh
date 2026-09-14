@@ -116,5 +116,5 @@ if reason:
     raise SystemExit(2)
 ')" || block "unproven recursive forced removal: $unsafe_recursive_removal"
 printf '%s\n' "$command_scan" | grep -Eq 'chmod[[:space:]]+-r[[:space:]]+777|curl[^|]*\|[[:space:]]*(sh|bash)|bash[[:space:]]+<\(curl' && block 'dangerous shell command pattern detected'
-
+# Waiting efficiency is evaluated from observed task evidence, not shell syntax.
 exit 0

@@ -22,6 +22,11 @@ hook_blocks() {
   ! printf '%s' "$payload" | bash "$ROOT/scripts/hooks/pre-tool-use.sh" >/dev/null 2>&1
 }
 
+hook_allows() {
+  local payload="$1"
+  printf '%s' "$payload" | bash "$ROOT/scripts/hooks/pre-tool-use.sh" >/dev/null 2>&1
+}
+
 hook_install_contract_safety() {
   local fixture unrelated crossed fresh before after
   fixture="$(mktemp -d "${TMPDIR:-/tmp}/codex-hook-install-contract.XXXXXX")"
@@ -146,7 +151,7 @@ setup_collision_safety() {
     else
       guidance_before="file:$(shasum -a 256 "$case_dir/AGENTS.md")"
     fi
-    CODEX_HOME="$case_dir/.codex" CODEX_SKILLS_HOME="$case_dir/.agents/skills" bash "$ROOT/scripts/setup.sh" --pack frontend >/dev/null
+    CODEX_HOME="$case_dir/.codex" CODEX_SKILLS_HOME="$case_dir/.agents/skills" bash "$ROOT/scripts/setup.sh" --development --pack frontend >/dev/null
     if [ -L "$case_dir/AGENTS.md" ]; then
       guidance_after="link:$(readlink "$case_dir/AGENTS.md")"
     else
@@ -160,7 +165,7 @@ setup_collision_safety() {
       cmp -s "$case_dir/.codex/agents/codex-framework-$profile.toml" "$ROOT/.codex/agents/$profile.toml" || return 1
     done
     state_before="$(shasum -a 256 "$case_dir/.agents/skills/.codex-framework-install.json")"
-    CODEX_HOME="$case_dir/.codex" CODEX_SKILLS_HOME="$case_dir/.agents/skills" bash "$ROOT/scripts/setup.sh" --pack frontend >/dev/null
+    CODEX_HOME="$case_dir/.codex" CODEX_SKILLS_HOME="$case_dir/.agents/skills" bash "$ROOT/scripts/setup.sh" --development --pack frontend >/dev/null
     state_after="$(shasum -a 256 "$case_dir/.agents/skills/.codex-framework-install.json")"
     [ "$state_before" = "$state_after" ] || return 1
   done
@@ -169,7 +174,7 @@ setup_collision_safety() {
   mkdir -p "$case_dir/.agents/skills/framework-management"
   printf '%s\n' 'user-owned-skill' > "$case_dir/.agents/skills/framework-management/SKILL.md"
   skill_before="$(shasum -a 256 "$case_dir/.agents/skills/framework-management/SKILL.md")"
-  if CODEX_HOME="$case_dir/.codex" CODEX_SKILLS_HOME="$case_dir/.agents/skills" bash "$ROOT/scripts/setup.sh" >/dev/null 2>&1; then
+  if CODEX_HOME="$case_dir/.codex" CODEX_SKILLS_HOME="$case_dir/.agents/skills" bash "$ROOT/scripts/setup.sh" --development >/dev/null 2>&1; then
     return 1
   fi
   skill_after="$(shasum -a 256 "$case_dir/.agents/skills/framework-management/SKILL.md")"
@@ -179,7 +184,7 @@ setup_collision_safety() {
   case_dir="$fixture/same-target-collision"
   mkdir -p "$case_dir/.agents/skills"
   ln -s "$ROOT/skills/framework-management" "$case_dir/.agents/skills/framework-management"
-  if CODEX_HOME="$case_dir/.codex" CODEX_SKILLS_HOME="$case_dir/.agents/skills" bash "$ROOT/scripts/setup.sh" >/dev/null 2>&1; then
+  if CODEX_HOME="$case_dir/.codex" CODEX_SKILLS_HOME="$case_dir/.agents/skills" bash "$ROOT/scripts/setup.sh" --development >/dev/null 2>&1; then
     return 1
   fi
   [ "$(readlink "$case_dir/.agents/skills/framework-management")" = "$ROOT/skills/framework-management" ] || return 1
@@ -189,7 +194,7 @@ setup_collision_safety() {
   mkdir -p "$case_dir/.codex/agents" "$case_dir/.agents/skills"
   printf '%s\n' 'user-owned-reviewer' > "$case_dir/user-reviewer.toml"
   ln -s "$case_dir/user-reviewer.toml" "$case_dir/.codex/agents/codex-framework-reviewer.toml"
-  if CODEX_HOME="$case_dir/.codex" CODEX_SKILLS_HOME="$case_dir/.agents/skills" bash "$ROOT/scripts/setup.sh" >/dev/null 2>&1; then
+  if CODEX_HOME="$case_dir/.codex" CODEX_SKILLS_HOME="$case_dir/.agents/skills" bash "$ROOT/scripts/setup.sh" --development >/dev/null 2>&1; then
     return 1
   fi
   [ "$(readlink "$case_dir/.codex/agents/codex-framework-reviewer.toml")" = "$case_dir/user-reviewer.toml" ] || return 1
@@ -200,7 +205,7 @@ setup_collision_safety() {
   ln -s "$ROOT/skills/framework-management" "$case_dir/.codex/skills/codex-framework-core/framework-management"
   ln -s "$ROOT/skills/retired-skill" "$case_dir/.codex/skills/codex-framework-core/retired-skill"
   ln -s "$ROOT/skills/frontend-implement" "$case_dir/.codex/skills/codex-framework-packs/frontend/frontend-implement"
-  CODEX_HOME="$case_dir/.codex" CODEX_SKILLS_HOME="$case_dir/.agents/skills" bash "$ROOT/scripts/setup.sh" >/dev/null
+  CODEX_HOME="$case_dir/.codex" CODEX_SKILLS_HOME="$case_dir/.agents/skills" bash "$ROOT/scripts/setup.sh" --development >/dev/null
   [ ! -e "$case_dir/.codex/skills/codex-framework-core" ] || return 1
   [ ! -e "$case_dir/.codex/skills/codex-framework-packs" ] || return 1
 
@@ -210,7 +215,7 @@ setup_collision_safety() {
   printf '%s\n' 'user-owned' > "$case_dir/external/user.txt"
   external_before="$(tar -cf - -C "$case_dir/external" . | shasum -a 256)"
   ln -s "$case_dir/external" "$case_dir/.codex/skills/codex-framework-core"
-  if CODEX_HOME="$case_dir/.codex" CODEX_SKILLS_HOME="$case_dir/.agents/skills" bash "$ROOT/scripts/setup.sh" >/dev/null 2>&1; then
+  if CODEX_HOME="$case_dir/.codex" CODEX_SKILLS_HOME="$case_dir/.agents/skills" bash "$ROOT/scripts/setup.sh" --development >/dev/null 2>&1; then
     return 1
   fi
   external_after="$(tar -cf - -C "$case_dir/external" . | shasum -a 256)"
@@ -425,6 +430,20 @@ native_feature_adoption_contract() {
     && grep -Eqi 'plugin trust/install.*explicit native user gates|never bypass.*plugin trust/install' "$instructions"
 }
 
+runtime_efficiency_contract() {
+  local instructions="$ROOT/templates/global/AGENTS.md"
+  grep -Fq 'bounded execution epochs' "$instructions" \
+    && grep -Fq 'at most one delivery lifecycle per root turn' "$instructions" \
+    && grep -Fq 'read status once and perform at most one bounded attached wait' "$instructions" \
+    && grep -Fq 'never shell sleep-poll loops' "$instructions" \
+    && grep -Fq 'Reuse a check while its code SHA, command/config, environment' "$instructions" \
+    && grep -Fq 'one read-only reviewer per immutable diff and risk boundary' "$instructions" \
+    && grep -Fq 'not retried under a new name' "$instructions" \
+    && test -s "$ROOT/docs/runtime-efficiency.md" \
+    && python3 -m json.tool "$ROOT/evals/runtime-efficiency-output.schema.json" >/dev/null \
+    && [ "$(wc -l < "$ROOT/evals/runtime-efficiency-cases.tsv" | tr -d ' ')" -eq 8 ]
+}
+
 project_environment_authority_contract() {
   local contract_root="${1:-$ROOT}"
   local instructions="$contract_root/templates/global/AGENTS.md"
@@ -484,17 +503,20 @@ fallback_policy_contract() {
   local contract_root="${1:-$ROOT}"
   local instructions="$contract_root/templates/global/AGENTS.md"
   grep -q '^## Failure visibility and fallback policy$' "$instructions" \
-      && grep -Fqi 'Fail closed by default' "$instructions" \
-      && grep -Eqi 'Do not introduce or preserve an implicit behavioral fallback.*keep a flow green' "$instructions" \
-      && grep -Eqi 'placeholder.*,? mock.*,? sample.*,? synthetic.*,? fabricated.*,? stale-cache.*,? default-value.*,? empty-success.*,? substitute-service.*,? provider or model downgrade.*,? and swallowed-error' "$instructions" \
-      && grep -Eqi 'keep the outcome failed at the responsible boundary.*,? preserve the original cause.*,? and surface a typed or structured error' "$instructions" \
-      && grep -Eqi 'safe actionable diagnostics.*appropriate interface and observability path' "$instructions" \
-      && grep -Eqi 'Fix the root cause.*,? never convert a failure into apparent success' "$instructions" \
-      && grep -Eqi 'permitted only when explicitly required by the user or a project-specific contract before implementation' "$instructions" \
-      && grep -Eqi 'trigger.*,? semantics.*,? data provenance.*,? user-visible degraded state.*,? observability.*,? and removal or recovery condition' "$instructions" \
-      && grep -Eqi 'Tests must cover the primary path.*,? the explicitly authorized degraded path.*,? and total failure' "$instructions" \
-      && grep -Eqi 'Without that evidence.*,? fallback is prohibited' "$instructions" \
-      && grep -Eqi 'in-scope existing fallback as a defect' "$instructions" \
+      && grep -Fqi 'Fail closed.' "$instructions" \
+      && grep -Fqi 'Never hide failure' "$instructions" \
+      && grep -Fqi 'placeholder/mock/synthetic data' "$instructions" \
+      && grep -Fqi 'stale-cache/default/empty success' "$instructions" \
+      && grep -Fqi 'provider/model downgrades or swallowed errors' "$instructions" \
+      && grep -Fqi 'original cause at the responsible boundary' "$instructions" \
+      && grep -Fqi 'typed/structured errors' "$instructions" \
+      && grep -Fqi 'safe actionable diagnostics and observability' "$instructions" \
+      && grep -Fqi 'never report apparent success' "$instructions" \
+      && grep -Fqi 'explicit prior user/project contract' "$instructions" \
+      && grep -Fqi 'trigger, semantics, provenance, visible degraded state, observability and recovery/removal' "$instructions" \
+      && grep -Fqi 'Test primary, authorized degraded and total-failure paths' "$instructions" \
+      && grep -Fqi 'Without this contract fallback is prohibited' "$instructions" \
+      && grep -Fqi 'in-scope undocumented fallback as a defect' "$instructions" \
       || return 1
   if grep -Erqi '(^|[^[:alnum:]_])(return|serve|use)([^[:alnum:]_]).*(placeholder|mock|sample|synthetic|fabricated|stale|cached|default).*(HTTP 200|success|normal|available|no degraded-state|no error)|(^|[^[:alnum:]_])(return|respond with)([^[:alnum:]_]).*(empty array|\[\]|empty result).*(HTTP 200|success|no error)|(^|[^[:alnum:]_])fallback([^[:alnum:]_]).*(requires no|without|does not require|no).*explicit.*(authorization|contract)' "$contract_root/AGENTS.md" "$contract_root/templates"; then return 1; fi
   grep -q '^## Fail-closed behavior by default$' "$contract_root/README.md" \
@@ -530,16 +552,17 @@ fallback_policy_omission_counterexamples() {
   cp "$ROOT/templates/global/AGENTS.md" "$fixture_root/templates/global/AGENTS.md"
   cp "$ROOT/templates/project/AGENTS.md" "$fixture_root/templates/project/AGENTS.md"
   for required in \
-    'implicit behavioral fallback' \
+    'Never hide failure' \
     'original cause' \
-    'typed or structured error' \
+    'typed/structured errors' \
     'safe actionable diagnostics' \
-    'user-visible degraded state' \
-    'removal or recovery condition' \
-    'total failure' \
-    'in-scope existing fallback as a defect'; do
+    'visible degraded state' \
+    'recovery/removal' \
+    'total-failure' \
+    'in-scope undocumented fallback as a defect'; do
     cp "$ROOT/AGENTS.md" "$fixture_root/AGENTS.md"
-    sed "s/$required//g" "$fixture_root/templates/global/AGENTS.md" > "$fixture_root/templates/global/AGENTS.next"
+    cp "$ROOT/templates/global/AGENTS.md" "$fixture_root/templates/global/AGENTS.md"
+    sed "s|$required||g" "$fixture_root/templates/global/AGENTS.md" > "$fixture_root/templates/global/AGENTS.next"
     mv "$fixture_root/templates/global/AGENTS.next" "$fixture_root/templates/global/AGENTS.md"
     if fallback_policy_contract "$fixture_root"; then
       rm -rf -- "$fixture_root"
@@ -553,19 +576,26 @@ capability_discovery_contract() {
   local contract_root="${1:-$ROOT}"
   local instructions="$contract_root/templates/global/AGENTS.md"
   grep -q '^## Capability discovery and tool selection$' "$instructions" \
-      && grep -Eqi 'inventory repository commands.*,? PATH CLIs.*,? callable plugins/connectors.*,? and native tools' "$instructions" \
-      && grep -Eqi 'command -v.*,? version/help.*,? and safe identity/auth/status' "$instructions" \
-      && grep -Eqi 'plugin catalog alone never proves service availability' "$instructions" \
-      && grep -Eqi 'Use a capable authenticated CLI automatically' "$instructions" \
-      && grep -Eqi 'Choose among CLI/plugin by exact coverage.*,? API parity.*,? automation needs.*,? authorization.*,? and environment' "$instructions" \
-      && grep -Eqi 'never bypass a capable CLI merely because a plugin exists' "$instructions" \
-      && grep -Eqi 'missing optional plugin is not a blocker when a tool/CLI can do the work' "$instructions" \
-      && grep -Eqi 'Request installation only when the user named that plugin.*,? existing callable tools/CLIs are exhausted.*,? and it uniquely supplies a required capability' "$instructions" \
-      && grep -Eqi 'otherwise continue or report the exact unsupported operation' "$instructions" \
-      && grep -Eqi 'Verify target account.*,? project.*,? environment.*,? and mutation boundary before CLI/plugin use' "$instructions" \
-      && grep -Eqi 'never assume parity or fabricate access' "$instructions" \
+      && grep -Eqi 'inventory repository commands.*,? PATH CLIs.*,? plugins/connectors.*,? and native tools' "$instructions" \
+      && grep -Eqi 'CLI presence/version/help.*,? safe identity/auth/status' "$instructions" \
+      && grep -Eqi 'plugin catalogs never prove unavailability' "$instructions" \
+      && grep -Eqi 'Use authenticated CLI automatically' "$instructions" \
+      && grep -Eqi 'Never assume API parity' "$instructions" \
+      && grep -Fqi 'CLI success is not provider truth' "$instructions" \
+      && grep -Eqi 'verify account/org/project/environment/time/filter scope.*,? complete parseable output' "$instructions" \
+      && grep -Eqi 'Empty or mixed-warning/truncated/unsupported results are inconclusive' "$instructions" \
+      && grep -Eqi 'same-scope authenticated connector/API' "$instructions" \
+      && grep -Fqi 'Before target-dependent provider use' "$instructions" \
+      && grep -Eqi 'flags.*,? env.*,? repo config.*,? credential/profile.*,? and link/cache selectors to agree' "$instructions" \
+      && grep -Eqi 'Missing/stale/conflicting selectors block' "$instructions" \
+      && grep -Eqi 'Browser requires a stated CLI/API gap.*,? UI-only evidence/action' "$instructions" \
+      && grep -Eqi 'Missing plugins do not block working tools' "$instructions" \
+      && grep -Eqi 'Request only a user-named plugin after tool/CLI discovery is exhausted and it uniquely supplies the capability' "$instructions" \
+      && grep -Eqi 'otherwise report the exact unsupported operation' "$instructions" \
+      && grep -Eqi 'Before target-dependent provider use' "$instructions" \
+      && grep -Eqi 'Never assume API parity.*,? fabricate access or switch a failed authorized path to another Browser/account' "$instructions" \
       || return 1
-  if grep -Erqi 'request (plugin )?installation before checking.*(PATH|local CLI)|service is unavailable even though.*CLI is installed|missing plugin means.*service.*unavailable|plugin installation is a mandatory gate.*(before|without).*(CLI|local tool)|(integration|connector|extension).*(not installed|not configured|missing).*(stop|ask|cannot|unavailable).*(without inspecting|skip discovery|without checking).*(executable|command|tool)|No (integration|connector|extension).*configured.*(cannot|unavailable).*skip discovery.*(command|tool)|(CLI|command|tool).*authenticated.*(some|unknown|unconfirmed) (account|workspace|project).*(run|perform|execute).*(mutation|write|deploy).*without (confirming|verifying).*(target|account|workspace|project|environment)' "$contract_root/AGENTS.md" "$contract_root/templates"; then return 1; fi
+  if grep -Erqi 'request (plugin )?installation before checking.*(PATH|local CLI)|service is unavailable even though.*CLI is installed|missing plugin means.*service.*unavailable|plugin installation is a mandatory gate.*(before|without).*(CLI|local tool)|(integration|connector|extension).*(not installed|not configured|missing).*(stop|ask|cannot|unavailable).*(without inspecting|skip discovery|without checking).*(executable|command|tool)|No (integration|connector|extension).*configured.*(cannot|unavailable).*skip discovery.*(command|tool)|(CLI|command|tool).*authenticated.*(some|unknown|unconfirmed) (account|workspace|project).*(run|perform|execute).*(mutation|write|deploy).*without (confirming|verifying).*(target|account|workspace|project|environment)|CLI exited 0.*empty.*authoritative|link files disagree.*continue|CLI lacks.*open.*Browser.*without.*API|mixed.*output.*pipe.*jq.*ignore.*stderr' "$contract_root/AGENTS.md" "$contract_root/templates"; then return 1; fi
   grep -q '^## Capability discovery: local CLI before plugin gate$' "$contract_root/README.md" \
     && grep -Eqi 'uninstalled optional plugin is not evidence that a service is unavailable' "$contract_root/README.md" \
     && grep -Eqi 'uses that CLI automatically when it provides the exact required operation' "$contract_root/README.md"
@@ -583,7 +613,11 @@ capability_discovery_counterexamples() {
     'The optional plugin is missing; the service is unavailable even though an authenticated provider CLI is installed.' \
     'Because the optional integration is not installed, stop and ask the user to add it without inspecting executable tools.' \
     'No connector is configured, therefore this operation cannot be performed; skip discovery of commands already on the machine.' \
-    'The CLI is authenticated to some account, so run the mutation without confirming its target workspace.'; do
+    'The CLI is authenticated to some account, so run the mutation without confirming its target workspace.' \
+    'The CLI exited 0 with an empty list, so treat that empty result as authoritative without checking scope or completeness.' \
+    'The provider link files disagree, but continue with whichever target the CLI happens to select.' \
+    'The CLI lacks this subcommand, so open the provider in Browser without trying its authenticated API.' \
+    'The provider emitted mixed warning and JSON output; pipe it to jq and ignore stderr.'; do
     cp "$ROOT/AGENTS.md" "$fixture_root/AGENTS.md"
     printf '\n%s\n' "$counterexample" >> "$fixture_root/AGENTS.md"
     if capability_discovery_contract "$fixture_root"; then
@@ -604,17 +638,29 @@ capability_discovery_omission_counterexamples() {
   for required in \
     'inventory repository commands' \
     'PATH CLIs' \
-    'command -v' \
+    'CLI presence' \
     'safe identity/auth/status' \
-    'Use a capable authenticated CLI automatically' \
+    'Use authenticated CLI automatically' \
     'API parity' \
-    'missing optional plugin is not a blocker' \
-    'user named that plugin' \
-    'uniquely supplies a required capability' \
+    'CLI success is not provider truth' \
+    'Empty or mixed-warning' \
+    'target-dependent provider use' \
+    'link/cache selectors' \
+    'Missing/stale/conflicting selectors' \
+    'same-scope authenticated connector/API' \
+    'Browser requires a stated CLI/API gap' \
+    'Missing plugins do not block working tools' \
+    'user-named plugin' \
+    'uniquely supplies the capability' \
     'exact unsupported operation' \
-    'mutation boundary'; do
+    'switch a failed authorized path'; do
     cp "$ROOT/AGENTS.md" "$fixture_root/AGENTS.md"
+    cp "$ROOT/templates/global/AGENTS.md" "$fixture_root/templates/global/AGENTS.md"
     sed "s|$required||g" "$fixture_root/templates/global/AGENTS.md" > "$fixture_root/templates/global/AGENTS.next"
+    if cmp -s "$fixture_root/templates/global/AGENTS.md" "$fixture_root/templates/global/AGENTS.next"; then
+      rm -rf -- "$fixture_root"
+      return 1
+    fi
     mv "$fixture_root/templates/global/AGENTS.next" "$fixture_root/templates/global/AGENTS.md"
     if capability_discovery_contract "$fixture_root"; then
       rm -rf -- "$fixture_root"
@@ -659,15 +705,17 @@ check 'visible native planning and delegation contract exists' visible_orchestra
 check 'bounded falsification-review contract exists' falsification_review_contract
 check 'interactive Browser and mobile device lifecycle is automatic and task-owned' interactive_development_contract
 check 'current native task and automation features have explicit adoption boundaries' native_feature_adoption_contract
+check 'bounded goal, wait, verification, and reviewer efficiency contracts exist' runtime_efficiency_contract
 check 'project and environment authority fails closed before substitute infrastructure' project_environment_authority_contract
 check 'project and environment authority rejects contradictory fallback authorization' project_environment_authority_counterexample
 check 'project and environment authority rejects required-field omissions' project_environment_authority_omission_counterexamples
-check 'behavioral fallbacks fail closed by default' fallback_policy_contract
+check 'fail-closed instruction structure is present' fallback_policy_contract
 check 'behavioral fallback policy rejects hidden-success counterexamples' fallback_policy_counterexample
 check 'behavioral fallback policy rejects required-field omissions' fallback_policy_omission_counterexamples
 check 'capability discovery uses an existing local CLI before a plugin gate' capability_discovery_contract
 check 'capability discovery rejects premature plugin-install counterexamples' capability_discovery_counterexamples
 check 'capability discovery rejects required-field omissions' capability_discovery_omission_counterexamples
+check 'service-operation live cases cover CLI truth, target conflicts, API escalation, and visual Browser use' bash -c "python3 -m json.tool '$ROOT/evals/service-operation-output.schema.json' >/dev/null && [ \"\$(wc -l < '$ROOT/evals/service-operation-cases.tsv' | tr -d ' ')\" -eq 4 ] && rg -q '^sentry_empty_conflict[[:space:]]+connector_or_api[[:space:]]+false[[:space:]]+false' '$ROOT/evals/service-operation-cases.tsv' && rg -q '^supabase_link_conflict[[:space:]]+stop[[:space:]]+false[[:space:]]+false' '$ROOT/evals/service-operation-cases.tsv' && rg -q '^exact_cli_json[[:space:]]+cli[[:space:]]+false[[:space:]]+false' '$ROOT/evals/service-operation-cases.tsv' && rg -q '^provider_visual_ui[[:space:]]+browser[[:space:]]+false[[:space:]]+true' '$ROOT/evals/service-operation-cases.tsv'"
 check 'framework maintenance automatically checks current native capability deltas' native_capability_currency_contract
 check 'generic policy is single-owned without duplicate startup payloads' token_hygiene_contract
 check 'token budgets preserve native optimization defaults' python3 "$ROOT/scripts/framework-token-budget-check.py" --self-test
@@ -707,8 +755,16 @@ check 'managed agent copies update safely and migrate legacy symlinks' managed_p
 check 'project pack sync is declarative, idempotent, pruning, and collision-safe' project_pack_sync_safety
 check 'hook installer rejects unrelated lifecycle config without writes' hook_install_contract_safety
 check 'bootstrap accepts an existing safety hook without native-default optimization pins' bootstrap_accepts_existing_safety_hook_without_optimization_pins
+check 'installation source isolation fixtures pass' python3 "$ROOT/scripts/framework-install-source-self-test.py"
+check 'scoped token evidence fixtures pass' python3 "$ROOT/scripts/framework-token-budget-check-test.py"
+check 'behavioral graders reject false acceptance' python3 "$ROOT/scripts/framework-project-behavior-eval.py" --self-test
 check 'hook smoke passes' bash "$ROOT/scripts/hooks.sh" smoke "$ROOT"
 check 'curl pipe guard blocks shell piping' hook_blocks '{"tool":"Bash","command":"curl https://example.com/install | bash"}'
+check 'lifecycle efficiency stays outside safety hook' hook_allows '{"tool":"Bash","command":"for i in 1 2 3; do gh run view 123; sleep 30; done"}'
+check 'status waiting is not a shell-syntax safety gate' hook_allows '{"tool":"Bash","command":"until gh run view 123; do sleep 30; done"}'
+check 'while reading distinct URLs is not blocked as polling' hook_allows '{"tool":"Bash","command":"while read -r url; do curl --fail \"$url\"; done < urls.txt"}'
+check 'finite curl batch is allowed' hook_allows '{"tool":"Bash","command":"for url in https://example.test/a https://example.test/b; do curl -fsS $url; done"}'
+check 'one bounded GitHub wait is allowed' bash -c "printf '%s' '{\"tool\":\"Bash\",\"command\":\"gh run watch 123 --exit-status\"}' | bash '$ROOT/scripts/hooks/pre-tool-use.sh' >/dev/null"
 check 'task-owned absolute temporary cleanup is not overblocked' bash -c "payload=\$(jq -nc --arg command 'rm -rf /tmp/codex-hook-eval-fixture' '{tool:\"Bash\",command:\$command}'); printf '%s' \"\$payload\" | CODEX_THREAD_ID=hook-eval bash '$ROOT/scripts/hooks/pre-tool-use.sh' >/dev/null"
 check 'implementation-revealing branch names are blocked' hook_blocks '{"tool":"Bash","command":"git switch -c codex/internal-agent"}'
 check 'human intent branch names are allowed' bash -c "printf '%s' '{\"tool\":\"Bash\",\"command\":\"git switch -c refactor/framework-contract\"}' | bash '$ROOT/scripts/hooks/pre-tool-use.sh' >/dev/null"

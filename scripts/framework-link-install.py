@@ -7,6 +7,7 @@ import argparse
 import hashlib
 import json
 import os
+import runpy
 from pathlib import Path
 import tempfile
 
@@ -93,11 +94,46 @@ def main() -> int:
     mode.add_argument("--check", action="store_true")
     parser.add_argument("--link", action="append", default=[])
     parser.add_argument("--file", action="append", default=[])
+    parser.add_argument("--source-root", type=Path)
+    parser.add_argument("--development", action="store_true")
+    parser.add_argument("--guidance")
     args = parser.parse_args()
     try:
         state_path = Path(os.path.abspath(Path(args.state).expanduser()))
         previous_links, previous_files = load_state(state_path)
         desired_links = dict(parse_link(item) for item in args.link)
+        source_api = runpy.run_path(str(Path(__file__).with_name("framework-install-source.py")))
+        installation_source = None
+        if args.source_root:
+            installation_source = source_api["identity"](args.source_root, args.development)
+            if not args.check:
+                source_api["validate"](installation_source)
+            if args.check:
+                recorded_source = json.loads(state_path.read_text()).get("sourceIdentity")
+                if recorded_source is None:
+                    raise ValueError("installation source identity is missing; reinstall explicitly")
+                installation_source["mode"] = recorded_source.get("mode")
+                print(source_api["describe"](installation_source))
+                if installation_source != recorded_source:
+                    raise ValueError("installed source drift: Git identity or working files changed since installation")
+            if not args.check:
+                print(source_api["describe"](installation_source))
+        if args.guidance:
+            guidance, guidance_source = parse_link(args.guidance)
+            # Legacy setup created this exact link without recording it. Adopt only
+            # with a recorded framework root AND its still-matching actual link.
+            framework_link = state_path.parent / "codex-framework"
+            old_root = previous_links.get(str(framework_link))
+            legacy_owned = (
+                old_root is not None and target_of(framework_link) == Path(old_root).resolve()
+                and target_of(guidance) == (Path(old_root) / "templates/global/AGENTS.md").resolve()
+            )
+            if str(guidance) in previous_links or legacy_owned or (not guidance.exists() and not guidance.is_symlink()):
+                desired_links[guidance] = guidance_source
+                if legacy_owned and not args.check and str(guidance) not in previous_links:
+                    previous_links[str(guidance)] = str(target_of(guidance))
+            else:
+                print(f"preserved user-owned guidance: {guidance}")
         desired_files = dict(parse_file(item) for item in args.file)
         desired_file_contents = {
             destination: source.read_bytes() for destination, source in desired_files.items()
@@ -222,6 +258,8 @@ def main() -> int:
                 for destination, source in sorted(desired_files.items(), key=lambda x: str(x[0]))
             },
         }
+        if installation_source is not None:
+            payload["sourceIdentity"] = installation_source
         state_path.parent.mkdir(parents=True, exist_ok=True)
         atomic_write(state_path, (json.dumps(payload, indent=2, sort_keys=True) + "\n").encode())
         print(
