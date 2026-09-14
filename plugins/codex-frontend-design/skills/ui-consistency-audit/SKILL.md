@@ -3,8 +3,8 @@ name: ui-consistency-audit
 description: Audit a defined UI sample against the repository's authoritative design tokens, primitives, product patterns, and rendered states. Use for a read-only consistency findings report; do not use when remediation or design-system architecture is the primary deliverable.
 metadata:
   owner: codex-framework
-  reviewed: "2026-07-27"
-  version: 1.3
+  reviewed: "2026-09-14"
+  version: 1.4
   argument-hint: "sampled routes/components/states, authoritative design sources, themes/viewports/locales"
 ---
 
@@ -20,6 +20,8 @@ Audit `$ARGUMENTS` read-only. Do not edit code, designs, tokens, or external sta
 4. Mark inaccessible/authenticated/browser states untested rather than extrapolating counts or site-wide conclusions.
 5. When a finding depends on installed frontend behavior, explicitly check each applicable runtime engine, dependency peer, compiler/framework, test-runner/browser harness and deployment-runtime relationship; mark withheld, absent or unavailable dimensions instead of using a generic compatibility claim.
 6. Call a source, generated output, runtime configuration, rendered state or design artifact inspected only after it was actually supplied or opened. Existence is not inspection evidence; list unobserved artifacts as pending without claiming their contents.
+
+For greenfield stack advice, resolve supported stable/LTS versions from official sources at execution time and verify cross-stack compatibility. Project creation remains a separately authorized implementation step. After creation, the generated manifest and lockfile become the authoritative version baseline for this audit; current release examples do not override those pins.
 
 ## Review dimensions
 
