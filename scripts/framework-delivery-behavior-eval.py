@@ -94,6 +94,8 @@ def direct_check(command: str, flag: str) -> bool:
         words = shlex.split(command)
         if len(words) == 3 and Path(words[0]).name in {'sh', 'bash', 'zsh'} and words[1] in {'-c', '-lc'}:
             return direct_check(words[2], flag)
+        if words[:1] == ['PYTHONDONTWRITEBYTECODE=1']:
+            words = words[1:]
         if '\n' in command or any(token in words for token in (';', '||', '|', '>', '<')):
             return False
         if len(words) >= 3 and words[0] == 'cd' and words[2] == '&&':
@@ -105,6 +107,7 @@ def direct_check(command: str, flag: str) -> bool:
 
 def worktree_add(command: str) -> list[str]:
     try:
+        command = command.rstrip().removesuffix(';').rstrip()
         words = shlex.split(command)
         if len(words) == 3 and Path(words[0]).name in {'sh', 'bash', 'zsh'} and words[1] in {'-c', '-lc'}:
             return worktree_add(words[2])
@@ -175,9 +178,13 @@ def decode_object(value) -> dict:
 
 
 def spawned_testers(records: list[dict]) -> list[str]:
-    calls, children = {}, []
+    calls, tasks, children, activities = {}, {}, [], []
     for record in records:
         p = record.get('payload', {})
+        if record.get('type') == 'event_msg' and p.get('type') == 'item_completed':
+            item = p.get('item', {})
+            if item.get('type') == 'SubAgentActivity' and item.get('kind') == 'started':
+                activities.append(item)
         if record.get('type') != 'response_item':
             continue
         if p.get('type') == 'function_call' and p.get('name', '').split('.')[-1] == 'spawn_agent':
@@ -189,7 +196,24 @@ def spawned_testers(records: list[dict]) -> list[str]:
             child = result.get('agent_id')
             if isinstance(child, str):
                 children.append(child)
+            if isinstance(result.get('task_name'), str):
+                tasks[p['call_id']] = result['task_name']
+    # Native v2 links the returned task path to a UUID in a typed activity item.
+    # Both the originating call ID and returned path must match exactly.
+    children.extend(item['agent_thread_id'] for item in activities
+                    if item.get('id') in tasks and item.get('agent_path') == tasks[item['id']]
+                    and isinstance(item.get('agent_thread_id'), str))
     return sorted(set(children))
+
+
+def local_cwd(value: str) -> str:
+    from urllib.parse import unquote, urlsplit
+    parsed = urlsplit(value)
+    if parsed.scheme == 'file' and parsed.netloc in ('', 'localhost'):
+        return unquote(parsed.path)
+    if not parsed.scheme and Path(value).is_absolute():
+        return value
+    raise ValueError('native command cwd is not a local absolute path')
 
 
 def command_output(value) -> dict:
@@ -241,6 +265,14 @@ def native_commands(records: list[dict]) -> list[dict]:
                 elif result.get('session_id') is not None:
                     sessions[result['session_id']] = begin
         if record.get('type') == 'event_msg':
+            if p.get('type') == 'item_completed':
+                item = p.get('item', {})
+                argv = item.get('command')
+                if item.get('type') == 'CommandExecution' and item.get('status') == 'completed' and isinstance(argv, list) and all(isinstance(part, str) for part in argv):
+                    commands.append({'command': shlex.join(argv), 'cwd': local_cwd(item['cwd']),
+                                     'exit_code': item.get('exit_code'),
+                                     'output': item.get('aggregated_output', item.get('stdout', '')),
+                                     'nativeItemId': item.get('id')})
             if p.get('type') == 'exec_command_begin':
                 command = p.get('command')
                 if isinstance(command, list) and all(isinstance(part, str) for part in command):
@@ -252,6 +284,12 @@ def native_commands(records: list[dict]) -> list[dict]:
                 commands.append({**begin, 'exit_code': p.get('exit_code'),
                                  'output': p.get('aggregated_output', p.get('output', ''))})
     return commands
+
+
+def validate_child_metadata(records: list[dict], root_thread: str) -> None:
+    meta = records[0]['payload']
+    if meta.get('parent_thread_id') != root_thread or meta.get('agent_role') != 'tester':
+        raise ValueError('child native session parent or tester role does not match spawn evidence')
 
 
 def capture_rollouts(raw: str, output: Path, started: float) -> dict:
@@ -273,10 +311,11 @@ def capture_rollouts(raw: str, output: Path, started: float) -> dict:
         for child in children:
             path = rollout_for(child, sessions, dates)
             child_records[child] = read_records(path)
+            validate_child_metadata(child_records[child], roots[0])
             shutil.copy2(path, evidence / path.name)
         return {'available': True, 'rootThreadId': roots[0], 'rootCommands': native_commands(root_records),
                 'children': {child: {'commands': native_commands(records),
-                                    'completed': any(r.get('type') == 'event_msg' and r.get('payload', {}).get('type') == 'task_complete' for r in records)}
+                                    'completed': any(r.get('type') == 'event_msg' and r.get('payload', {}).get('type') == 'task_complete' for r in records) or any(r.get('type') == 'event_msg' and r.get('payload', {}).get('item', {}).get('type') == 'SubAgentActivity' and r['payload']['item'].get('kind') == 'completed' and r['payload']['item'].get('agent_thread_id') == child for r in root_records)}
                              for child, records in child_records.items()}}
     except (OSError, ValueError, TypeError, KeyError) as error:
         return {'available': False, 'error': f'native task rollout proof unavailable: {error}'}
@@ -538,6 +577,36 @@ class Tests(unittest.TestCase):
             self.assertEqual(rollout_for(child, sessions, ['2026/09/16']), owned)
 
 
+    def test_native_v2_task_and_command_identity(self):
+        records = [
+            {'type': 'response_item', 'payload': {'type': 'function_call', 'name': 'spawn_agent', 'call_id': 'spawn', 'arguments': '{"agent_type":"tester"}'}},
+            {'type': 'response_item', 'payload': {'type': 'function_call_output', 'call_id': 'spawn', 'output': '{"task_name":"/root/challenge"}'}},
+            {'type': 'event_msg', 'payload': {'type': 'item_completed', 'item': {'type': 'SubAgentActivity', 'kind': 'started', 'id': 'spawn', 'agent_path': '/root/challenge', 'agent_thread_id': 'child'}}},
+        ]
+        self.assertEqual(spawned_testers(records), ['child'])
+        item = records[-1]['payload']['item']
+        item['agent_path'] = '/root/unrelated'
+        self.assertEqual(spawned_testers(records), [])
+        item['agent_path'] = '/root/challenge'
+        item['id'] = 'other-call'
+        self.assertEqual(spawned_testers(records), [])
+        metadata = [{'payload': {'parent_thread_id': 'parent', 'agent_role': 'tester'}}]
+        validate_child_metadata(metadata, 'parent')
+        with self.assertRaises(ValueError):
+            validate_child_metadata(metadata, 'unrelated')
+        metadata[0]['payload']['agent_role'] = 'worker'
+        with self.assertRaises(ValueError):
+            validate_child_metadata(metadata, 'parent')
+        command = {'type': 'event_msg', 'payload': {'type': 'item_completed', 'item': {
+            'type': 'CommandExecution', 'id': 'native-command', 'status': 'completed', 'command': ['/bin/zsh', '-lc', 'PYTHONDONTWRITEBYTECODE=1 python3 verify.py --challenge'],
+            'cwd': 'file:///fixture/task%20space', 'exit_code': 0, 'stdout': 'fixture-verification-ok:--challenge\n'}}}
+        proof = native_commands([command])[0]
+        self.assertTrue(verified_native_check(proof, '--challenge', Path('/fixture/task space')))
+        self.assertFalse(verified_native_check(proof, '--challenge', Path('/fixture/other')))
+        self.assertTrue(worktree_add('git worktree add -b codex/fix ../task;'))
+        self.assertFalse(worktree_add('git worktree add -b codex/fix ../task; true'))
+
+
 
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
@@ -552,6 +621,10 @@ def main() -> int:
         return 0 if unittest.TextTestRunner().run(unittest.defaultTestLoader.loadTestsFromTestCase(Tests)).wasSuccessful() else 1
     if not args.live or not 1 <= args.timeout <= 600:
         parser.error('use --self-test or --live with timeout 1..600')
+    def interrupted(signum, frame):
+        raise KeyboardInterrupt
+    signal.signal(signal.SIGTERM, interrupted)
+    signal.signal(signal.SIGHUP, interrupted)
     artifacts = (args.artifact_dir or Path(tempfile.mkdtemp(prefix='delivery-evidence-'))).resolve()
     artifacts.mkdir(parents=True, exist_ok=True)
     cases = args.case or list(CASES)
