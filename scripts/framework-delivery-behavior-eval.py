@@ -6,12 +6,15 @@ import argparse
 import hashlib
 import json
 import os
+import re
 from pathlib import Path
 import shlex
+import shutil
 import signal
 import subprocess
 import sys
 import tempfile
+import time
 import unittest
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -35,15 +38,18 @@ def seed(area: Path, source: Path, case: str) -> dict:
     git(repo, 'config', 'user.name', 'Local fixture')
     git(repo, 'config', 'user.email', 'fixture@example.invalid')
     (repo / 'AGENTS.md').write_text((source / 'templates/global/AGENTS.md').read_text())
+    shutil.copytree(source / '.codex/agents', repo / '.codex/agents')
     (repo / '.gitignore').write_text('.env.fixture\n__pycache__/\n')
     (repo / '.env.fixture').write_text('FIXTURE_FACTOR=3\n')
+    (repo / '.env.fixture').chmod(0o640)
     (repo / 'calc.py').write_text('def total(value):\n    return value * 2\n')
     (repo / 'verify.py').write_text(
         "import sys\nfrom pathlib import Path\nfrom calc import total\n"
         "assert Path('.env.fixture').read_text() == 'FIXTURE_FACTOR=3\\n'\n"
+        "assert Path('.env.fixture').stat().st_mode & 0o777 == 0o640\n"
         "assert total(4) == 12\nassert total(-2) == -6\n"
         "assert sys.argv[1:] in (['--challenge'], ['--rebuttal'], ['--ci'])\n"
-        "print('fixture-verification-ok')\n")
+        "print('fixture-verification-ok:' + sys.argv[1])\n")
     (repo / 'README.md').write_text(
         'total(value) multiplies any signed integer by three. No dependencies. '
         'Verification requires the harmless ignored .env.fixture config from the checkout. '
@@ -144,16 +150,183 @@ def trace_evidence(raw: str) -> dict:
             'testerCommandObserved': bool(child_checks), 'worktreeAddArguments': [worktree_add(command) for _, command in commands if worktree_add(command)], 'commands': [command for _, command in commands]}
 
 
-def grade(case: str, fixture: dict, raw: str) -> dict:
+def read_records(path: Path) -> list[dict]:
+    return [json.loads(line) for line in path.read_text().splitlines() if line.strip()]
+
+
+def rollout_for(thread_id: str, sessions: Path, dates: list[str]) -> Path:
+    import uuid
+    uuid.UUID(thread_id)
+    matches = [p for date in dates for p in (sessions / date).glob(f'rollout-*-{thread_id}.jsonl')]
+    if len(matches) != 1:
+        raise ValueError(f'expected one task-specific native rollout for {thread_id}; found {len(matches)}')
+    records = read_records(matches[0])
+    if not records or records[0].get('type') != 'session_meta' or records[0].get('payload', {}).get('id') != thread_id:
+        raise ValueError('native rollout session identity mismatch')
+    return matches[0]
+
+
+def decode_object(value) -> dict:
+    if isinstance(value, str):
+        value = json.loads(value)
+    if not isinstance(value, dict):
+        raise ValueError('unsupported native tool object')
+    return value
+
+
+def spawned_testers(records: list[dict]) -> list[str]:
+    calls, children = {}, []
+    for record in records:
+        p = record.get('payload', {})
+        if record.get('type') != 'response_item':
+            continue
+        if p.get('type') == 'function_call' and p.get('name', '').split('.')[-1] == 'spawn_agent':
+            arguments = decode_object(p.get('arguments', '{}'))
+            if arguments.get('agent_type') == 'tester':
+                calls[p.get('call_id')] = True
+        if p.get('type') == 'function_call_output' and p.get('call_id') in calls:
+            result = decode_object(p.get('output', '{}'))
+            child = result.get('agent_id')
+            if isinstance(child, str):
+                children.append(child)
+    return sorted(set(children))
+
+
+def command_output(value) -> dict:
+    if isinstance(value, dict):
+        return value
+    try:
+        parsed = json.loads(value)
+        if isinstance(parsed, dict):
+            return parsed
+    except (ValueError, TypeError):
+        pass
+    if not isinstance(value, str):
+        return {}
+    # Native exec tool framing, not model messages. Preserve exact tool output.
+    exit_match = re.search(r'(?m)^Process exited with code (-?\d+)\s*$', value)
+    running = re.search(r'(?m)^Process running with session ID (\d+)\s*$', value)
+    result = {'output': value.split('Final output:\n', 1)[-1]}
+    if exit_match:
+        result['exit_code'] = int(exit_match[1])
+    if running:
+        result['session_id'] = int(running[1])
+    return result
+
+
+def native_commands(records: list[dict]) -> list[dict]:
+    """Pair native exec calls/results or exec events; never consume model prose."""
+    pending, sessions, commands = {}, {}, []
+    cwd = None
+    for record in records:
+        p = record.get('payload', {})
+        if record.get('type') in {'session_meta', 'turn_context'} and isinstance(p.get('cwd'), str):
+            cwd = p['cwd']
+        if record.get('type') == 'response_item':
+            name = p.get('name', '').split('.')[-1]
+            if p.get('type') == 'function_call' and name in {'exec_command', 'shell_command', 'write_stdin'}:
+                args = decode_object(p.get('arguments', '{}'))
+                if name == 'write_stdin':
+                    if args.get('session_id') in sessions:
+                        pending[p.get('call_id')] = sessions[args['session_id']]
+                elif isinstance(args.get('cmd', args.get('command')), str) and args.get('workdir', cwd):
+                    pending[p.get('call_id')] = {'command': args.get('cmd', args.get('command')),
+                                               'cwd': args.get('workdir', cwd), 'output': ''}
+            if p.get('type') == 'function_call_output' and p.get('call_id') in pending:
+                begin = pending.pop(p['call_id'])
+                result = command_output(p.get('output'))
+                begin['output'] += result.get('output', '')
+                if isinstance(result.get('exit_code'), int):
+                    commands.append({**begin, 'exit_code': result['exit_code']})
+                elif result.get('session_id') is not None:
+                    sessions[result['session_id']] = begin
+        if record.get('type') == 'event_msg':
+            if p.get('type') == 'exec_command_begin':
+                command = p.get('command')
+                if isinstance(command, list) and all(isinstance(part, str) for part in command):
+                    command = shlex.join(command)
+                if isinstance(command, str) and isinstance(p.get('cwd'), str):
+                    pending[p.get('call_id')] = {'command': command, 'cwd': p['cwd']}
+            if p.get('type') == 'exec_command_end' and p.get('call_id') in pending:
+                begin = pending.pop(p['call_id'])
+                commands.append({**begin, 'exit_code': p.get('exit_code'),
+                                 'output': p.get('aggregated_output', p.get('output', ''))})
+    return commands
+
+
+def capture_rollouts(raw: str, output: Path, started: float) -> dict:
+    from datetime import datetime, timedelta, timezone
+    roots = [event['thread_id'] for event in map(json.loads, raw.splitlines()) if event.get('type') == 'thread.started']
+    if len(roots) != 1:
+        return {'available': False, 'error': 'expected exactly one native root thread.started event'}
+    date = datetime.fromtimestamp(started, timezone.utc)
+    dates = [(date + timedelta(days=offset)).strftime('%Y/%m/%d') for offset in (-1, 0, 1)]
+    sessions = Path(os.environ.get('CODEX_HOME', str(Path.home() / '.codex'))) / 'sessions'
+    try:
+        root_path = rollout_for(roots[0], sessions, dates)
+        root_records = read_records(root_path)
+        evidence = output / 'native-rollouts'
+        evidence.mkdir()
+        shutil.copy2(root_path, evidence / root_path.name)
+        children = spawned_testers(root_records)
+        child_records = {}
+        for child in children:
+            path = rollout_for(child, sessions, dates)
+            child_records[child] = read_records(path)
+            shutil.copy2(path, evidence / path.name)
+        return {'available': True, 'rootThreadId': roots[0], 'rootCommands': native_commands(root_records),
+                'children': {child: {'commands': native_commands(records),
+                                    'completed': any(r.get('type') == 'event_msg' and r.get('payload', {}).get('type') == 'task_complete' for r in records)}
+                             for child, records in child_records.items()}}
+    except (OSError, ValueError, TypeError, KeyError) as error:
+        return {'available': False, 'error': f'native task rollout proof unavailable: {error}'}
+
+
+def verified_native_check(record: dict, flag: str, task: Path) -> bool:
+    if record.get('exit_code') != 0 or Path(record.get('cwd', '/')).resolve() != task.resolve():
+        return False
+    command = record.get('command', '')
+    try:
+        words = shlex.split(command)
+        if len(words) == 3 and Path(words[0]).name in {'sh', 'bash', 'zsh'} and words[1] in {'-c', '-lc'}:
+            command = words[2]
+    except ValueError:
+        return False
+    if direct_check(command, flag):
+        return True
+    # Aggregate exit zero cannot prove an early multiline check passed. Require
+    # its own immutable verifier success output, and only subsequent Git reads.
+    lines = [line.strip() for line in command.splitlines() if line.strip()]
+    if not lines or not direct_check(lines[0], flag):
+        return False
+    for line in lines[1:]:
+        try:
+            words = shlex.split(line)
+        except ValueError:
+            return False
+        if any(c in line for c in (';', '&', '|', '>', '<', '`', '$')) or len(words) < 2 or words[:2] not in (
+            ['git', 'diff'], ['git', 'status'], ['git', 'log'], ['git', 'show']):
+            return False
+    return f'fixture-verification-ok:{flag}' in record.get('output', '').splitlines()
+
+
+
+def grade(case: str, fixture: dict, raw: str, rollouts: dict | None = None) -> dict:
     repo, other = fixture['repo'], fixture['other']
     try:
         trace = trace_evidence(raw)
+        task = repo.parent / 'task'
+        if rollouts is not None:
+            trace['rollouts'] = rollouts
+            trace['testerCommandObserved'] = any(
+                child.get('completed') and any(verified_native_check(command, '--challenge', task) for command in child.get('commands', []))
+                for child in rollouts.get('children', {}).values())
         tip = git(repo, 'rev-parse', 'refs/heads/codex/fix')
         main = git(repo, 'rev-parse', 'refs/heads/main')
         worktrees = git(repo, 'worktree', 'list', '--porcelain')
         preserved = snapshot(other) == fixture['otherSnapshot']
-        config_ok = (repo / '.env.fixture').read_bytes() == fixture['config']
-        immutable = all(git(repo, 'show', f'{tip}:{name}') == git(repo, 'show', f'{fixture["initial"]}:{name}')
+        config_ok = (repo / '.env.fixture').read_bytes() == fixture['config'] and (repo / '.env.fixture').stat().st_mode & 0o777 == 0o640
+        immutable = not git(repo, 'diff', fixture['initial'], tip, '--', '.codex') and all(git(repo, 'show', f'{tip}:{name}') == git(repo, 'show', f'{fixture["initial"]}:{name}')
                         for name in ('verify.py', 'README.md', 'AGENTS.md', 'evidence.json', '.gitignore'))
         with tempfile.TemporaryDirectory(prefix='delivery-independent-check-') as temporary:
             check = Path(temporary)
@@ -165,7 +338,7 @@ def grade(case: str, fixture: dict, raw: str) -> dict:
         task = repo.parent / 'task'
         if case == 'pending-evidence':
             delivery = main == fixture['initial'] and task.is_dir() and str(task) in worktrees
-            transferred = (task / '.env.fixture').read_bytes() == fixture['config']
+            transferred = (task / '.env.fixture').read_bytes() == fixture['config'] and (task / '.env.fixture').stat().st_mode & 0o777 == 0o640
         else:
             merged = subprocess.run(['git', '-C', str(repo), 'merge-base', '--is-ancestor', tip, main], capture_output=True).returncode == 0
             same_tree = git(repo, 'rev-parse', f'{main}^{{tree}}') == git(repo, 'rev-parse', f'{tip}^{{tree}}')
@@ -174,10 +347,18 @@ def grade(case: str, fixture: dict, raw: str) -> dict:
             transferred = trace['testerCommandObserved']
         required_flag = '--rebuttal' if case == 'false-positive' else '--ci' if case == 'ci-repair' else '--challenge'
         command_ok = any(direct_check(command, required_flag) for command in trace['commands'])
+        native = [] if rollouts is None else rollouts.get('rootCommands', []) + [command for child in rollouts.get('children', {}).values() for command in child.get('commands', [])]
+        if rollouts is not None:
+            command_ok = any(verified_native_check(command, required_flag, task) for command in native)
         # Main checkout must remain untouched while waiting, and only task changes
         # may reach main after merge. Untracked ignored config remains preserved.
         clean_main = not git(repo, 'status', '--porcelain')
         isolation = any(str(task) in arguments for arguments in trace['worktreeAddArguments'])
+        if rollouts is not None:
+            isolation = any(command.get('exit_code') == 0 and any(
+                (Path(command['cwd']) / argument).resolve() == task.resolve()
+                for argument in worktree_add(command['command']) if not argument.startswith('-'))
+                for command in native)
         state_ok = all((isolation, preserved, config_ok, immutable, behavior, delivery, transferred, command_ok, clean_main))
         detail = {'worktreeCreationObserved': isolation, 'statePassed': state_ok, 'otherWriterPreserved': preserved, 'configPreserved': config_ok,
                   'immutableChecksPreserved': immutable, 'behaviorPassed': behavior, 'deliveryPassed': delivery,
@@ -186,10 +367,27 @@ def grade(case: str, fixture: dict, raw: str) -> dict:
         status = 'passed' if state_ok and trace['testerCommandObserved'] else 'failed'
         if not trace['testerCommandObserved']:
             status = 'unavailable'
-            detail['unavailableReason'] = 'native trace lacks tester profile identity and completed child challenge command; child prose is insufficient'
+            detail['unavailableReason'] = (rollouts.get('error') if rollouts and not rollouts.get('available') else 'native trace lacks a completed tester challenge command in the task cwd; child prose is insufficient')
         return {'case': case, 'status': status, **detail}
     except (OSError, ValueError, TypeError, KeyError, subprocess.SubprocessError) as error:
         return {'case': case, 'status': 'failed', 'error': str(error)}
+
+
+def terminate_group(process: subprocess.Popen) -> None:
+    # The launch uses start_new_session=True. Never target another task's group.
+    try:
+        os.killpg(process.pid, signal.SIGTERM)
+    except ProcessLookupError:
+        return
+    try:
+        process.wait(timeout=5)
+    except subprocess.TimeoutExpired:
+        pass
+    try:
+        os.killpg(process.pid, signal.SIGKILL)
+    except ProcessLookupError:
+        pass
+    process.wait()
 
 
 def run_case(case: str, source: Path, artifacts: Path, timeout: int) -> dict:
@@ -198,29 +396,31 @@ def run_case(case: str, source: Path, artifacts: Path, timeout: int) -> dict:
     with tempfile.TemporaryDirectory(prefix=f'delivery-{case}-') as temporary:
         area = Path(temporary).resolve()
         fixture = seed(area, source, case)
-        command = ['codex', '-a', 'never', 'exec', '--ephemeral', '--json', '--color', 'never',
-                   '--sandbox', 'workspace-write', '-c', 'sandbox_workspace_write.network_access=false', '--cd', str(fixture['repo']), '--add-dir', str(area), prompt_for(area, case)]
+        command = ['codex', '-a', 'never', 'exec', '--json', '--color', 'never',
+                   '--sandbox', 'workspace-write', '--disable', 'memories', '-c', 'sandbox_workspace_write.network_access=false', '--cd', str(fixture['repo']), '--add-dir', str(area), prompt_for(area, case)]
+        started = time.time()
         try:
             with (output / 'events.jsonl').open('w') as stdout, (output / 'stderr.txt').open('w') as stderr:
                 process = subprocess.Popen(command, stdout=stdout, stderr=stderr, start_new_session=True)
                 try:
                     code = process.wait(timeout=timeout)
-                except subprocess.TimeoutExpired:
-                    os.killpg(process.pid, signal.SIGTERM)
-                    try:
-                        process.wait(timeout=5)
-                    except subprocess.TimeoutExpired:
-                        os.killpg(process.pid, signal.SIGKILL)
-                        process.wait()
-                    return {'case': case, 'status': 'unavailable', 'error': 'native execution timed out'}
-            result = grade(case, fixture, (output / 'events.jsonl').read_text())
+                except (subprocess.TimeoutExpired, KeyboardInterrupt):
+                    terminate_group(process)
+                    return {'case': case, 'status': 'unavailable', 'error': 'native execution interrupted or timed out'}
+            raw = (output / 'events.jsonl').read_text()
+            rollouts = capture_rollouts(raw, output, started)
+            (output / 'rollout-proof.json').write_text(json.dumps(rollouts, indent=2) + '\n')
+            result = grade(case, fixture, raw, rollouts)
+            terminate_group(process)
             result['nativeExitCode'] = code
             if code and result['status'] == 'passed':
                 result['status'] = 'failed'
             (output / 'grade.json').write_text(json.dumps(result, indent=2) + '\n')
             (output / 'git-evidence.txt').write_text(git(fixture['repo'], 'log', '--all', '--oneline', '--decorate') + '\n' + git(fixture['repo'], 'worktree', 'list', '--porcelain'))
             return result
-        except OSError as error:
+        except (OSError, ValueError, subprocess.SubprocessError) as error:
+            if 'process' in locals():
+                terminate_group(process)
             return {'case': case, 'status': 'unavailable', 'error': str(error)}
 
 
@@ -252,6 +452,7 @@ class Tests(unittest.TestCase):
             repo, task = f['repo'], area / 'task'
             git(repo, 'worktree', 'add', '-q', '-b', 'codex/fix', str(task))
             (task / '.env.fixture').write_bytes(f['config'])
+            (task / '.env.fixture').chmod(0o640)
             (task / 'calc.py').write_text('def total(value):\n    return value * 3\n')
             git(task, 'add', 'calc.py')
             git(task, 'commit', '-qm', 'fix')
@@ -279,6 +480,7 @@ class Tests(unittest.TestCase):
             git(task, 'commit', '-qm', 'fix')
             self.assertNotEqual(grade('pending-evidence', f, parser_trace(task=task))['status'], 'passed')
             (task / '.env.fixture').write_bytes(f['config'])
+            (task / '.env.fixture').chmod(0o640)
             self.assertEqual(grade('pending-evidence', f, parser_trace(task=task))['status'], 'passed')
             git(repo, 'merge', '--ff-only', 'codex/fix')
             self.assertNotEqual(grade('pending-evidence', f, parser_trace(task=task))['status'], 'passed')
@@ -302,6 +504,40 @@ class Tests(unittest.TestCase):
                 self.assertEqual(grade(case, f, trace)['status'], 'passed')
 
 
+    def test_persisted_tool_proof_and_multiline(self):
+        records = [
+            {'type': 'session_meta', 'payload': {'cwd': '/fixture/task'}},
+            {'type': 'response_item', 'payload': {'type': 'function_call', 'name': 'exec_command', 'call_id': 'check', 'arguments': json.dumps({'cmd': 'python3 verify.py --challenge\ngit diff --check', 'workdir': '/fixture/task'})}},
+            {'type': 'response_item', 'payload': {'type': 'function_call_output', 'call_id': 'check', 'output': 'Process exited with code 0\nFinal output:\nfixture-verification-ok:--challenge\n'}},
+        ]
+        command = native_commands(records)[0]
+        self.assertTrue(verified_native_check(command, '--challenge', Path('/fixture/task')))
+        for output in ('', 'AssertionError', 'fixture-verification-ok:--ci'):
+            self.assertFalse(verified_native_check({**command, 'output': output}, '--challenge', Path('/fixture/task')))
+        self.assertFalse(verified_native_check(command, '--challenge', Path('/fixture/other')))
+        self.assertFalse(verified_native_check({**command, 'command': "python3 verify.py --challenge\necho fixture-verification-ok:--challenge"}, '--challenge', Path('/fixture/task')))
+        records[2]['payload']['call_id'] = 'unrelated'
+        self.assertEqual(native_commands(records), [])
+
+    def test_spawn_identity_requires_matching_native_result(self):
+        child = '12345678-1234-1234-1234-123456789abc'
+        records = [
+            {'type': 'response_item', 'payload': {'type': 'function_call', 'name': 'spawn_agent', 'call_id': 'spawn', 'arguments': '{"agent_type":"tester"}'}},
+            {'type': 'response_item', 'payload': {'type': 'function_call_output', 'call_id': 'spawn', 'output': json.dumps({'agent_id': child})}},
+        ]
+        self.assertEqual(spawned_testers(records), [child])
+        records[1]['payload']['call_id'] = 'different-call'
+        self.assertEqual(spawned_testers(records), [])
+        with tempfile.TemporaryDirectory() as temporary:
+            sessions = Path(temporary)
+            day = sessions / '2026/09/16'
+            day.mkdir(parents=True)
+            (day / 'unrelated.jsonl').write_text('not json and must never be read')
+            owned = day / f'rollout-fixture-{child}.jsonl'
+            owned.write_text(json.dumps({'type': 'session_meta', 'payload': {'id': child}}))
+            self.assertEqual(rollout_for(child, sessions, ['2026/09/16']), owned)
+
+
 
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
@@ -322,7 +558,7 @@ def main() -> int:
     if len(set(cases)) != len(cases) or any((artifacts / case).exists() for case in cases) or (artifacts / 'summary.json').exists():
         parser.error('use unique cases and fresh evidence paths')
     source = args.source_root.resolve()
-    digest = hashlib.sha256(Path(__file__).read_bytes() + (source / 'templates/global/AGENTS.md').read_bytes()).hexdigest()
+    digest = hashlib.sha256(Path(__file__).read_bytes() + (source / 'templates/global/AGENTS.md').read_bytes() + b''.join(p.read_bytes() for p in sorted((source / '.codex/agents').glob('*.toml')))).hexdigest()
     results = [run_case(case, source, artifacts, args.timeout) for case in cases]
     summary = {'sourceDigest': digest, 'scope': 'disposable native delivery fixtures; no external delivery acceptance', 'results': results}
     (artifacts / 'summary.json').write_text(json.dumps(summary, indent=2) + '\n')
