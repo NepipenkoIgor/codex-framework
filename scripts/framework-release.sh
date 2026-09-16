@@ -4,6 +4,7 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 QUALITY_DIR=""
 ACTIVE_PID=""
+DELIVERY_DIR=""
 
 if [ "${1:-}" = "--quality-dir" ]; then
   [ $# -eq 2 ] || { printf 'usage: framework-release.sh [--quality-dir PATH]\n' >&2; exit 1; }
@@ -62,6 +63,15 @@ run_gate effectiveInstallDoctor bash scripts/framework-doctor.sh --skip-evidence
 run_gate nativeSkillLoaderCanary bash scripts/framework-skill-loader-live-eval.sh
 run_gate liveVersionResolution bash scripts/framework-version-drift-check.sh --live
 run_gate nativeCapabilityCurrency python3 scripts/framework-native-capability-check.py --live
+
+# Keep raw native delivery traces separately from skill-corpus artifacts.
+DELIVERY_DIR="$(mktemp -d "${TMPDIR:-/tmp}/codex-framework-release-delivery.XXXXXX")"
+printf 'Native delivery artifacts: %s\n' "$DELIVERY_DIR"
+run_stage python3 "$ROOT/scripts/framework-delivery-behavior-eval.py" --live \
+  --case pending-evidence --case merge-cleanup --case false-positive --case ci-repair \
+  --artifact-dir "$DELIVERY_DIR" --source-root "$ROOT" --timeout 600 > "$GATE_DIR/nativeDeliveryBehavior.log"
+cat "$GATE_DIR/nativeDeliveryBehavior.log"
+python3 "$ROOT/scripts/framework-release-evidence.py" validate-delivery --summary "$DELIVERY_DIR/summary.json"
 
 if [ "$OWN_QUALITY_DIR" -eq 1 ]; then
   run_stage bash "$ROOT/scripts/framework-skill-routing-live-eval.sh" --artifact-dir "$QUALITY_DIR" --jobs 8

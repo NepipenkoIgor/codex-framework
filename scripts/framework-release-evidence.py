@@ -16,6 +16,8 @@ ROOT = Path(__file__).resolve().parent.parent
 EVIDENCE = ROOT / "docs" / "framework-release-evidence.json"
 MAX_AGE = dt.timedelta(days=7)
 ARTIFACT_POLICY = "compact-validator-attestation-v1"
+DELIVERY_CASES = ("pending-evidence", "merge-cleanup", "false-positive", "ci-repair")
+DELIVERY_SCOPE = "disposable native delivery fixtures; no external delivery acceptance"
 GATE_COMMANDS = {
     "deterministicHealth": ["bash", "scripts/framework-health.sh"],
     "tokenEfficiency": ["python3", "scripts/framework-token-budget-check.py", "--live"],
@@ -23,6 +25,9 @@ GATE_COMMANDS = {
     "nativeSkillLoaderCanary": ["bash", "scripts/framework-skill-loader-live-eval.sh"],
     "liveVersionResolution": ["bash", "scripts/framework-version-drift-check.sh", "--live"],
     "nativeCapabilityCurrency": ["python3", "scripts/framework-native-capability-check.py", "--live"],
+    "nativeDeliveryBehavior": ["python3", "scripts/framework-delivery-behavior-eval.py", "--live",
+                               "--case", "pending-evidence", "--case", "merge-cleanup", "--case", "false-positive", "--case", "ci-repair",
+                               "--artifact-dir", "<delivery-artifact-dir>", "--source-root", "<framework-root>", "--timeout", "600"],
     "skillCorpusCertification": ["python3", "scripts/framework-skill-quality.py", "certify", "--artifact-dir", "<quality-artifact-dir>"],
 }
 INCLUDED = (
@@ -140,6 +145,33 @@ def validate_skill_attestation(rows: Any) -> None:
     quality_module().validate_compact_attestation(rows)
 
 
+def delivery_source_digest() -> str:
+    # Same ordered policy/evaluator/profile bytes used by the delivery producer.
+    files = [ROOT / "scripts/framework-delivery-behavior-eval.py", ROOT / "templates/global/AGENTS.md"]
+    files.extend(sorted((ROOT / ".codex/agents").glob("*.toml")))
+    return hashlib.sha256(b"".join(path.read_bytes() for path in files)).hexdigest()
+
+
+def validate_delivery_summary(summary: Any) -> list[str]:
+    if not isinstance(summary, dict) or set(summary) != {"sourceDigest", "scope", "results"}:
+        return ["native delivery summary is malformed"]
+    failures = []
+    if summary.get("sourceDigest") != delivery_source_digest():
+        failures.append("native delivery source digest does not match evaluator, policy and profiles")
+    if summary.get("scope") != DELIVERY_SCOPE:
+        failures.append("native delivery scope is unsupported")
+    rows = summary.get("results")
+    if not isinstance(rows, list) or len(rows) != len(DELIVERY_CASES) or not all(isinstance(row, dict) for row in rows):
+        return failures + ["native delivery case coverage is incomplete"]
+    names = [row.get("case") for row in rows]
+    if sorted(str(name) for name in names) != sorted(DELIVERY_CASES):
+        failures.append("native delivery cases are missing, duplicated or unexpected")
+    for row in rows:
+        if row.get("status") != "passed" or row.get("nativeExitCode") != 0 or row.get("statePassed") is not True:
+            failures.append(f"native delivery case did not pass with native/state evidence: {row.get('case')}")
+    return failures
+
+
 def gate_records(gate_dir: Path) -> list[dict[str, Any]]:
     records = []
     for name, expected_command in GATE_COMMANDS.items():
@@ -148,6 +180,9 @@ def gate_records(gate_dir: Path) -> list[dict[str, Any]]:
             raise ValueError(f"missing gate log: {log}")
         output = log.read_text()
         records.append({"name": name, "command": expected_command, "exitCode": 0, "output": output, "outputSha256": sha256_text(output)})
+    failures = validate_gate_records(records)
+    if failures:
+        raise ValueError("; ".join(failures))
     return records
 
 
@@ -167,6 +202,11 @@ def validate_gate_records(records: Any) -> list[str]:
         output = row.get("output")
         if not isinstance(output, str) or not output or not is_nonzero_sha256(row.get("outputSha256")) or row.get("outputSha256") != sha256_text(output):
             failures.append(f"{name} gate output attestation is invalid")
+        if name == "nativeDeliveryBehavior":
+            try:
+                failures.extend(validate_delivery_summary(json.loads(output)))
+            except (ValueError, TypeError):
+                failures.append("native delivery gate output must be a valid source-bound JSON summary")
     return failures
 
 
@@ -253,6 +293,26 @@ def self_test() -> None:
         {"name": name, "command": command, "exitCode": 0, "output": f"{name} passed\n", "outputSha256": sha256_text(f"{name} passed\n")}
         for name, command in GATE_COMMANDS.items()
     ]
+    delivery = {"sourceDigest": delivery_source_digest(), "scope": DELIVERY_SCOPE,
+                "results": [{"case": case, "status": "passed", "nativeExitCode": 0, "statePassed": True} for case in DELIVERY_CASES]}
+    for row in records:
+        if row["name"] == "nativeDeliveryBehavior":
+            row["output"] = json.dumps(delivery)
+            row["outputSha256"] = sha256_text(row["output"])
+    invalid_delivery = []
+    invalid = json.loads(json.dumps(delivery)); invalid["results"].pop(); invalid_delivery.append(invalid)
+    invalid = json.loads(json.dumps(delivery)); invalid["results"][0]["status"] = "failed"; invalid_delivery.append(invalid)
+    invalid = json.loads(json.dumps(delivery)); invalid["results"][0]["status"] = "unavailable"; invalid_delivery.append(invalid)
+    invalid = json.loads(json.dumps(delivery)); invalid["sourceDigest"] = "f" * 64; invalid_delivery.append(invalid)
+    invalid = json.loads(json.dumps(delivery)); invalid["results"][-1] = invalid["results"][0]; invalid_delivery.append(invalid)
+    for invalid in invalid_delivery:
+        if not validate_delivery_summary(invalid):
+            raise AssertionError("native delivery validator accepted missing/failed/stale evidence")
+        forged = json.loads(json.dumps(records))
+        row = next(row for row in forged if row["name"] == "nativeDeliveryBehavior")
+        row["output"] = json.dumps(invalid); row["outputSha256"] = sha256_text(row["output"])
+        if not validate_gate_records(forged):
+            raise AssertionError("gate validator accepted invalid delivery JSON with a valid output checksum")
     if validate_gate_records(records):
         raise AssertionError("valid gate records were rejected")
     counterexamples = []
@@ -304,8 +364,18 @@ def main() -> int:
     sub = parser.add_subparsers(dest="command", required=True)
     check_parser = sub.add_parser("check"); check_parser.add_argument("--evidence", type=Path, default=EVIDENCE)
     write_parser = sub.add_parser("write"); write_parser.add_argument("--artifact-dir", required=True); write_parser.add_argument("--gate-dir", required=True)
+    delivery_parser = sub.add_parser("validate-delivery")
+    delivery_parser.add_argument("--summary", type=Path, required=True)
     sub.add_parser("self-test")
     args = parser.parse_args()
+    if args.command == "validate-delivery":
+        try:
+            failures = validate_delivery_summary(json.loads(args.summary.read_text()))
+        except (OSError, ValueError) as error:
+            failures = [str(error)]
+        for failure in failures:
+            print(failure)
+        return 1 if failures else 0
     if args.command == "check":
         return check(args.evidence)
     if args.command == "self-test":
