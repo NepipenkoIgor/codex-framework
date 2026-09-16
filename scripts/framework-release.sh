@@ -6,12 +6,23 @@ QUALITY_DIR=""
 ACTIVE_PID=""
 DELIVERY_DIR=""
 
-if [ "${1:-}" = "--quality-dir" ]; then
-  [ $# -eq 2 ] || { printf 'usage: framework-release.sh [--quality-dir PATH]\n' >&2; exit 1; }
-  QUALITY_DIR="$2"
-elif [ $# -ne 0 ]; then
-  printf 'usage: framework-release.sh [--quality-dir PATH]\n' >&2
-  exit 1
+usage() {
+  printf 'usage: framework-release.sh [--quality-dir PATH] [--delivery-artifact-dir PATH]\n' >&2
+}
+while [ $# -gt 0 ]; do
+  case "$1" in
+    --quality-dir|--delivery-artifact-dir)
+      [ $# -ge 2 ] && [ -n "$2" ] || { usage; exit 1; }
+      if [ "$1" = --quality-dir ]; then QUALITY_DIR="$2"; else DELIVERY_DIR="$2"; fi
+      shift 2
+      ;;
+    *) usage; exit 1 ;;
+  esac
+done
+# Reject missing/stale supplied evidence before any paid live gate is started.
+if [ -n "$DELIVERY_DIR" ]; then
+  DELIVERY_DIR="$(python3 -c 'from pathlib import Path; import sys; print(Path(sys.argv[1]).expanduser().resolve())' "$DELIVERY_DIR")"
+  python3 "$ROOT/scripts/framework-release-evidence.py" validate-delivery --summary "$DELIVERY_DIR/summary.json"
 fi
 
 OWN_QUALITY_DIR=0
@@ -65,13 +76,16 @@ run_gate liveVersionResolution bash scripts/framework-version-drift-check.sh --l
 run_gate nativeCapabilityCurrency python3 scripts/framework-native-capability-check.py --live
 
 # Keep raw native delivery traces separately from skill-corpus artifacts.
-DELIVERY_DIR="$(mktemp -d "${TMPDIR:-/tmp}/codex-framework-release-delivery.XXXXXX")"
-printf 'Native delivery artifacts: %s\n' "$DELIVERY_DIR"
-run_stage python3 "$ROOT/scripts/framework-delivery-behavior-eval.py" --live \
-  --case pending-evidence --case merge-cleanup --case false-positive --case ci-repair \
-  --artifact-dir "$DELIVERY_DIR" --source-root "$ROOT" --timeout 600 > "$GATE_DIR/nativeDeliveryBehavior.log"
-cat "$GATE_DIR/nativeDeliveryBehavior.log"
-python3 "$ROOT/scripts/framework-release-evidence.py" validate-delivery --summary "$DELIVERY_DIR/summary.json"
+# Supplied evidence is reused only after source-bound validation; no live rerun.
+if [ -z "$DELIVERY_DIR" ]; then
+  DELIVERY_DIR="$(mktemp -d "${TMPDIR:-/tmp}/codex-framework-release-delivery.XXXXXX")"
+  printf 'Native delivery artifacts: %s\n' "$DELIVERY_DIR"
+  run_stage python3 "$ROOT/scripts/framework-delivery-behavior-eval.py" --live \
+    --case pending-evidence --case merge-cleanup --case false-positive --case ci-repair \
+    --artifact-dir "$DELIVERY_DIR" --source-root "$ROOT" --timeout 600 > "$DELIVERY_DIR/live.log"
+fi
+run_gate nativeDeliveryBehavior python3 scripts/framework-release-evidence.py validate-delivery \
+  --summary "$DELIVERY_DIR/summary.json" --emit-summary
 
 if [ "$OWN_QUALITY_DIR" -eq 1 ]; then
   run_stage bash "$ROOT/scripts/framework-skill-routing-live-eval.sh" --artifact-dir "$QUALITY_DIR" --jobs 8

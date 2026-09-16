@@ -25,9 +25,8 @@ GATE_COMMANDS = {
     "nativeSkillLoaderCanary": ["bash", "scripts/framework-skill-loader-live-eval.sh"],
     "liveVersionResolution": ["bash", "scripts/framework-version-drift-check.sh", "--live"],
     "nativeCapabilityCurrency": ["python3", "scripts/framework-native-capability-check.py", "--live"],
-    "nativeDeliveryBehavior": ["python3", "scripts/framework-delivery-behavior-eval.py", "--live",
-                               "--case", "pending-evidence", "--case", "merge-cleanup", "--case", "false-positive", "--case", "ci-repair",
-                               "--artifact-dir", "<delivery-artifact-dir>", "--source-root", "<framework-root>", "--timeout", "600"],
+    "nativeDeliveryBehavior": ["python3", "scripts/framework-release-evidence.py", "validate-delivery",
+                               "--summary", "<delivery-artifact-dir>/summary.json", "--emit-summary"],
     "skillCorpusCertification": ["python3", "scripts/framework-skill-quality.py", "certify", "--artifact-dir", "<quality-artifact-dir>"],
 }
 INCLUDED = (
@@ -366,15 +365,19 @@ def main() -> int:
     write_parser = sub.add_parser("write"); write_parser.add_argument("--artifact-dir", required=True); write_parser.add_argument("--gate-dir", required=True)
     delivery_parser = sub.add_parser("validate-delivery")
     delivery_parser.add_argument("--summary", type=Path, required=True)
+    delivery_parser.add_argument("--emit-summary", action="store_true")
     sub.add_parser("self-test")
     args = parser.parse_args()
     if args.command == "validate-delivery":
         try:
-            failures = validate_delivery_summary(json.loads(args.summary.read_text()))
+            summary = json.loads(args.summary.read_text())
+            failures = validate_delivery_summary(summary)
         except (OSError, ValueError) as error:
             failures = [str(error)]
         for failure in failures:
             print(failure)
+        if not failures and args.emit_summary:
+            print(json.dumps(summary, indent=2, sort_keys=True))
         return 1 if failures else 0
     if args.command == "check":
         return check(args.evidence)

@@ -25,6 +25,7 @@
       }
     },
     "gateEvidence": {
+      "description": "nativeDeliveryBehavior records validation of a source-bound four-case summary; its command does not claim a new live execution.",
       "type": "array",
       "minItems": 8,
       "maxItems": 8,
