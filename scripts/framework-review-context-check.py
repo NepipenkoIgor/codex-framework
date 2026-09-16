@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Validate that high-risk falsification review is fresh-context and bias-bounded."""
+"""Lint declared review policy; this does not inspect or certify a native reviewer context."""
 
 from __future__ import annotations
 
@@ -24,7 +24,7 @@ REQUIRED = {
     "templates/global/AGENTS.md": (
         "no inherited conversation turns or prior-agent history",
         "Without native no-history spawn, review is unavailable",
-        "One revision only",
+        "One revision only for that review",
     ),
     ".codex/agents/reviewer.toml": (
         "fresh context with no prior conversation or agent history",
@@ -87,7 +87,7 @@ def main() -> int:
             print(f"- {failure}")
         return 1
     self_test(texts)
-    print("fresh-context review check passed: neutral bundle and semantic reversals")
+    print("review policy lint passed: required clauses and known contradictions; native isolation NOT certified")
     return 0
 
 

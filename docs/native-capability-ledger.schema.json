@@ -5,7 +5,7 @@
   "additionalProperties": false,
   "required": ["schemaVersion", "reviewedAt", "codexVersion", "baselineReleaseTag", "latestReleaseTag", "changelogReviewedThrough", "sources", "releaseCoverage", "capabilities"],
   "properties": {
-    "schemaVersion": {"const": 2},
+    "schemaVersion": {"const": 3},
     "reviewedAt": {"type": "string", "format": "date-time"},
     "codexVersion": {"type": "string", "minLength": 1},
     "baselineReleaseTag": {"type": "string", "pattern": "^rust-v[0-9]+\\.[0-9]+\\.[0-9]+$"},
