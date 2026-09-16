@@ -1,39 +1,25 @@
-# Runtime efficiency contract
+# Runtime efficiency and automatic challenge
 
-The framework keeps native Codex goals, tasks, subagents, worktrees, caching, compaction, and automations authoritative. It adds only project-neutral execution invariants and evidence checks.
+Native Codex owns goals, tasks, worktrees, agent lifecycle, approvals, compaction and monitoring. The global agreement is the automatic default across Git projects; no project onboarding file or user request for debate is needed.
 
-## Bounded execution epochs
+## Work and waiting
 
-An open-ended goal remains active, but each execution epoch owns one coherent batch and at most one implementation-to-delivery lifecycle. Before substantive work, record the batch members, dependencies, target environment, allowed mutations, definition of done, verification inputs, external blockers, and checkpoint condition. Finish or explicitly block that epoch before selecting unrelated work.
+Complete coherent batches against explicit acceptance criteria and source/config/environment identity. A checkpoint neither spends an execution allowance nor cancels authority to continue fixing a CI defect. Reuse unchanged evidence. Read a live operation once, retain its handle and use native attached waits rather than model-driven micro-polls. A timeout is not a failed process; continue observing the same handle. Native heartbeats serve requested monitoring and stay quiet without actionable changes. Never add a local scheduler or lifecycle hook.
 
-A user status request receives a compact readback from current evidence. It does not restart repository discovery, board enumeration, full verification, or provider queries whose inputs have not changed. After resolving an attachment or bootstrap objective, rename the native task to the real outcome.
+## Evidence-based challenge
 
-## Dependency-aware batching
+Every substantive implementation, fix, architecture decision and delivery automatically receives a bounded tester counterexample or architect contract challenge. Trivial non-behavioral edits still receive an explicit parent self-check. Parent owns requirements, integration and adjudication; developer must fix a reproduction or refute the finding with evidence. A false-positive test is not a product defect. Reuse the challenger for targeted repair verification; do not create recurring debate rounds or vote by agent agreement.
 
-Batch only work that shares a contract or delivery boundary. A blocked independent item must not hold unrelated review-ready work in progress: preserve its exact blocker and evidence, move it to the project-defined blocked state when one exists, and continue with the largest coherent unblocked batch. Do not split genuinely atomic migrations, schemas, or releases merely for throughput.
+The high-risk reviewer receives an immutable diff and neutral request/criteria/contracts/checks. No-history spawn does not remove every source of runtime context: injected task memory invalidates strict independence. Report an unavailable boundary honestly and do not restart the same review under a new name. One review/revision bounds that review; it never blocks subsequent authorized CI repair. Materially new risk may require its own review.
 
-## Waiting and monitoring
+## Worktree lifecycle
 
-For an external operation, read status once and perform at most one bounded attached wait. If it remains active, either do independent in-scope work or, when continued monitoring was requested, use a native thread heartbeat that stays quiet until a meaningful change, completion, failure, or required user action. Otherwise yield a checkpoint. Shell sleep loops, repeated status reads without changed evidence, repository polling daemons, and retry hooks are prohibited. Automatic goal continuation does not change the observed external state or reset the attached-wait allowance. Follow native goal blocking/scheduling rules, do independent authorized work, and never manufacture a local pause/monitor engine. The framework cannot guarantee suspension of a native goal through prompt text; absent native support is a reported limitation.
+Before repository mutation, use a task-owned native worktree even for a single writer. Verify current path/branch and other active writers. Git supplies tracked instructions/config; inspect ignored files and copy only named necessary local configuration with permissions preserved and verified environment identity. Never bulk-copy credentials, Git internals, build caches or another writer's dirty files. Regenerate dependencies and provider links for the target. If a user explicitly requires their dirty work, isolate and transfer only that agreed diff after inspecting it.
 
-## Verification ledger
-
-A reusable check result is identified by the code SHA or source digest, exact command and configuration, target environment, relevant provider identity, and other inputs that can invalidate it. Run targeted checks during implementation, one full local gate for an unchanged identity, and one CI/deployment run for that identity. After a failure, diagnose with the narrowest authoritative check, change the input, and rerun the full gate once. Never represent an old result as current after an input changes.
-
-For a shared mutable environment, serialize changes until its active acceptance cycle finishes or is explicitly superseded for a documented reason. Do not cancel an own acceptance run by merging unrelated work. Independent isolated preview targets may run in parallel.
-
-## Execution lanes
-
-The parent keeps the goal, contracts, decisions, dependency graph, integration, and final evidence. Use an explorer for independent read-heavy reconnaissance, a tester when long execution or log triage would pollute the parent context, and a worker only with bounded ownership and an isolated worktree when writing in parallel. Each subagent returns a concise evidence summary. Because subagents also consume tokens, do not delegate routine sequential work.
-
-High-risk work receives one reviewer for one immutable diff and risk boundary. A contract-invalid or context-contaminated attempt makes independent review unavailable for that diff; it is not retried as `v2`, `clean`, or `fresh`. The parent may revise once and rerun affected checks, but a second reviewer requires explicit user authority or a materially different diff and risk boundary.
-
-## Measures
-
-Runtime diagnostics distinguish observable response, root-turn and thread usage; execution epochs and reviewer identities require actual evidence and are unknown when absent. They report cached and uncached input separately; context-window pressure; tool/output volume by type; repeated external-status reads; failed waits; full-gate repetitions; compactions; and reviewer identities. Raw rollout bytes are pressure evidence, not proof of retained model context or API cost.
-
-A valid task may be large, but it may not busy-poll, repeat an unchanged full gate, run multiple reviewers for the same immutable diff, or hold unrelated work behind an external blocker. Diagnostic command-pattern matches are advisory when target, identity or changed state is unavailable. Do not infer these violations from aggregate command counts. Safety hooks do not enforce lifecycle efficiency by shell regex.
+After all required checks for the final identity pass, use the authorized native PR/merge flow. Successful deploy is separate from CI and user acceptance. Synchronize only the named clean base branch; verify merge ancestry and equality to the remote. Remove only clean task-owned worktrees and merged task branches. Do not force-delete dirty/unmerged work, another model's checkout, or a durable installed framework source. Exact task ownership follows observed native task/git state; no local queue or ownership daemon is added.
 
 ## Evidence levels
 
-Lexical contract checks establish structure, not semantic compliance. The policy-classification suite measures decisions about hypothetical cases. Tool-enabled behavioral fixtures independently check actual actions and outputs. Only real project acceptance proves the user outcome; fixture success does not certify Property, production readiness or universal quality. See `project-understanding.md` for incremental discovery and knowledge updates.
+Policy lint proves declared clauses and known textual contradictions, not native context isolation. Policy classification checks hypothetical decisions. Tool-enabled fixtures check actual traces plus independent filesystem/runtime outcomes. Product acceptance still requires the real target. Token structure success and behavioral warnings are separate: cached input is a subset of input, reasoning a subset of output, and parent/child counters cannot be summed without provenance. Report measured values rather than promises of savings.
+
+Delivery fixtures use an explicit native permission profile extending `:read-only`, with only their disposable fixture area writable and command network access disabled. Collector artifacts live outside that area. This is evaluator isolation, not a production permission override. A macOS native sandbox probe verified that the permitted write succeeds and the collector-side write is denied; portability of this enforcement remains subject to each native runtime.

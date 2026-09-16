@@ -11,6 +11,7 @@ import json
 import re
 import subprocess
 import urllib.request
+from html.parser import HTMLParser
 from pathlib import Path
 from urllib.parse import urlparse
 
@@ -55,6 +56,50 @@ def changelog_dates(body: str) -> list[dt.date]:
     return sorted(dates)
 
 
+class MainContent(HTMLParser):
+    """Canonical documentation content, excluding site chrome and executable assets."""
+    def __init__(self) -> None:
+        super().__init__(convert_charrefs=True)
+        self.inside = 0
+        self.skip = 0
+        self.parts: list[str] = []
+        self.found = False
+
+    def handle_starttag(self, tag: str, attrs: list[tuple[str, str | None]]) -> None:
+        if tag == "main":
+            self.inside += 1
+            self.found = True
+        if not self.inside:
+            return
+        if tag in {"script", "style", "nav", "footer", "header"}:
+            self.skip += 1
+        if not self.skip:
+            if tag in {"a", "img"}:
+                for key, value in attrs:
+                    if key in {"href", "src", "alt"} and value:
+                        self.parts.append(f"{tag}:{key}={value}")
+            if tag in {"p", "li", "pre", "code", "h1", "h2", "h3", "h4", "tr", "td", "th"}:
+                self.parts.append(f"<{tag}>")
+
+    def handle_endtag(self, tag: str) -> None:
+        if self.inside and tag in {"script", "style", "nav", "footer", "header"}:
+            self.skip = max(0, self.skip - 1)
+        if tag == "main":
+            self.inside = max(0, self.inside - 1)
+
+    def handle_data(self, data: str) -> None:
+        if self.inside and not self.skip and data.strip():
+            self.parts.append(data)
+
+
+def document_snapshot(raw: bytes) -> bytes:
+    parser = MainContent()
+    parser.feed(raw.decode("utf-8", errors="strict"))
+    if not parser.found or not parser.parts:
+        raise ValueError("official documentation response has no main content")
+    return json.dumps(parser.parts, ensure_ascii=False, separators=(",", ":")).encode()
+
+
 def release_snapshot(value: object) -> bytes:
     if not isinstance(value, dict):
         raise ValueError("release API response is not an object")
@@ -75,7 +120,7 @@ def source_url(data: dict[str, object], kind: str) -> str:
 def validate(data: dict[str, object], now: dt.datetime | None = None) -> list[str]:
     failures: list[str] = []
     now = now or dt.datetime.now(dt.timezone.utc)
-    if set(data) != TOP_KEYS or data.get("schemaVersion") != 2:
+    if set(data) != TOP_KEYS or data.get("schemaVersion") != 3:
         failures.append("ledger top-level schema is missing or unexpected")
     try:
         reviewed_at = dt.datetime.fromisoformat(str(data["reviewedAt"]))
@@ -215,8 +260,8 @@ def live_failures(data: dict[str, object]) -> list[str]:
             )
             with urllib.request.urlopen(docs_request, timeout=20) as response:
                 raw = response.read()
-            bodies[kind] = raw.decode("utf-8", errors="ignore")
-            current_fingerprint = sha256_bytes(raw)
+            bodies[kind] = document_snapshot(raw).decode("utf-8")
+            current_fingerprint = sha256_bytes(document_snapshot(raw))
             if current_fingerprint != sources[kind].get("sha256"):
                 failures.append(
                     f"official Codex {kind} content changed: ledger fingerprint {sources[kind].get('sha256')}, current {current_fingerprint}"
@@ -283,6 +328,16 @@ def live_failures(data: dict[str, object]) -> list[str]:
 
 
 def self_test(data: dict[str, object]) -> None:
+    first = b'<html><script>build1</script><main><p>Codex rule</p></main></html>'
+    chrome = b'<html><script>build2</script><main class="new"><p>Codex rule</p></main></html>'
+    assert document_snapshot(first) == document_snapshot(chrome)
+    assert document_snapshot(first) != document_snapshot(first.replace(b'Codex rule', b'Changed rule'))
+    try:
+        document_snapshot(b'<html>login page</html>')
+    except ValueError:
+        pass
+    else:
+        raise AssertionError("missing document content accepted")
     future = dt.datetime.now(dt.timezone.utc) + dt.timedelta(days=30)
     assert validate(data, future), "stale ledger counterexample was accepted"
     invalid = copy.deepcopy(data)

@@ -1,20 +1,20 @@
 {
-  "schemaVersion": 2,
-  "reviewedAt": "2026-09-14T18:39:50+00:00",
+  "schemaVersion": 3,
+  "reviewedAt": "2026-09-16T17:40:52+00:00",
   "codexVersion": "codex-cli 0.154.0",
   "baselineReleaseTag": "rust-v0.149.0",
   "latestReleaseTag": "rust-v0.154.0",
-  "changelogReviewedThrough": "2026-09-11",
+  "changelogReviewedThrough": "2026-09-14",
   "sources": [
     {
       "kind": "manual",
       "url": "https://developers.openai.com/codex/",
-      "sha256": "6bcc3be7aece913347b1d10c4fd7fba65146aefb2c4d2e786c959268d679c544"
+      "sha256": "1ed561be0c30911da755597c662720f536b4d426642742c1671661031ed1c8f3"
     },
     {
       "kind": "changelog",
       "url": "https://learn.chatgpt.com/docs/changelog",
-      "sha256": "a158b1086ba3b1ff64a8fb26d55edf4c9228b838ad7aa32cb1ff714aafde02d6"
+      "sha256": "c21b530841e7383e2cbcfa0da8fa268482dc7f389970454934c98d7a47a66080"
     },
     {
       "kind": "release",
@@ -202,13 +202,12 @@
     {
       "id": "async-mcp-hooks",
       "nativeFeature": "Asynchronous hooks and hook-initiated MCP tool calls",
-      "decision": "retained",
-      "localOverlap": "Using background or MCP hooks for routing, retries, task steering, context injection, or external mutations would violate the framework's deterministic hook boundary.",
-      "action": "Retain one synchronous local PreToolUse safety hook; route background work and external actions through native tasks, automations, connectors, or the active agent.",
+      "decision": "removed",
+      "localOverlap": "Legacy shell parser and hook installer duplicated native approvals and rejected valid user branch intent.",
+      "action": "Remove the parser and installer. Keep approval decisions native; no hook routes lifecycle, waiting or challenge.",
       "evidence": [
         "AGENTS.md",
         ".codex/config.toml",
-        "scripts/hooks/pre-tool-use.sh",
         "README.md"
       ]
     },
@@ -478,6 +477,41 @@
       "evidence": [
         ".github/workflows/framework.yml",
         "docs/native-capability-review.md"
+      ]
+    },
+    {
+      "id": "automatic-evidence-challenge",
+      "nativeFeature": "Native tester/architect/reviewer agents and worktrees",
+      "decision": "adopted",
+      "localOverlap": "Global challenge, worktree isolation and acceptance criteria use native delegation without a lifecycle engine.",
+      "action": "Automatically challenge substantive work; require executable rebuttal and exact merge evidence. Review caps do not block authorized CI repair.",
+      "evidence": [
+        "templates/global/AGENTS.md",
+        ".codex/agents/tester.toml",
+        "docs/runtime-efficiency.md"
+      ]
+    },
+    {
+      "id": "gpt55-retirement-notice",
+      "nativeFeature": "September 14 GPT-5.5 retirement notice for October 14, 2026",
+      "decision": "retained",
+      "localOverlap": "No gpt-5.5 pin found in active framework source; user configuration remains external authority.",
+      "action": "Retain native model selection; report and migrate external pins only within user-authorized model migration.",
+      "evidence": [
+        ".codex/config.toml",
+        ".codex/agents/reviewer.toml",
+        "docs/native-capability-review.md"
+      ]
+    },
+    {
+      "id": "delivery-fixture-native-permissions",
+      "nativeFeature": "Named permission profiles extending the native read-only profile with explicit filesystem roots",
+      "decision": "adopted",
+      "localOverlap": "Delivery evaluation used legacy workspace-write settings and ambient temporary-directory write roots, which did not provide an independently tested collector boundary.",
+      "action": "Use a task-scoped native profile for disposable evaluation only: fixture area writable, remaining filesystem read-only, command network disabled. The native macOS sandbox probe confirmed the permitted write and denied an adjacent collector write; do not claim equivalent OS enforcement on untested platforms.",
+      "evidence": [
+        "scripts/framework-delivery-behavior-eval.py",
+        "docs/runtime-efficiency.md"
       ]
     }
   ]

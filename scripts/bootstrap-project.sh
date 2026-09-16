@@ -31,11 +31,9 @@ if [ ! -e "$TARGET_PACK_MANIFEST" ]; then
     > "$TARGET_PACK_MANIFEST"
 fi
 
-bash "$FRAMEWORK_ROOT/scripts/hooks.sh" install "$TARGET_DIR" >/dev/null
 bash "$FRAMEWORK_ROOT/scripts/framework-skill-sync.sh" "$TARGET_DIR" >/dev/null
 
 printf 'project instructions: %s\n' "$TARGET_AGENTS"
 printf 'native agents: %s\n' "$TARGET_NATIVE_AGENTS"
 printf 'native rules: %s\n' "$TARGET_RULES/safety.rules"
-printf 'hook config: %s\n' "$TARGET_CODEX_DIR/config.toml"
 printf 'project skill packs: %s\n' "$TARGET_PACK_MANIFEST"

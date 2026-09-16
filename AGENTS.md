@@ -12,15 +12,15 @@ Generic cross-repository behavior is owned once by the global working agreement.
 
 ## Visible orchestration
 
-- For deep audits, cross-system incidents, or independent read-heavy investigation, delegate only separable evidence gathering or review. The parent owns contracts, decisions, integration, and shared writes.
+- For deep audits, cross-system incidents, or independent read-heavy investigation, delegate separable evidence gathering or review. For implementation, automatically apply the global evidence-based challenge contract; the parent owns adjudication. The parent owns contracts, decisions, integration, and shared writes.
 - Announce a subagent only after spawning it, as `profile — model / effort — bounded responsibility`, then report its real conclusion or failure. Skills are workflows, not agents.
 - Never manufacture plan files, status dashboards, agent updates, lifecycle hooks, or proxy handoffs; native plans and agent lifecycle are authoritative.
 
 ## Agent profiles and review
 
 - Use the built-in `explorer` for read-only reconnaissance and `worker` for scoped implementation. Use `architect` for read-only contracts/migrations, `reviewer` for read-only correctness/security/regression review, and `tester` for targeted executable checks.
-- Keep writers in separate worktrees. Do not delegate recursively. Resolve shared contracts before parallel implementation.
-- After ordinary verification, run exactly one independent read-only falsification pass per immutable diff and risk boundary for security, migrations, schemas/APIs, concurrency/data integrity, permissions/deployment, cross-system change, or residual material ambiguity. Spawn the reviewer with no inherited conversation turns or prior-agent history, using the native fresh-context or no-history control. Give it only a neutral evidence bundle containing the original request and acceptance criteria, actual diff, affected paths, applicable repository contracts, and executed checks with results; exclude the implementer's plan, reasoning, conclusions, memories, and earlier review commentary. If the active surface cannot prove the no-history boundary or the bundle is contract-invalid, report independent review as unavailable and do not retry it under a new name. Require severity plus concrete file/reproduction/check evidence; the parent adjudicates and performs at most one revision cycle unless the user requests a deeper audit.
+- Use a task-owned native worktree for every repository mutation, including the parent. Keep writers in separate worktrees. Do not delegate recursively. Resolve shared contracts before parallel implementation.
+- After ordinary verification, run exactly one independent read-only falsification pass per immutable diff and risk boundary for security, migrations, schemas/APIs, concurrency/data integrity, permissions/deployment, cross-system change, or residual material ambiguity. Spawn the reviewer with no inherited conversation turns or prior-agent history, using the native fresh-context or no-history control. Give it only a neutral evidence bundle containing the original request and acceptance criteria, actual diff, affected paths, applicable repository contracts, and executed checks with results; exclude the implementer's plan, reasoning, conclusions, memories, and earlier review commentary. If the active surface cannot prove the no-history boundary or the bundle is contract-invalid, report independent review as unavailable and do not retry it under a new name. Require severity plus concrete file/reproduction/check evidence; the parent adjudicates and performs at most one revision cycle unless the user requests a deeper audit. This bounds repeated review, not authorized CI repair. Runtime-injected task memory invalidates strict independence even with a no-history spawn; report that limit without retrying under another name.
 
 ## Skills and integrations
 
@@ -35,6 +35,6 @@ Use the smallest matching skills and prefer native plugins/MCP over wrappers. St
 
 ## Repository boundaries
 
-- Hooks enforce only narrow deterministic safety: no unrelated scans, context injection, prompt/model/plan/agent routing, memory, or retries.
+- Safety and approvals use native policy. Do not recreate shell parsing, lifecycle, context injection, prompt/model/plan/agent routing, memory or retries in hooks.
 - Update API docs/schema with contracts and follow the release workflow. Desktop and CLI share `AGENTS.md`, `.codex/config.toml`, skills, profiles, and hooks; never branch by surface.
 - Track durable facts in docs and continuity in native memory. Avoid startup payloads, generated briefs, repeated policy, full skill maps, and screenshot-heavy evidence.

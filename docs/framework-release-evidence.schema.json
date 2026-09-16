@@ -25,15 +25,16 @@
       }
     },
     "gateEvidence": {
+      "description": "nativeDeliveryBehavior records a compact source/runtime-bound receipt issued only after raw native sessions and collector state are validated; per-case artifact hashes preserve that evidence integrity.",
       "type": "array",
-      "minItems": 7,
-      "maxItems": 7,
+      "minItems": 8,
+      "maxItems": 8,
       "items": {
         "type": "object",
         "additionalProperties": false,
         "required": ["name", "command", "exitCode", "output", "outputSha256"],
         "properties": {
-          "name": {"enum": ["deterministicHealth", "tokenEfficiency", "effectiveInstallDoctor", "nativeSkillLoaderCanary", "liveVersionResolution", "nativeCapabilityCurrency", "skillCorpusCertification"]},
+          "name": {"enum": ["deterministicHealth", "tokenEfficiency", "effectiveInstallDoctor", "nativeSkillLoaderCanary", "liveVersionResolution", "nativeCapabilityCurrency", "nativeDeliveryBehavior", "skillCorpusCertification"]},
           "command": {"type": "array", "minItems": 2, "items": {"type": "string", "minLength": 1}},
           "exitCode": {"const": 0},
           "output": {"type": "string", "minLength": 1},

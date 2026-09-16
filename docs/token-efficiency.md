@@ -14,7 +14,7 @@ The active rollout proves prompt caching is working: one stable late response re
 
 - Keep native request compression, remote compaction v2, skill search, prompt caching, model-owned auto-compaction, and MCP catalog caching authoritative. Do not add local cache, transcript replay, prompt injection, or compaction wrappers.
 - Leave stable request compression, remote compaction, skill search, and cached web search at native defaults. Do not pin defaults merely to mirror the runtime; an explicit disabling override is a reviewable regression.
-- Retain at most 4,000 tokens per tool result. Prefer targeted `rg`, exact line ranges, bounded JSON fields, and summaries. A larger read is justified only after the narrow query cannot establish the required evidence.
+- Retain at most 4,000 tokens per tool result. Prefer targeted `rg`, exact line ranges, bounded JSON fields, and summaries. Paginate or increase the particular read limit when narrow output would omit required evidence.
 - Do not pin or downgrade the ordinary project model or reasoning effort for token savings. Leave selection native and quality/risk-driven; explicit high effort remains justified for the existing architect/reviewer risk boundary. Optimize prompt and tool context independently of model quality.
 - Keep native auto-compaction thresholds model-owned. An arbitrary lower threshold can spend extra summarization tokens and lose evidence; an arbitrary higher threshold can grow every subsequent inference.
 - Keep the universal core at one task-routed framework skill. Full skill bodies load only after selection; domain packs remain opt-in.
@@ -51,7 +51,7 @@ The execution invariants that prevent these pathologies are defined in `docs/run
 
 ## Existing user-owned configuration
 
-Setup does not overwrite `~/.codex/config.toml`. Hook bootstrap preserves an existing project `.codex/config.toml` and validates only its safety-hook contract. The framework project retains this measured local preference:
+Setup does not overwrite `~/.codex/config.toml`. Project bootstrap preserves an existing `.codex/config.toml` and installs no shell hook. The framework project retains this measured local preference:
 
 ```toml
 tool_output_token_limit = 4000
@@ -62,3 +62,5 @@ Do not overwrite unrelated settings or pin native defaults, model, or effort as 
 ## Runtime acceptance
 
 Static prompt budgets and policy-classification tests do not prove efficient execution. The bounded project behavior suite runs actual native tools and independent result checks; real Property delivery, child usage and sustained Goal/heartbeat behavior remain separate acceptance evidence. The rollout analyzer is read-only diagnostics, never a scheduler or a safety-hook policy engine.
+
+The always-on instruction budgets live only in `framework-token-budget-check.py`; other checks do not duplicate numeric limits. The expanded global contract adds automatic challenge and single-writer worktree/config/cleanup requirements. Static success now explicitly leaves runtime efficiency uncertified, and rollout warnings are reported separately. No savings percentage is inferred from removing source lines.

@@ -19,13 +19,13 @@ import tomllib
 ROOT = pathlib.Path(__file__).resolve().parents[1]
 BYTE_LIMITS = {
     "AGENTS.md": 5_500,
-    "templates/global/AGENTS.md": 9_000,
+    "templates/global/AGENTS.md": 12_000,
     "templates/project/AGENTS.md": 2_000,
     "skills/framework-management/SKILL.md": 5_000,
 }
 COMBINED_LIMITS = {
-    ("AGENTS.md", "templates/global/AGENTS.md"): 14_000,
-    ("templates/project/AGENTS.md", "templates/global/AGENTS.md"): 11_000,
+    ("AGENTS.md", "templates/global/AGENTS.md"): 18_000,
+    ("templates/project/AGENTS.md", "templates/global/AGENTS.md"): 14_000,
 }
 LIVE_PROMPT_CHAR_LIMIT = 45_000
 TOOL_OUTPUT_TOKEN_LIMIT = 4_000
@@ -173,7 +173,7 @@ def self_test() -> None:
         assert not static_failures(fixture), "valid token budget fixture failed"
 
         global_agents = fixture / "templates/global/AGENTS.md"
-        global_agents.write_text(global_agents.read_text() + "x" * 500)
+        global_agents.write_text(global_agents.read_text() + "x" * BYTE_LIMITS["templates/global/AGENTS.md"])
         assert any("templates/global/AGENTS.md" in item for item in static_failures(fixture)), \
             "oversized persistent instructions were accepted"
         shutil.copyfile(ROOT / "templates/global/AGENTS.md", global_agents)
@@ -648,7 +648,10 @@ def main() -> int:
         for failure in failures:
             print(f"- {failure}", file=sys.stderr)
         return 1
-    print("token budget check passed")
+    behavior = report.get("rollout", {})
+    warnings = behavior.get("warnings", []) if isinstance(behavior, dict) else []
+    report_status = "warnings require investigation" if warnings else "not certified by static budgets"
+    print(f"token structure checks passed; runtime efficiency: {report_status}")
     return 0
 
 

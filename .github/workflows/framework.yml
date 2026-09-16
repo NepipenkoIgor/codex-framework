@@ -18,7 +18,14 @@ env:
 
 jobs:
   deterministic:
-    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    defaults:
+      run:
+        shell: bash
     timeout-minutes: 20
     steps:
       - uses: actions/checkout@v7
@@ -27,8 +34,16 @@ jobs:
       - uses: actions/setup-node@v7
         with:
           node-version: 22
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.11"
       - name: Install framework system dependencies
-        run: sudo apt-get update && sudo apt-get install --yes ripgrep
+        run: |
+          if [ "${RUNNER_OS}" = Linux ]; then
+            sudo apt-get update && sudo apt-get install --yes ripgrep
+          elif ! command -v rg >/dev/null; then
+            brew install ripgrep
+          fi
       - name: Install pinned Codex CLI
         run: npm install --global "@openai/codex@${CODEX_CLI_VERSION}"
       - name: Syntax and compile checks

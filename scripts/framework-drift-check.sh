@@ -82,15 +82,13 @@ test -s "$ROOT/.codex/rules/safety.rules" || fail 'native safety rules are missi
 if grep -Eq '/Users/|/home/' "$ROOT/.codex/config.toml"; then
   fail 'machine-specific path remains in project config'
 fi
-if grep -Eq 'routing-skills|codex-fw|model_retry_chain|runtime_type|spawn_agent\.agent_type' "$ROOT"/AGENTS.md "$ROOT"/README.md "$ROOT"/scripts/hooks.sh "$ROOT"/scripts/hooks/*.sh "$ROOT"/scripts/lib.sh; then
+if grep -Eq 'routing-skills|codex-fw|model_retry_chain|runtime_type|spawn_agent\.agent_type' "$ROOT"/AGENTS.md "$ROOT"/README.md "$ROOT"/scripts/lib.sh; then
   fail 'legacy orchestration language remains in runtime surface'
 fi
 if grep -Eq '^\[\[hooks\.(SessionStart|UserPromptSubmit|PostToolUse|Stop)\]\]' "$ROOT/.codex/config.toml"; then
   fail 'context-injection or prompt-routing hook remains in native config'
 fi
 
-bash "$ROOT/scripts/hooks.sh" doctor "$ROOT" || fail 'hook configuration is invalid'
-bash "$ROOT/scripts/hooks.sh" smoke "$ROOT" || fail 'hook smoke failed'
 
 [ "$failures" -eq 0 ] || exit 1
 printf 'framework drift check passed\n'

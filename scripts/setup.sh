@@ -1,6 +1,18 @@
 #!/bin/bash
 set -euo pipefail
 
+# Fail before using required tools or touching installation paths.
+for dependency in python3 git; do
+  command -v "$dependency" >/dev/null 2>&1 || {
+    printf 'Required dependency missing: %s. Install it using your OS package manager, then rerun setup.\n' "$dependency" >&2
+    exit 1
+  }
+done
+python3 -c 'import sys; sys.exit(0 if sys.version_info >= (3, 11) else 1)' || {
+  printf 'Python 3.11 or newer must be available as python3 on PATH; select a compatible interpreter and rerun this command.\n' >&2
+  exit 1
+}
+
 # Preflight must not create Python caches in a fresh user home.
 export PYTHONDONTWRITEBYTECODE=1
 
@@ -24,7 +36,7 @@ while [ $# -gt 0 ]; do
       cat <<EOF
 usage: setup.sh [--development] [--pack NAME]...
 
-Default: clean detached Git source required. --development explicitly links mutable source.
+Default: copy clean detached Git source into a durable independent release clone. --development explicitly links mutable source.
 
 Installs the universal framework core and optional project/domain packs.
 Available packs: $(find "$REPO_DIR/skills/packs" -maxdepth 1 -name '*.txt' -exec basename {} .txt \; | sort | tr '\n' ' ')
@@ -69,10 +81,10 @@ install_hint() {
   local tool="$1"
   case "$tool" in
     codex) echo "Install Codex CLI first, then rerun setup." ;;
-    rg) echo "Install: brew install ripgrep" ;;
-    gh) echo "Install: brew install gh" ;;
-    ast-grep) echo "Install: brew install ast-grep" ;;
-    jq) echo "Install: brew install jq" ;;
+    rg) echo "Install ripgrep using your OS package manager." ;;
+    gh) echo "Install GitHub CLI using your OS package manager." ;;
+    ast-grep) echo "Install ast-grep using your OS package manager." ;;
+    jq) echo "Install jq using your OS package manager." ;;
     *) echo "Install the tool and rerun setup." ;;
   esac
 }
@@ -89,37 +101,46 @@ report_dep() {
   fi
 }
 
-link_args=(
-  --state "$LINK_STATE"
-  --source-root "$REPO_DIR"
-  --guidance "$GLOBAL_GUIDANCE_TARGET=$GLOBAL_GUIDANCE_SOURCE"
-  --link "$FRAMEWORK_CODEX_HOME/frameworks/codex-framework=$REPO_DIR"
-  --link "$FRAMEWORK_CODEX_HOME/bin/codex-framework-stack-context=$REPO_DIR/scripts/framework-stack-context.py"
-  --link "$FRAMEWORK_CODEX_HOME/bin/codex-framework-doctor=$REPO_DIR/scripts/framework-doctor.sh"
-  --link "$FRAMEWORK_CODEX_HOME/rules/codex-framework-safety.rules=$REPO_DIR/.codex/rules/safety.rules"
-)
-if [[ " ${SOURCE_ARGS[*]} " == *" --development "* ]]; then
-  link_args+=(--development)
-fi
-profile_args=(
-  --file "$FRAMEWORK_CODEX_HOME/agents/codex-framework-architect.toml=$REPO_DIR/.codex/agents/architect.toml"
-  --file "$FRAMEWORK_CODEX_HOME/agents/codex-framework-reviewer.toml=$REPO_DIR/.codex/agents/reviewer.toml"
-  --file "$FRAMEWORK_CODEX_HOME/agents/codex-framework-tester.toml=$REPO_DIR/.codex/agents/tester.toml"
-)
-# All auxiliary collisions are checked before the skill installer can write.
-python3 "$REPO_DIR/scripts/framework-link-install.py" --preflight "${link_args[@]}" "${profile_args[@]}"
+build_install_args() {
+  GLOBAL_GUIDANCE_SOURCE="$REPO_DIR/templates/global/AGENTS.md"
+  link_args=(
+    --state "$LINK_STATE"
+    --source-root "$REPO_DIR"
+    --guidance "$GLOBAL_GUIDANCE_TARGET=$GLOBAL_GUIDANCE_SOURCE"
+    --link "$FRAMEWORK_CODEX_HOME/frameworks/codex-framework=$REPO_DIR"
+    --link "$FRAMEWORK_CODEX_HOME/bin/codex-framework-stack-context=$REPO_DIR/scripts/framework-stack-context.py"
+    --link "$FRAMEWORK_CODEX_HOME/bin/codex-framework-doctor=$REPO_DIR/scripts/framework-doctor.sh"
+    --link "$FRAMEWORK_CODEX_HOME/rules/codex-framework-safety.rules=$REPO_DIR/.codex/rules/safety.rules"
+  )
+  if [[ " ${SOURCE_ARGS[*]} " == *" --development "* ]]; then
+    link_args+=(--development)
+  fi
+  profile_args=(
+    --file "$FRAMEWORK_CODEX_HOME/agents/codex-framework-architect.toml=$REPO_DIR/.codex/agents/architect.toml"
+    --file "$FRAMEWORK_CODEX_HOME/agents/codex-framework-reviewer.toml=$REPO_DIR/.codex/agents/reviewer.toml"
+    --file "$FRAMEWORK_CODEX_HOME/agents/codex-framework-tester.toml=$REPO_DIR/.codex/agents/tester.toml"
+  )
 
-install_args=(
-  --root "$REPO_DIR"
-  --skills-root "$USER_SKILLS_ROOT"
-  --state "$INSTALL_STATE"
-  --core "$REPO_DIR/skills/core.txt"
-  --legacy-root "$LEGACY_INSTALL_ROOT"
-  --legacy-root "$LEGACY_PACK_ROOT"
-)
-for pack in $SELECTED_PACKS; do
-  install_args+=(--pack "$pack")
-done
+  install_args=(
+    --root "$REPO_DIR"
+    --skills-root "$USER_SKILLS_ROOT"
+    --state "$INSTALL_STATE"
+    --core "$REPO_DIR/skills/core.txt"
+    --legacy-root "$LEGACY_INSTALL_ROOT"
+    --legacy-root "$LEGACY_PACK_ROOT"
+  )
+  for pack in $SELECTED_PACKS; do
+    install_args+=(--pack "$pack")
+  done
+}
+build_install_args
+# Check every destination before creating even the durable release directory.
+python3 "$REPO_DIR/scripts/framework-link-install.py" --preflight "${link_args[@]}" "${profile_args[@]}"
+python3 "$REPO_DIR/scripts/framework-install.py" --preflight "${install_args[@]}"
+if [[ " ${SOURCE_ARGS[*]} " != *" --development "* ]]; then
+  REPO_DIR="$(python3 "$REPO_DIR/scripts/framework-install-source.py" --root "$REPO_DIR" --materialize "$FRAMEWORK_CODEX_HOME/frameworks/releases")"
+  build_install_args
+fi
 python3 "$REPO_DIR/scripts/framework-install.py" "${install_args[@]}"
 
 python3 "$REPO_DIR/scripts/framework-link-install.py" "${link_args[@]}" "${profile_args[@]}"
