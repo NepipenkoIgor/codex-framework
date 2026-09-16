@@ -502,6 +502,17 @@
         ".codex/agents/reviewer.toml",
         "docs/native-capability-review.md"
       ]
+    },
+    {
+      "id": "delivery-fixture-native-permissions",
+      "nativeFeature": "Named permission profiles extending the native read-only profile with explicit filesystem roots",
+      "decision": "adopted",
+      "localOverlap": "Delivery evaluation used legacy workspace-write settings and ambient temporary-directory write roots, which did not provide an independently tested collector boundary.",
+      "action": "Use a task-scoped native profile for disposable evaluation only: fixture area writable, remaining filesystem read-only, command network disabled. The native macOS sandbox probe confirmed the permitted write and denied an adjacent collector write; do not claim equivalent OS enforcement on untested platforms.",
+      "evidence": [
+        "scripts/framework-delivery-behavior-eval.py",
+        "docs/runtime-efficiency.md"
+      ]
     }
   ]
 }

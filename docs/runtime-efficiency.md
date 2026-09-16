@@ -21,3 +21,5 @@ After all required checks for the final identity pass, use the authorized native
 ## Evidence levels
 
 Policy lint proves declared clauses and known textual contradictions, not native context isolation. Policy classification checks hypothetical decisions. Tool-enabled fixtures check actual traces plus independent filesystem/runtime outcomes. Product acceptance still requires the real target. Token structure success and behavioral warnings are separate: cached input is a subset of input, reasoning a subset of output, and parent/child counters cannot be summed without provenance. Report measured values rather than promises of savings.
+
+Delivery fixtures use an explicit native permission profile extending `:read-only`, with only their disposable fixture area writable and command network access disabled. Collector artifacts live outside that area. This is evaluator isolation, not a production permission override. A macOS native sandbox probe verified that the permitted write succeeds and the collector-side write is denied; portability of this enforcement remains subject to each native runtime.

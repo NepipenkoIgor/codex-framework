@@ -615,9 +615,11 @@ def run_case(case: str, source: Path, artifacts: Path, timeout: int) -> dict:
     with tempfile.TemporaryDirectory(prefix=f'delivery-{case}-') as temporary:
         area = Path(temporary).resolve()
         fixture = seed(area, source, case)
+        profile = ('permissions.framework_delivery={extends=":read-only",filesystem={'
+                   + json.dumps(str(area)) + '="write"},network={enabled=false}}')
         command = ['codex', '-a', 'never', 'exec', '--json', '--color', 'never',
-                   '--sandbox', 'workspace-write', '--disable', 'memories', '-c', 'sandbox_workspace_write.network_access=false',
-                   '-c', 'sandbox_workspace_write.exclude_tmpdir_env_var=true', '-c', 'sandbox_workspace_write.exclude_slash_tmp=true', '--cd', str(fixture['repo']), '--add-dir', str(area), prompt_for(area, case)]
+                   '--disable', 'memories', '-c', 'default_permissions="framework_delivery"',
+                   '-c', profile, '--cd', str(fixture['repo']), prompt_for(area, case)]
         started = time.time()
         try:
             with (output / 'events.jsonl').open('w') as stdout, (output / 'stderr.txt').open('w') as stderr:
