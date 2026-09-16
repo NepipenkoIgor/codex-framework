@@ -25,7 +25,7 @@
       }
     },
     "gateEvidence": {
-      "description": "nativeDeliveryBehavior records validation of a source-bound four-case summary; its command does not claim a new live execution.",
+      "description": "nativeDeliveryBehavior records a compact source/runtime-bound receipt issued only after raw native sessions and collector state are validated; per-case artifact hashes preserve that evidence integrity.",
       "type": "array",
       "minItems": 8,
       "maxItems": 8,

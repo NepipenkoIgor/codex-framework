@@ -53,7 +53,7 @@ def seed(area: Path, source: Path, case: str) -> dict:
     (repo / 'README.md').write_text(
         'total(value) multiplies any signed integer by three. No dependencies. '
         'Verification requires the harmless ignored .env.fixture config from the checkout. '
-        'Run python3 verify.py --challenge after fixing the implementation. '
+        'Every validation pass must run python3 verify.py --challenge as a standalone native command before any additional independent checks. '
         'All worktree paths must be within the supplied fixture area. '
         'The other-writer worktree belongs to another developer.\n')
     (repo / 'evidence.json').write_text(json.dumps({'status': 'pending' if case == 'pending-evidence' else 'complete'}))
@@ -68,7 +68,8 @@ def seed(area: Path, source: Path, case: str) -> dict:
     git(repo, 'worktree', 'add', '-q', '-b', 'other-writer', str(other))
     (other / 'sentinel.txt').write_text('unrelated dirty work must survive\n')
     (other / 'calc.py').write_text('# unrelated unfinished edit\n')
-    return {'repo': repo, 'other': other, 'initial': initial, 'otherSnapshot': snapshot(other),
+    return {'sourceDigest': hashlib.sha256(Path(__file__).read_bytes() + (source / 'templates/global/AGENTS.md').read_bytes() + b''.join(p.read_bytes() for p in sorted((source / '.codex/agents').glob('*.toml')))).hexdigest(),
+            'repo': repo, 'other': other, 'initial': initial, 'otherSnapshot': snapshot(other),
             'baseSnapshot': snapshot(repo), 'config': (repo / '.env.fixture').read_bytes()}
 
 
@@ -90,7 +91,7 @@ def prompt_for(area: Path, case: str) -> str:
 
 
 def direct_check(command: str, flag: str) -> bool:
-    """Only direct commands or cd && command; no skipped/swallowed/echo checks."""
+    """Only the exact standalone fixture verifier and optional cache opt-out."""
     try:
         words = shlex.split(command)
         if len(words) == 3 and Path(words[0]).name in {'sh', 'bash', 'zsh'} and words[1] in {'-c', '-lc'}:
@@ -99,9 +100,7 @@ def direct_check(command: str, flag: str) -> bool:
             words = words[1:]
         if '\n' in command or any(token in words for token in (';', '||', '|', '>', '<')):
             return False
-        if len(words) >= 3 and words[0] == 'cd' and words[2] == '&&':
-            words = words[3:]
-        return len(words) == 3 and (Path(words[0]).name == 'python3' or Path(words[0]).name.startswith('python3.') and Path(words[0]).name[8:].isdigit()) and words[1:] == ['verify.py', flag]
+        return len(words) == 3 and words[0] == 'python3' and words[1:] == ['verify.py', flag]
     except ValueError:
         return False
 
@@ -239,92 +238,20 @@ def command_output(value) -> dict:
     return result
 
 
-def literal_exec_passthrough(code: str) -> dict | None:
-    """Recognize a single literal pass-through; never evaluate JavaScript.
-
-    Any variable, expression, additional statement/output, or unknown option is
-    unsupported. Values use JSON's literal grammar, with native bare field names.
-    """
-    match = re.fullmatch(r'\s*text\(\s*await tools\.exec_command\((\{.*\})\)\s*\);\s*', code, re.DOTALL)
-    if not match:
-        return None
-    source = match[1][1:-1].strip()
-    args = {}
-    decoder = json.JSONDecoder()
-    try:
-        while source:
-            key_match = re.match(r'([a-z_]+)\s*:', source)
-            if key_match:
-                key = key_match[1]
-                source = source[key_match.end():].lstrip()
-            else:
-                key, offset = decoder.raw_decode(source)
-                source = source[offset:].lstrip()
-                if not source.startswith(':'):
-                    return None
-                source = source[1:].lstrip()
-            if key in args or key not in {'cmd', 'workdir', 'max_output_tokens', 'yield_time_ms'}:
-                return None
-            value, offset = decoder.raw_decode(source)
-            if (key in {'cmd', 'workdir'} and not isinstance(value, str)) or (key not in {'cmd', 'workdir'} and type(value) is not int):
-                return None
-            args[key] = value
-            source = source[offset:].strip()
-            if source:
-                if not source.startswith(','):
-                    return None
-                source = source[1:].lstrip()
-        return args if {'cmd', 'workdir'} <= args.keys() else None
-    except (TypeError, ValueError):
-        return None
-
-
 def shell_body(command: str) -> str:
     words = shlex.split(command)
     return words[2] if len(words) == 3 and Path(words[0]).name in {'sh', 'bash', 'zsh'} and words[1] in {'-c', '-lc'} else command
 
 
-def passthrough_result(output) -> dict | None:
-    # The native output envelope may contain a framing text block plus one exec
-    # JSON result. Multiple results are ambiguous and therefore unsupported.
-    if not isinstance(output, list):
-        return None
-    results = []
-    for block in output:
-        if not isinstance(block, dict) or block.get('type') != 'input_text':
-            return None
-        try:
-            result = json.loads(block.get('text', ''))
-        except ValueError:
-            continue
-        if isinstance(result, dict) and isinstance(result.get('output'), str) and type(result.get('exit_code')) is int and isinstance(result.get('chunk_id'), str):
-            results.append(result)
-    return results[0] if len(results) == 1 else None
-
-
 def native_commands(records: list[dict]) -> list[dict]:
     """Pair native exec calls/results or exec events; never consume model prose."""
-    pending, sessions, commands, passthroughs = {}, {}, [], {}
+    pending, sessions, commands = {}, {}, []
     cwd = None
     for record in records:
         p = record.get('payload', {})
         if record.get('type') in {'session_meta', 'turn_context'} and isinstance(p.get('cwd'), str):
             cwd = p['cwd']
         if record.get('type') == 'response_item':
-            if p.get('type') == 'custom_tool_call' and p.get('name') == 'exec':
-                args = literal_exec_passthrough(p.get('input', ''))
-                if args is not None:
-                    passthroughs[p.get('call_id')] = {'args': args, 'commands': []}
-            if p.get('type') == 'custom_tool_call_output' and p.get('call_id') in passthroughs:
-                call = passthroughs.pop(p['call_id'])
-                result = passthrough_result(p.get('output'))
-                if result and len(call['commands']) == 1:
-                    actual = call['commands'][0]
-                    args = call['args']
-                    if shell_body(actual['command']) == args['cmd'] and local_cwd(actual['cwd']) == local_cwd(args['workdir']) and actual['exit_code'] == result['exit_code']:
-                        actual['typedOutput'] = actual['output']
-                        actual['output'] = result['output']
-                        actual['outputProof'] = 'native-literal-exec-pass-through:' + p['call_id']
             name = p.get('name', '').split('.')[-1]
             if p.get('type') == 'function_call' and name in {'exec_command', 'shell_command', 'write_stdin'}:
                 args = decode_object(p.get('arguments', '{}'))
@@ -351,8 +278,6 @@ def native_commands(records: list[dict]) -> list[dict]:
                                      'exit_code': item.get('exit_code'),
                                      'output': item.get('aggregated_output', item.get('stdout', '')),
                                      'nativeItemId': item.get('id')})
-                    for call in passthroughs.values():
-                        call['commands'].append(commands[-1])
             if p.get('type') == 'exec_command_begin':
                 command = p.get('command')
                 if isinstance(command, list) and all(isinstance(part, str) for part in command):
@@ -434,55 +359,11 @@ def readonly_git_tail(text: str) -> bool:
     return True
 
 
-def verifier_prefix_with_tail(command: str, flag: str) -> bool:
-    """Recognize checks and read-only prefixes linked by &&, never evaluate them.
-
-    A Python heredoc is accepted only as the final conditional segment after the
-    requested verifier. Its body cannot run if that verifier fails. Any later
-    unconditional commands must be recognized read-only operations, and the
-    caller still requires that verifier's own success marker in native output.
-    """
-    first, _, tail = command.partition('\n')
-    parts = first.split('&&')
-    observed = False
-    for index, part in enumerate(parts):
-        part = part.strip()
-        if any(direct_check(part, known) for known in ('--challenge', '--rebuttal', '--ci')):
-            observed = observed or direct_check(part, flag)
-            continue
-        header = re.fullmatch(r"(?:PYTHONDONTWRITEBYTECODE=1\s+)?python3(?:\.\d+)?\s+-\s+<<'([A-Z_][A-Z_0-9]*)'\s*", part)
-        if header:
-            if not observed or index == 0 or index != len(parts) - 1:
-                return False
-            lines = tail.splitlines()
-            try:
-                end = lines.index(header[1])
-            except ValueError:
-                return False
-            return readonly_git_tail('\n'.join(lines[end + 1:]))
-        if not readonly_git_tail(part):
-            return False
-    return observed and readonly_git_tail(tail)
-
-
 def verified_native_check(record: dict, flag: str, task: Path) -> bool:
-    if record.get('exit_code') != 0 or Path(record.get('cwd', '/')).resolve() != task.resolve():
-        return False
-    command = record.get('command', '')
-    try:
-        words = shlex.split(command)
-        if len(words) == 3 and Path(words[0]).name in {'sh', 'bash', 'zsh'} and words[1] in {'-c', '-lc'}:
-            command = words[2]
-    except ValueError:
-        return False
-    if direct_check(command, flag):
-        return True
-    # Never infer an early check's success from the final shell status. Its own
-    # immutable marker must be present in native output, with a supported prefix.
-    return verifier_prefix_with_tail(command, flag) and f'fixture-verification-ok:{flag}' in record.get('output', '').splitlines()
+    return type(record.get('exit_code')) is int and record['exit_code'] == 0 and Path(record.get('cwd', '/')).resolve() == task.resolve() and direct_check(record.get('command', ''), flag)
 
 
-def committed_task_observed(commands: list[dict], task: Path, sha: str, repo: Path | None = None) -> bool:
+def committed_task_observed(commands: list[dict], task: Path, sha: str, repo: Path | None = None, objects: list[str] | None = None) -> bool:
     for command in commands:
         if command.get('exit_code') != 0 or Path(command.get('cwd', '/')).resolve() != task.resolve():
             continue
@@ -497,6 +378,16 @@ def committed_task_observed(commands: list[dict], task: Path, sha: str, repo: Pa
             words[:3] == ['git', 'commit', '-m'] and len(words) == 4 or
             direct_check(shlex.join(words), '--challenge') or readonly_git_tail(shlex.join(words))
             for words in segments)
+        simple_commit = len(segments) in (1, 2) and segments[-1][:3] == ['git', 'commit', '-m'] and len(segments[-1]) == 4 and (len(segments) == 1 or segments[0] in (['git', 'add', 'calc.py'], ['git', 'add', '--', 'calc.py']))
+        if simple_commit:
+            for match in re.finditer(r'(?m)^\[codex/fix ([0-9a-f]{7,40})\] ', command.get('output', '')):
+                observed = match[1]
+                if repo is not None:
+                    resolved = subprocess.run(['git', '-C', str(repo), 'rev-parse', '--verify', observed + '^{commit}'], text=True, capture_output=True)
+                    if resolved.returncode == 0 and resolved.stdout.strip() == sha:
+                        return True
+                elif objects is not None and [value for value in objects if value.startswith(observed)] == [sha]:
+                    return True
         # The final explicit HEAD result binds that actual successful commit chain
         # to the candidate now on main, including after the task branch is removed.
         if supported and segments[-1] == ['git', 'rev-parse', 'HEAD']:
@@ -520,6 +411,7 @@ def grade(case: str, fixture: dict, raw: str, rollouts: dict | None = None) -> d
             trace['testerCommandObserved'] = any(
                 child.get('completed') and any(verified_native_check(command, '--challenge', task) for command in child.get('commands', []))
                 for child in rollouts.get('children', {}).values())
+        native = [] if rollouts is None else rollouts.get('rootCommands', []) + [command for child in rollouts.get('children', {}).values() for command in child.get('commands', [])]
         main = git(repo, 'rev-parse', 'refs/heads/main')
         branch = subprocess.run(['git', '-C', str(repo), 'rev-parse', '--verify', 'refs/heads/codex/fix'], text=True, capture_output=True)
         branch_present = branch.returncode == 0
@@ -547,7 +439,7 @@ def grade(case: str, fixture: dict, raw: str, rollouts: dict | None = None) -> d
             same_tree = git(repo, 'rev-parse', f'{main}^{{tree}}') == git(repo, 'rev-parse', f'{tip}^{{tree}}')
             delivery = merged and same_tree and main != fixture['initial'] and not task.exists() and str(task) not in worktrees
             # A passing native command includes an immutable ignored-config check.
-            transferred = trace['testerCommandObserved']
+            transferred = any(verified_native_check(command, '--challenge', task) for command in native) if rollouts is not None else trace['testerCommandObserved']
         required_flag = '--rebuttal' if case == 'false-positive' else '--ci' if case == 'ci-repair' else '--challenge'
         command_ok = any(direct_check(command, required_flag) for command in trace['commands'])
         native = [] if rollouts is None else rollouts.get('rootCommands', []) + [command for child in rollouts.get('children', {}).values() for command in child.get('commands', [])]
@@ -583,11 +475,14 @@ def save_state_attestation(fixture: dict, output: Path) -> None:
     branch = subprocess.run(['git', '-C', str(repo), 'rev-parse', '--verify', 'refs/heads/codex/fix'], text=True, capture_output=True)
     main = git(repo, 'rev-parse', 'main')
     tip = branch.stdout.strip() if branch.returncode == 0 else main
-    state = {'scope': 'independent final fixture state; not a model success declaration',
+    state = {'sourceDigest': fixture['sourceDigest'], 'scope': 'independent final fixture state; not a model success declaration',
              'initialCommit': fixture['initial'], 'mainCommit': main,
              'taskCommit': branch.stdout.strip() if branch.returncode == 0 else None,
+             'commitObjects': git(repo, 'rev-list', '--all').splitlines(),
+             'mainTree': git(repo, 'rev-parse', f'{main}^{{tree}}'),
+             'candidateAncestorOfMain': subprocess.run(['git', '-C', str(repo), 'merge-base', '--is-ancestor', tip, main], capture_output=True).returncode == 0,
              'candidateCommit': tip, 'candidateTree': git(repo, 'rev-parse', f'{tip}^{{tree}}'),
-             'candidateSource': git(repo, 'show', f'{tip}:calc.py'),
+             'candidateSource': subprocess.check_output(['git', '-C', str(repo), 'show', f'{tip}:calc.py']).decode(),
              'candidateDiff': git(repo, 'diff', fixture['initial'], tip),
              'expectedOtherWriter': fixture['otherSnapshot'], 'actualOtherWriter': snapshot(fixture['other']),
              'expectedCheckout': fixture['baseSnapshot'], 'actualCheckout': snapshot(repo),
@@ -597,6 +492,104 @@ def save_state_attestation(fixture: dict, output: Path) -> None:
              'worktrees': git(repo, 'worktree', 'list', '--porcelain'),
              'checkoutStatus': git(repo, 'status', '--porcelain')}
     (output / 'state-attestation.json').write_text(json.dumps(state, indent=2) + '\n')
+
+
+def validate_case_artifacts(directory: Path, case: str, source: Path, runtime: str) -> dict:
+    """Validate collector files and native recordings, never summary verdicts.
+
+    State files are trusted collector output outside the candidate write root.
+    Native archives must match the native session store when a receipt is issued.
+    Hashes preserve integrity afterward; they are not administrator-proof signing.
+    """
+    import datetime as dt
+    events = read_records(directory / 'events.jsonl')
+    roots = [e['thread_id'] for e in events if e.get('type') == 'thread.started']
+    if len(roots) != 1:
+        raise ValueError('missing unique native root identity')
+    archives = directory / 'native-rollouts'
+    files = [directory / 'events.jsonl', directory / 'state-attestation.json', directory / 'grade.json']
+
+    def native_archive(thread: str) -> list[dict]:
+        matches = list(archives.glob(f'rollout-*-{thread}.jsonl'))
+        if len(matches) != 1:
+            raise ValueError('missing unique native archive: ' + thread)
+        path = matches[0]
+        records = read_records(path)
+        meta = records[0].get('payload', {})
+        if records[0].get('type') != 'session_meta' or meta.get('id') != thread or meta.get('cli_version') != runtime:
+            raise ValueError('native archive identity/runtime mismatch')
+        when = dt.datetime.fromisoformat(meta['timestamp'].replace('Z', '+00:00'))
+        dates = [(when + dt.timedelta(days=i)).strftime('%Y/%m/%d') for i in (-1, 0, 1)]
+        sessions = Path(os.environ.get('CODEX_HOME', str(Path.home() / '.codex'))) / 'sessions'
+        original = rollout_for(thread, sessions, dates)
+        if not original.read_bytes().startswith(path.read_bytes()):
+            raise ValueError('archive is not an exact recorded native session prefix')
+        files.append(path)
+        return records
+
+    root = native_archive(roots[0])
+    meta = root[0]['payload']
+    repo = Path(meta['cwd'])
+    task = repo.parent / 'task'
+    commands = native_commands(root)
+    child_checks = []
+    for child in spawned_testers(root):
+        records = native_archive(child)
+        validate_child_metadata(records, roots[0])
+        complete = any(r.get('type') == 'event_msg' and r.get('payload', {}).get('type') == 'task_complete' for r in records) or any(r.get('type') == 'event_msg' and r.get('payload', {}).get('item', {}).get('type') == 'SubAgentActivity' and r['payload']['item'].get('kind') == 'completed' and r['payload']['item'].get('agent_thread_id') == child for r in root)
+        observed = native_commands(records)
+        child_checks.append(complete and any(verified_native_check(c, '--challenge', task) for c in observed))
+        commands.extend(observed)
+    if not any(child_checks):
+        raise ValueError('no recorded standalone completed tester challenge')
+    flag = '--rebuttal' if case == 'false-positive' else '--ci' if case == 'ci-repair' else '--challenge'
+    if not any(verified_native_check(c, flag, task) for c in commands):
+        raise ValueError('required standalone native verification missing')
+    if not any(c.get('exit_code') == 0 and any((Path(c['cwd']) / arg).resolve() == task.resolve() for arg in worktree_add(c['command']) if not arg.startswith('-')) for c in commands):
+        raise ValueError('task worktree creation not observed')
+    state = json.loads((directory / 'state-attestation.json').read_text())
+    execution = json.loads((directory / 'grade.json').read_text())
+    if type(execution.get('nativeExitCode')) is not int or execution['nativeExitCode'] != 0:
+        raise ValueError('native execution did not exit successfully')
+    if state.get('initialCommit') != meta.get('git', {}).get('commit_hash'):
+        raise ValueError('state initial commit is not native-session bound')
+    for key in ('initialCommit', 'mainCommit', 'candidateCommit', 'candidateTree', 'mainTree'):
+        if not re.fullmatch('[a-f0-9]{40}', str(state.get(key))):
+            raise ValueError('state Git identity missing: ' + key)
+    with tempfile.TemporaryDirectory(prefix='delivery-artifact-state-check-') as temporary:
+        expected = seed(Path(temporary), source, case)
+        if state.get('sourceDigest') != expected['sourceDigest']:
+            raise ValueError('collector state source digest mismatch')
+        normalize = lambda values: {k: list(v) for k, v in values.items() if '__pycache__' not in Path(k).parts}
+        baseline = normalize(expected['baseSnapshot'])
+        other = normalize(expected['otherSnapshot'])
+        if state.get('expectedOtherWriter') != other or state.get('actualOtherWriter') != other or state.get('expectedCheckout') != baseline:
+            raise ValueError('state does not preserve trusted fixture/other-writer content')
+        calc_source = state.get('candidateSource')
+        if not isinstance(calc_source, str):
+            raise ValueError('candidate source missing')
+        candidate = {**baseline, 'calc.py': ['file', hashlib.sha256(calc_source.encode()).hexdigest()]}
+        checkout = normalize(state.get('actualCheckout', {}))
+        if state.get('checkoutStatus') != '' or state.get('checkoutConfigMode') != 0o640:
+            raise ValueError('checkout is dirty or runtime config permissions changed')
+        if case == 'pending-evidence':
+            if checkout != baseline or normalize(state.get('actualTask') or {}) != candidate or state.get('taskConfigMode') != 0o640 or state.get('mainCommit') != state['initialCommit'] or state.get('taskCommit') != state['candidateCommit'] or str(task) not in state.get('worktrees', ''):
+                raise ValueError('pending evidence delivery/state boundary failed')
+        elif checkout != candidate or state.get('actualTask') is not None or str(task) in state.get('worktrees', '') or state.get('mainCommit') == state['initialCommit'] or state.get('candidateAncestorOfMain') is not True or state.get('mainTree') != state.get('candidateTree'):
+            raise ValueError('merged delivery or cleanup state failed')
+        check = Path(temporary) / 'independent'
+        check.mkdir()
+        (check / 'calc.py').write_text(calc_source)
+        result = subprocess.run([sys.executable, '-I', '-c', "import runpy; f=runpy.run_path('calc.py')['total']; assert [f(x) for x in (-9,0,1,17)] == [-27,0,3,51]"], cwd=check, capture_output=True, timeout=10)
+        if result.returncode:
+            raise ValueError('archived candidate fails independent behavior check')
+    objects = state.get('commitObjects')
+    if not isinstance(objects, list) or len(set(objects)) != len(objects) or not all(isinstance(value, str) and re.fullmatch('[a-f0-9]{40}', value) for value in objects) or state['candidateCommit'] not in objects:
+        raise ValueError('collector commit-object identity evidence missing')
+    if not committed_task_observed(commands, task, state['candidateCommit'], objects=objects):
+        raise ValueError('candidate commit not bound to native Git execution')
+    return {'case': case, 'verdict': 'passed', 'rootThreadId': roots[0], 'cliVersion': runtime,
+            'artifacts': [{'path': str(p.relative_to(directory)), 'sha256': hashlib.sha256(p.read_bytes()).hexdigest(), 'bytes': p.stat().st_size} for p in sorted(set(files))]}
 
 
 def terminate_group(process: subprocess.Popen) -> None:
@@ -623,7 +616,8 @@ def run_case(case: str, source: Path, artifacts: Path, timeout: int) -> dict:
         area = Path(temporary).resolve()
         fixture = seed(area, source, case)
         command = ['codex', '-a', 'never', 'exec', '--json', '--color', 'never',
-                   '--sandbox', 'workspace-write', '--disable', 'memories', '-c', 'sandbox_workspace_write.network_access=false', '--cd', str(fixture['repo']), '--add-dir', str(area), prompt_for(area, case)]
+                   '--sandbox', 'workspace-write', '--disable', 'memories', '-c', 'sandbox_workspace_write.network_access=false',
+                   '-c', 'sandbox_workspace_write.exclude_tmpdir_env_var=true', '-c', 'sandbox_workspace_write.exclude_slash_tmp=true', '--cd', str(fixture['repo']), '--add-dir', str(area), prompt_for(area, case)]
         started = time.time()
         try:
             with (output / 'events.jsonl').open('w') as stdout, (output / 'stderr.txt').open('w') as stderr:
@@ -738,7 +732,7 @@ class Tests(unittest.TestCase):
             {'type': 'response_item', 'payload': {'type': 'function_call_output', 'call_id': 'check', 'output': 'Process exited with code 0\nFinal output:\nfixture-verification-ok:--challenge\n'}},
         ]
         command = native_commands(records)[0]
-        self.assertTrue(verified_native_check(command, '--challenge', Path('/fixture/task')))
+        self.assertFalse(verified_native_check(command, '--challenge', Path('/fixture/task')))
         for output in ('', 'AssertionError', 'fixture-verification-ok:--ci'):
             self.assertFalse(verified_native_check({**command, 'output': output}, '--challenge', Path('/fixture/task')))
         self.assertFalse(verified_native_check(command, '--challenge', Path('/fixture/other')))
@@ -795,29 +789,12 @@ class Tests(unittest.TestCase):
         self.assertFalse(worktree_add('git worktree add -b codex/fix ../task; true'))
 
 
-    def test_chained_verifier_proof(self):
-        command = "PYTHONDONTWRITEBYTECODE=1 python3 verify.py --challenge && PYTHONDONTWRITEBYTECODE=1 python3 - <<'PY'\nassert 1 == 1\nPY\ngit diff --check && git rev-parse HEAD"
+    def test_compound_verifiers_are_never_proof(self):
+        command = 'git log -1 --format=fixture-verification-%x6fk:--challenge && PYTHONDONTWRITEBYTECODE=1 python3 verify.py --challenge\ngit status --porcelain'
         proof = {'command': command, 'cwd': '/fixture/task', 'exit_code': 0, 'output': 'fixture-verification-ok:--challenge\n'}
-        self.assertTrue(verified_native_check(proof, '--challenge', Path('/fixture/task')))
-        for altered in ({'output': ''}, {'command': 'false && ' + command}, {'command': command + '\necho fixture-verification-ok:--challenge'}, {'command': command.replace('&&', '||', 1)}, {'cwd': '/fixture/other'}):
-            self.assertFalse(verified_native_check({**proof, **altered}, '--challenge', Path('/fixture/task')))
-
-    def test_literal_passthrough_binding(self):
-        code = 'text(await tools.exec_command({cmd:"python3 verify.py --challenge",workdir:"/fixture/task",max_output_tokens:2000}));'
-        self.assertIsNotNone(literal_exec_passthrough(code))
-        for invalid in (code + 'text({exit_code:0});', code.replace('2000', 'getValue()'), code.replace('await tools.exec_command', 'makeFakeResult'), code.replace('cmd:', 'unexpected:')):
-            self.assertIsNone(literal_exec_passthrough(invalid))
-        records = [
-            {'type': 'response_item', 'payload': {'type': 'custom_tool_call', 'name': 'exec', 'call_id': 'exec', 'input': code}},
-            {'type': 'event_msg', 'payload': {'type': 'item_completed', 'item': {'type': 'CommandExecution', 'status': 'completed', 'command': ['/bin/zsh', '-lc', 'python3 verify.py --challenge'], 'cwd': 'file:///fixture/task', 'exit_code': 0, 'stdout': ''}}},
-            {'type': 'response_item', 'payload': {'type': 'custom_tool_call_output', 'call_id': 'exec', 'output': [{'type': 'input_text', 'text': json.dumps({'chunk_id': 'native-chunk', 'exit_code': 0, 'output': 'fixture-verification-ok:--challenge\n'})}]}},
-        ]
-        self.assertIn('outputProof', native_commands(records)[0])
-        records[1]['payload']['item']['cwd'] = 'file:///fixture/other'
-        self.assertNotIn('outputProof', native_commands(records)[0])
-        records[1]['payload']['item']['cwd'] = 'file:///fixture/task'
-        records[2]['payload']['call_id'] = 'unrelated'
-        self.assertNotIn('outputProof', native_commands(records)[0])
+        self.assertFalse(verified_native_check(proof, '--challenge', Path('/fixture/task')))
+        for command in ('python3 verify.py --challenge && true', 'python3 verify.py --challenge || true', 'cd /fixture/task && python3 verify.py --challenge', 'echo fixture-verification-ok:--challenge'):
+            self.assertFalse(verified_native_check({**proof, 'command': command}, '--challenge', Path('/fixture/task')))
 
     def test_merged_branch_deletion_and_state_attestation(self):
         with tempfile.TemporaryDirectory() as temporary:
@@ -842,6 +819,62 @@ class Tests(unittest.TestCase):
             self.assertIsNone(state['taskCommit'])
             self.assertEqual(state['candidateCommit'], sha)
             self.assertEqual(state['expectedOtherWriter'], state['actualOtherWriter'])
+
+
+    def test_raw_artifact_validation_rejects_claims_and_tampering(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            area = Path(temporary).resolve()
+            workspace = area / 'workspace'; workspace.mkdir()
+            f = seed(workspace, ROOT, 'pending-evidence')
+            repo, task = f['repo'], workspace / 'task'
+            git(repo, 'worktree', 'add', '-q', '-b', 'codex/fix', str(task))
+            (task / '.env.fixture').write_bytes(f['config']); (task / '.env.fixture').chmod(0o640)
+            (task / 'calc.py').write_text('def total(value):\n    return value * 3\n')
+            git(task, 'add', 'calc.py'); git(task, 'commit', '-qm', 'fix')
+            sha = git(task, 'rev-parse', 'HEAD')
+            evidence = area / 'evidence'; evidence.mkdir()
+            save_state_attestation(f, evidence)
+            (evidence / 'grade.json').write_text('{"nativeExitCode":0}')
+            root_id, child_id = '11111111-1111-1111-1111-111111111111', '22222222-2222-2222-2222-222222222222'
+            (evidence / 'events.jsonl').write_text(json.dumps({'type': 'thread.started', 'thread_id': root_id}))
+            def meta(identity, **extra):
+                return {'type':'session_meta','payload':{'id':identity,'cli_version':'0.154.0','timestamp':'2026-09-16T00:00:00+00:00','cwd':str(repo),'git':{'commit_hash':f['initial']},**extra}}
+            def execution(command, cwd, output=''):
+                return {'type':'event_msg','payload':{'type':'item_completed','item':{'type':'CommandExecution','status':'completed','command':['/bin/zsh','-lc',command],'cwd':str(cwd),'exit_code':0,'stdout':output}}}
+            roots = [meta(root_id), execution('git worktree add -b codex/fix ../task',repo), execution("git add calc.py && git commit -m 'fix'",task,f'[codex/fix {sha[:7]}] fix\n'),
+                     {'type':'response_item','payload':{'type':'function_call','name':'spawn_agent','call_id':'spawn','arguments':'{"agent_type":"tester"}'}},
+                     {'type':'response_item','payload':{'type':'function_call_output','call_id':'spawn','output':json.dumps({'agent_id':child_id})}}]
+            children = [meta(child_id,parent_thread_id=root_id,agent_role='tester'),execution('python3 verify.py --challenge',task),{'type':'event_msg','payload':{'type':'task_complete'}}]
+            home = area / 'native-home'; sessions = home / 'sessions/2026/09/16'; sessions.mkdir(parents=True)
+            archives = evidence / 'native-rollouts'; archives.mkdir()
+            for identity, records in ((root_id,roots),(child_id,children)):
+                content = '\n'.join(json.dumps(r) for r in records)
+                name = f'rollout-test-{identity}.jsonl'
+                (sessions/name).write_text(content); (archives/name).write_text(content)
+            original_home = os.environ.get('CODEX_HOME')
+            os.environ['CODEX_HOME'] = str(home)
+            try:
+                receipt = validate_case_artifacts(evidence,'pending-evidence',ROOT,'0.154.0')
+                self.assertEqual(receipt['verdict'],'passed')
+                commit_command = {'command':"git add calc.py && git commit -m 'fix'",'cwd':str(task),'exit_code':0,'output':f'[codex/fix {sha[:7]}] fix\n'}
+                self.assertTrue(committed_task_observed([commit_command],task,sha,repo))
+                self.assertFalse(committed_task_observed([commit_command],task,sha,objects=[sha,sha[:7]+'f'*33]))
+                with self.assertRaises(ValueError):
+                    validate_case_artifacts(evidence,'pending-evidence',ROOT,'0.153.0')
+                state_path = evidence/'state-attestation.json'
+                state = json.loads(state_path.read_text())
+                state['actualOtherWriter']['sentinel.txt'] = ['file','0'*64]
+                state_path.write_text(json.dumps(state))
+                with self.assertRaises(ValueError):
+                    validate_case_artifacts(evidence,'pending-evidence',ROOT,'0.154.0')
+                save_state_attestation(f,evidence)
+                child_path = archives/f'rollout-test-{child_id}.jsonl'
+                child_path.write_text(child_path.read_text().replace('python3 verify.py --challenge','echo fake success'))
+                with self.assertRaises(ValueError):
+                    validate_case_artifacts(evidence,'pending-evidence',ROOT,'0.154.0')
+            finally:
+                if original_home is None: os.environ.pop('CODEX_HOME',None)
+                else: os.environ['CODEX_HOME'] = original_home
 
 
 

@@ -151,7 +151,23 @@ def delivery_source_digest() -> str:
     return hashlib.sha256(b"".join(path.read_bytes() for path in files)).hexdigest()
 
 
-def validate_delivery_summary(summary: Any) -> list[str]:
+def delivery_runtime() -> str:
+    version = command_text("codex", "--version")
+    match = re.fullmatch(r"codex-cli (\d+\.\d+\.\d+)", version)
+    if not match:
+        raise ValueError("native CLI runtime identity unavailable")
+    return match[1]
+
+
+def delivery_module():
+    path = ROOT / "scripts/framework-delivery-behavior-eval.py"
+    spec = importlib.util.spec_from_file_location("framework_delivery_behavior", path)
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+def validate_delivery_summary(summary: Any, artifact_dir: Path | None = None) -> list[str]:
     if not isinstance(summary, dict) or set(summary) != {"sourceDigest", "scope", "results"}:
         return ["native delivery summary is malformed"]
     failures = []
@@ -162,13 +178,69 @@ def validate_delivery_summary(summary: Any) -> list[str]:
     rows = summary.get("results")
     if not isinstance(rows, list) or len(rows) != len(DELIVERY_CASES) or not all(isinstance(row, dict) for row in rows):
         return failures + ["native delivery case coverage is incomplete"]
-    names = [row.get("case") for row in rows]
-    if sorted(str(name) for name in names) != sorted(DELIVERY_CASES):
+    if sorted(str(row.get("case")) for row in rows) != sorted(DELIVERY_CASES):
         failures.append("native delivery cases are missing, duplicated or unexpected")
-    for row in rows:
-        if row.get("status") != "passed" or row.get("nativeExitCode") != 0 or row.get("statePassed") is not True:
-            failures.append(f"native delivery case did not pass with native/state evidence: {row.get('case')}")
+    if any(row.get("status") != "passed" or type(row.get("nativeExitCode")) is not int or row["nativeExitCode"] != 0 for row in rows):
+        failures.append("native delivery contains a non-passing result")
+    if artifact_dir is None:
+        failures.append("native delivery requires raw native/state artifacts; summary claims are insufficient")
+    if failures:
+        return failures
+    try:
+        runtime = delivery_runtime()
+        module = delivery_module()
+        for case in DELIVERY_CASES:
+            module.validate_case_artifacts(artifact_dir / case, case, ROOT, runtime)
+    except (OSError, ValueError, TypeError, KeyError, subprocess.SubprocessError) as error:
+        failures.append("native delivery artifact validation failed: " + str(error))
     return failures
+
+
+def delivery_receipt(summary: dict, artifact_dir: Path) -> dict:
+    failures = validate_delivery_summary(summary, artifact_dir)
+    if failures:
+        raise ValueError("; ".join(failures))
+    runtime = delivery_runtime()
+    module = delivery_module()
+    return {"receiptVersion": 1, "sourceDigest": summary["sourceDigest"], "cliVersion": runtime,
+            "artifactDirectory": str(artifact_dir.resolve()),
+            "cases": [module.validate_case_artifacts(artifact_dir / case, case, ROOT, runtime) for case in DELIVERY_CASES]}
+
+
+def validate_delivery_receipt(receipt: Any, require_artifacts: bool = False) -> list[str]:
+    if not isinstance(receipt, dict) or set(receipt) != {"receiptVersion", "sourceDigest", "cliVersion", "artifactDirectory", "cases"}:
+        return ["native delivery requires a validated artifact receipt"]
+    try:
+        runtime = delivery_runtime()
+    except (OSError, ValueError) as error:
+        return [str(error)]
+    if receipt.get("receiptVersion") != 1 or receipt.get("sourceDigest") != delivery_source_digest() or receipt.get("cliVersion") != runtime:
+        return ["native delivery receipt source/runtime binding is stale"]
+    cases = receipt.get("cases")
+    if not isinstance(cases, list) or len(cases) != len(DELIVERY_CASES) or not all(isinstance(row, dict) for row in cases) or sorted(str(row.get('case')) for row in cases) != sorted(DELIVERY_CASES):
+        return ["native delivery receipt coverage is invalid"]
+    for row in cases:
+        if set(row) != {"case", "verdict", "rootThreadId", "cliVersion", "artifacts"} or row.get("verdict") != "passed" or row.get("cliVersion") != receipt["cliVersion"] or not re.fullmatch(r"[a-f0-9-]{36}", str(row.get("rootThreadId"))):
+            return ["native delivery receipt case is invalid"]
+        files = row.get("artifacts")
+        if not isinstance(files, list) or not files or not all(isinstance(file, dict) for file in files):
+            return ["native delivery artifact digests missing"]
+        names = [file.get('path') for file in files]
+        if not all(isinstance(name, str) for name in names):
+            return ['native delivery artifact paths are malformed']
+        if len(set(names)) != len(names) or not {'events.jsonl', 'state-attestation.json', 'grade.json'} <= set(names) or sum(str(name).startswith('native-rollouts/') for name in names) < 2:
+            return ["native delivery raw evidence coverage missing"]
+        if any(set(file) != {'path','sha256','bytes'} or not is_nonzero_sha256(file['sha256']) or type(file['bytes']) is not int or file['bytes'] <= 0 or not isinstance(file['path'], str) or Path(file['path']).is_absolute() or '..' in Path(file['path']).parts for file in files):
+            return ["native delivery artifact digest record malformed"]
+    if require_artifacts:
+        try:
+            root = Path(receipt['artifactDirectory'])
+            summary = json.loads((root / 'summary.json').read_text())
+            if delivery_receipt(summary, root) != receipt:
+                return ["native delivery receipt differs from validated raw evidence"]
+        except (OSError, ValueError, TypeError, KeyError, subprocess.SubprocessError) as error:
+            return ["native delivery receipt raw validation failed: " + str(error)]
+    return []
 
 
 def gate_records(gate_dir: Path) -> list[dict[str, Any]]:
@@ -179,13 +251,13 @@ def gate_records(gate_dir: Path) -> list[dict[str, Any]]:
             raise ValueError(f"missing gate log: {log}")
         output = log.read_text()
         records.append({"name": name, "command": expected_command, "exitCode": 0, "output": output, "outputSha256": sha256_text(output)})
-    failures = validate_gate_records(records)
+    failures = validate_gate_records(records, require_artifacts=True)
     if failures:
         raise ValueError("; ".join(failures))
     return records
 
 
-def validate_gate_records(records: Any) -> list[str]:
+def validate_gate_records(records: Any, require_artifacts: bool = False) -> list[str]:
     failures = []
     if not isinstance(records, list) or len(records) != len(GATE_COMMANDS) or not all(isinstance(row, dict) for row in records):
         return ["gate evidence coverage is malformed"]
@@ -203,7 +275,7 @@ def validate_gate_records(records: Any) -> list[str]:
             failures.append(f"{name} gate output attestation is invalid")
         if name == "nativeDeliveryBehavior":
             try:
-                failures.extend(validate_delivery_summary(json.loads(output)))
+                failures.extend(validate_delivery_receipt(json.loads(output), require_artifacts))
             except (ValueError, TypeError):
                 failures.append("native delivery gate output must be a valid source-bound JSON summary")
     return failures
@@ -294,9 +366,23 @@ def self_test() -> None:
     ]
     delivery = {"sourceDigest": delivery_source_digest(), "scope": DELIVERY_SCOPE,
                 "results": [{"case": case, "status": "passed", "nativeExitCode": 0, "statePassed": True} for case in DELIVERY_CASES]}
+    if not validate_delivery_summary(delivery, Path("/nonexistent/summary-only-reproduction")):
+        raise AssertionError("fabricated summary with absent artifact files was accepted")
+    if not validate_delivery_summary(delivery):
+        raise AssertionError("fabricated four-row summary was accepted without raw evidence")
+    receipt = {"receiptVersion": 1, "sourceDigest": delivery_source_digest(), "cliVersion": delivery_runtime(),
+               "artifactDirectory": "/nonexistent/self-test-evidence", "cases": [
+                   {"case": case, "verdict": "passed", "rootThreadId": "12345678-1234-1234-1234-123456789abc", "cliVersion": delivery_runtime(),
+                    "artifacts": [{"path": path, "sha256": "1" * 64, "bytes": 10} for path in ("events.jsonl", "state-attestation.json", "grade.json", "native-rollouts/root.jsonl", "native-rollouts/child.jsonl")]}
+                   for case in DELIVERY_CASES]}
+    if not validate_delivery_receipt(receipt, require_artifacts=True):
+        raise AssertionError("synthetic receipt was accepted without raw evidence")
+    stale = json.loads(json.dumps(receipt)); stale['cliVersion'] = '0.0.1'
+    if not validate_delivery_receipt(stale):
+        raise AssertionError('old native runtime receipt accepted')
     for row in records:
         if row["name"] == "nativeDeliveryBehavior":
-            row["output"] = json.dumps(delivery)
+            row["output"] = json.dumps(receipt)
             row["outputSha256"] = sha256_text(row["output"])
     invalid_delivery = []
     invalid = json.loads(json.dumps(delivery)); invalid["results"].pop(); invalid_delivery.append(invalid)
@@ -371,13 +457,13 @@ def main() -> int:
     if args.command == "validate-delivery":
         try:
             summary = json.loads(args.summary.read_text())
-            failures = validate_delivery_summary(summary)
+            failures = validate_delivery_summary(summary, args.summary.parent)
         except (OSError, ValueError) as error:
             failures = [str(error)]
         for failure in failures:
             print(failure)
         if not failures and args.emit_summary:
-            print(json.dumps(summary, indent=2, sort_keys=True))
+            print(json.dumps(delivery_receipt(summary, args.summary.parent), indent=2, sort_keys=True))
         return 1 if failures else 0
     if args.command == "check":
         return check(args.evidence)
