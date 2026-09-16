@@ -15,7 +15,15 @@ def main() -> int:
     parser.add_argument("report", type=Path)
     parser.add_argument("native_status", type=int)
     args = parser.parse_args()
-    report = json.loads(args.report.read_text())
+    try:
+        report = json.loads(args.report.read_text())
+        if not isinstance(report, dict) or not isinstance(report.get("checks"), dict) or not report["checks"]:
+            raise ValueError("expected a nonempty checks object")
+        if any(not isinstance(check, dict) for check in report["checks"].values()):
+            raise ValueError("invalid native check entry")
+    except (OSError, ValueError) as error:
+        print(f"native runtime: doctor report unavailable or malformed: {error}", file=sys.stderr)
+        return 1
     failures: list[str] = []
     advisories: list[str] = []
     ignored_non_tty = False

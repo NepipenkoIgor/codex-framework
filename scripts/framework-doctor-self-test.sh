@@ -37,4 +37,11 @@ CODEX_HOME="$FRAMEWORK_CODEX_HOME" CODEX_SKILLS_HOME="$FRAMEWORK_SKILLS_HOME" \
 CODEX_HOME="$FRAMEWORK_CODEX_HOME" CODEX_SKILLS_HOME="$FRAMEWORK_SKILLS_HOME" \
   bash "$ROOT/scripts/framework-doctor.sh" --framework-only --skip-evidence --skip-prompt-input >/dev/null
 
+for invalid in '{}' 'not json' '{"checks":{"bad":"value"}}'; do
+  printf '%s\n' "$invalid" > "$FIXTURE/invalid.json"
+  if python3 "$ROOT/scripts/framework-doctor-native.py" "$FIXTURE/invalid.json" 0 >/dev/null 2>&1; then
+    printf 'native doctor classifier accepted an invalid report\n' >&2
+    exit 1
+  fi
+done
 printf 'framework doctor self-test passed\n'

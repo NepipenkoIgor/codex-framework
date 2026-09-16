@@ -133,6 +133,10 @@ def sync(args: argparse.Namespace) -> int:
     legacy_roots = [Path(os.path.abspath(Path(item).expanduser())) for item in args.legacy_root]
     legacy_links = preflight(skills_root, desired, previous, legacy_roots, allowed_sources)
 
+    if args.preflight:
+        print("framework skills preflight passed; no writes performed")
+        return 0
+
     skills_root.mkdir(parents=True, exist_ok=True)
     state_path.parent.mkdir(parents=True, exist_ok=True)
     for entry in legacy_links:
@@ -182,6 +186,7 @@ def sync(args: argparse.Namespace) -> int:
 
 def main() -> int:
     parser = argparse.ArgumentParser()
+    parser.add_argument("--preflight", action="store_true")
     parser.add_argument("--root", required=True)
     parser.add_argument("--skills-root", required=True)
     parser.add_argument("--state", required=True)

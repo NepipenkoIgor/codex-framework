@@ -6,6 +6,8 @@ import hashlib
 import json
 from pathlib import Path
 import subprocess
+import shutil
+import tempfile
 
 
 def identity(root: Path, development: bool = False) -> dict:
@@ -38,14 +40,47 @@ def describe(source: dict) -> str:
     return f"source={source['root']} sha={source['sha']} branch={source['branch'] or '(detached)'} dirty={str(source['dirty']).lower()} mode={source['mode']} (source identity only; not release certification)"
 
 
+def materialize(root: Path, releases: Path) -> Path:
+    """Keep release Git objects independent of any disposable source checkout."""
+    source = identity(root)
+    validate(source)
+    if releases.is_symlink():
+        raise ValueError(f'release directory collision: {releases}; symlink directories are not managed')
+    destination = releases / source['sha']
+    if destination.exists() or destination.is_symlink():
+        if destination.is_symlink():
+            raise ValueError(f'release destination must not be a symlink: {destination}')
+        installed = identity(destination)
+        if any(installed[key] != source[key] for key in ('sha', 'branch', 'dirty', 'contentDigest')):
+            raise ValueError(f'release destination collision or drift: {destination}; preserve it and choose a clean installation location')
+        if not (destination / '.git').is_dir() or (destination / '.git/objects/info/alternates').exists():
+            raise ValueError(f'release destination is not an independent clone: {destination}')
+        return destination
+    releases.mkdir(parents=True, exist_ok=True)
+    temporary = Path(tempfile.mkdtemp(prefix='.install-', dir=releases))
+    try:
+        subprocess.run(['git', 'clone', '--quiet', '--no-local', '--no-checkout', str(root), str(temporary)], check=True)
+        subprocess.run(['git', '-C', str(temporary), 'checkout', '--quiet', '--detach', source['sha']], check=True)
+        installed = identity(temporary)
+        if any(installed[key] != source[key] for key in ('sha', 'branch', 'dirty', 'contentDigest')):
+            raise ValueError('source changed while preparing durable release; rerun setup from a clean detached checkout')
+        # Clone contains all Git objects and never borrows a worktree gitdir.
+        temporary.rename(destination)
+    finally:
+        if temporary.exists():
+            shutil.rmtree(temporary)
+    return destination
+
+
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--root', required=True, type=Path)
     parser.add_argument('--development', action='store_true')
+    parser.add_argument('--materialize', type=Path)
     args = parser.parse_args()
     try:
         source = identity(args.root, args.development)
         validate(source)
-        print(describe(source))
-    except (OSError, ValueError) as error:
+        print(materialize(args.root, args.materialize) if args.materialize else describe(source))
+    except (OSError, ValueError, subprocess.CalledProcessError) as error:
         parser.exit(1, f'framework install source error: {error}\n')

@@ -1,7 +1,15 @@
 #!/bin/bash
 set -euo pipefail
 
-ROOT="$(cd "$(dirname "$0")/.." && pwd)"
+export PYTHONDONTWRITEBYTECODE=1
+for dependency in python3 git; do
+  command -v "$dependency" >/dev/null 2>&1 || { printf 'Required dependency missing: %s; install it using your OS package manager.\n' "$dependency" >&2; exit 1; }
+done
+python3 -c 'import sys; sys.exit(0 if sys.version_info >= (3, 11) else 1)' || {
+  printf 'Python 3.11 or newer must be available as python3 on PATH; select a compatible interpreter and rerun this command.\n' >&2
+  exit 1
+}
+ROOT="$(python3 -c 'from pathlib import Path; import sys; print(Path(sys.argv[1]).resolve().parent.parent)' "$0")"
 FRAMEWORK_CODEX_HOME="${CODEX_HOME:-$HOME/.codex}"
 USER_SKILLS_ROOT="${CODEX_SKILLS_HOME:-$HOME/.agents/skills}"
 FRAMEWORK_CODEX_HOME="$(python3 -c 'from pathlib import Path; import sys; print(Path(sys.argv[1]).expanduser().resolve(strict=False))' "$FRAMEWORK_CODEX_HOME")"
@@ -11,17 +19,18 @@ LEGACY_PACKS="$FRAMEWORK_CODEX_HOME/skills/codex-framework-packs"
 INSTALL_STATE="$USER_SKILLS_ROOT/.codex-framework-install.json"
 LINK_STATE="$FRAMEWORK_CODEX_HOME/frameworks/.codex-framework-links.json"
 RUN_NATIVE=1
-CHECK_EVIDENCE=1
+CHECK_EVIDENCE=0
 CHECK_PROMPT_INPUT=1
 failures=0
 
 usage() {
-  printf 'usage: framework-doctor.sh [--framework-only] [--skip-evidence] [--skip-prompt-input]\n'
+  printf 'usage: framework-doctor.sh [--framework-only] [--evidence] [--skip-evidence] [--skip-prompt-input]\n'
 }
 
 while [ $# -gt 0 ]; do
   case "$1" in
     --framework-only) RUN_NATIVE=0 ;;
+    --evidence) CHECK_EVIDENCE=1 ;;
     --skip-evidence) CHECK_EVIDENCE=0 ;;
     --skip-prompt-input) CHECK_PROMPT_INPUT=0 ;;
     -h|--help) usage; exit 0 ;;
@@ -34,7 +43,20 @@ ok() { printf 'ok framework doctor: %s\n' "$1"; }
 fail() { printf 'FAIL framework doctor: %s\n' "$1" >&2; failures=$((failures + 1)); }
 note() { printf 'note framework doctor: %s\n' "$1"; }
 
-native_json="$(mktemp "${TMPDIR:-/tmp}/codex-framework-native-doctor.XXXXXX.json")"
+# Diagnose the installed source even when invoked from a repair checkout.
+installed_root="$FRAMEWORK_CODEX_HOME/frameworks/codex-framework"
+if [ -L "$installed_root" ] && [ -d "$installed_root" ]; then
+  ROOT="$(python3 -c 'from pathlib import Path; import sys; print(Path(sys.argv[1]).resolve())' "$installed_root")"
+elif [ -L "$installed_root" ] || [ ! -e "$installed_root" ]; then
+  fail "installation source missing: $installed_root"
+  note 'recovery: run bash scripts/setup.sh from a clean detached framework checkout; default installation creates an independent durable release clone. Development installs require their source checkout to remain available.'
+  note 'source identity: unavailable; certification: unverified; native runtime: not checked'
+  exit 1
+fi
+note "installation source: $ROOT"
+resolve_path() { python3 -c 'from pathlib import Path; import sys; print(Path(sys.argv[1]).resolve())' "$1"; }
+
+native_json="$(mktemp "${TMPDIR:-/tmp}/codex-framework-native-doctor.XXXXXX")"
 trap 'rm -f "$native_json"' EXIT
 
 if [ -e "$LEGACY_CORE" ] || [ -L "$LEGACY_CORE" ] || [ -e "$LEGACY_PACKS" ] || [ -L "$LEGACY_PACKS" ]; then
@@ -51,7 +73,7 @@ for profile in architect reviewer tester; do
   cmp -s "$installed" "$source" || fail "installed profile is stale: $profile"
 done
 rule_link="$FRAMEWORK_CODEX_HOME/rules/codex-framework-safety.rules"
-if [ -L "$rule_link" ] && [ "$(cd "$(dirname "$rule_link")" && realpath "$rule_link")" = "$ROOT/.codex/rules/safety.rules" ]; then
+if [ -L "$rule_link" ] && [ "$(resolve_path "$rule_link")" = "$ROOT/.codex/rules/safety.rules" ]; then
   ok 'profile copies and safety rule match this framework checkout'
 else
   fail 'installed safety rule is missing or points to another checkout'
@@ -63,7 +85,7 @@ for mapping in \
   "$FRAMEWORK_CODEX_HOME/bin/codex-framework-doctor|$ROOT/scripts/framework-doctor.sh"; do
   link="${mapping%%|*}"
   target="${mapping#*|}"
-  if [ ! -L "$link" ] || [ "$(realpath "$link" 2>/dev/null || true)" != "$target" ]; then
+  if [ ! -L "$link" ] || [ "$(resolve_path "$link" 2>/dev/null || true)" != "$target" ]; then
     fail "missing or stale framework install link: $link"
   fi
 done
@@ -84,7 +106,7 @@ else
 fi
 
 guidance="$FRAMEWORK_CODEX_HOME/AGENTS.md"
-if [ -L "$guidance" ] && [ "$(realpath "$guidance" 2>/dev/null || true)" = "$ROOT/templates/global/AGENTS.md" ]; then
+if [ -L "$guidance" ] && [ "$(resolve_path "$guidance" 2>/dev/null || true)" = "$ROOT/templates/global/AGENTS.md" ]; then
   ok 'global guidance is managed by this framework checkout'
 elif [ -e "$guidance" ]; then
   note "preserved user-owned global guidance: $guidance"
@@ -139,27 +161,10 @@ else
   fail "missing install state: $INSTALL_STATE"
 fi
 
-if bash "$ROOT/scripts/framework-skill-sync.sh" --check "$ROOT" >/dev/null; then
-  ok 'project-scoped packs match their declarative manifest'
-else
-  fail 'project-scoped packs are out of sync'
-fi
-if bash "$ROOT/scripts/hooks.sh" doctor "$ROOT"; then
-  ok 'project hooks are installed and source-owned'
-else
-  fail 'project hook configuration is invalid'
-fi
-
-note 'effective install checks above describe the linked source identity; they do not certify a release'
-
-if python3 "$ROOT/scripts/framework-token-budget-check.py" >/dev/null; then
-  ok 'framework-owned token budgets are enforced without overriding native optimization defaults'
-else
-  fail 'framework-owned token budget or native-default optimization contract drifted'
-fi
+note 'installation and source identity checked; project validation belongs to framework-health.sh'
 
 if [ "$CHECK_PROMPT_INPUT" -eq 1 ]; then
-  prompt_json="$(mktemp "${TMPDIR:-/tmp}/codex-framework-prompt-input.XXXXXX.json")"
+  prompt_json="$(mktemp "${TMPDIR:-/tmp}/codex-framework-prompt-input.XXXXXX")"
   if codex debug prompt-input 'Framework doctor metadata check' > "$prompt_json" \
   && python3 - "$prompt_json" <<'PY'
 import json
@@ -193,6 +198,12 @@ PY
   rm -f "$prompt_json"
 fi
 
+if [ "$CHECK_EVIDENCE" -eq 0 ]; then
+  note 'certification: not checked (use --evidence for release certification)'
+fi
+if [ "$RUN_NATIVE" -eq 0 ]; then
+  note 'native runtime: not checked (--framework-only)'
+fi
 if [ "$CHECK_EVIDENCE" -eq 1 ]; then
   if python3 "$ROOT/scripts/framework-release-evidence.py" check; then
     ok 'certified release evidence matches the committed source digest'
