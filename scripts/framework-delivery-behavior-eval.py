@@ -105,15 +105,26 @@ def direct_check(command: str, flag: str) -> bool:
         return False
 
 
+SYSTEM_GIT = frozenset({'/usr/bin/git', '/Library/Developer/CommandLineTools/usr/bin/git',
+                        '/Applications/Xcode.app/Contents/Developer/usr/bin/git'})
+
+
 def worktree_add(command: str) -> list[str]:
     try:
         command = command.rstrip().removesuffix(';').rstrip()
         words = shlex.split(command)
         if len(words) == 3 and Path(words[0]).name in {'sh', 'bash', 'zsh'} and words[1] in {'-c', '-lc'}:
             return worktree_add(words[2])
+        # A fixed read-only diagnostic may precede the final mutation. Its
+        # status cannot swallow a failed add: add remains the last command.
+        if command.count(';') == 1:
+            prefix, tail = command.split(';', 1)
+            diagnostic = shlex.split(prefix)
+            if len(diagnostic) == 3 and diagnostic[:2] == ['ls', '-l'] and diagnostic[2] in SYSTEM_GIT:
+                return worktree_add(tail.strip())
         if any(c in command for c in (';', '&', '|', '\n', '>', '<')):
             return []
-        if not words or Path(words[0]).name != 'git':
+        if not words or words[0] not in SYSTEM_GIT | {'git'}:
             return []
         words = words[1:]
         if words[:1] == ['-C']:
@@ -371,6 +382,9 @@ def committed_task_observed(commands: list[dict], task: Path, sha: str, repo: Pa
         if any(c in body for c in ('\n', ';', '|', '`', '$', '>','<')):
             continue
         segments = [shlex.split(part.strip()) for part in body.split('&&')]
+        # Exact native system locations only. A basename or resolved /tmp symlink
+        # must never promote an unrelated executable into trusted Git evidence.
+        segments = [['git', *words[1:]] if words and words[0] in SYSTEM_GIT else words for words in segments]
         if not any(words[:3] == ['git', 'commit', '-m'] and len(words) == 4 for words in segments):
             continue
         supported = all(
@@ -789,6 +803,15 @@ class Tests(unittest.TestCase):
         self.assertFalse(verified_native_check(proof, '--challenge', Path('/fixture/other')))
         self.assertTrue(worktree_add('git worktree add -b codex/fix ../task;'))
         self.assertFalse(worktree_add('git worktree add -b codex/fix ../task; true'))
+        executable = '/Library/Developer/CommandLineTools/usr/bin/git'
+        actual = f"/bin/zsh -lc 'ls -l {executable}; git worktree add -b codex/fix /fixture/task main'"
+        self.assertEqual(worktree_add(actual), ['-b', 'codex/fix', '/fixture/task', 'main'])
+        self.assertTrue(worktree_add(f'{executable} worktree add -b codex/fix ../task'))
+        for impostor in ('/tmp/git', '/usr/local/bin/git'):
+            self.assertFalse(worktree_add(f'{impostor} worktree add -b codex/fix ../task'))
+            self.assertFalse(worktree_add(actual.replace(executable, impostor)))
+        self.assertFalse(worktree_add(actual.replace('ls -l', 'touch')))
+        self.assertFalse(worktree_add(actual[:-1] + "; true'"))
 
 
     def test_compound_verifiers_are_never_proof(self):
@@ -877,6 +900,17 @@ class Tests(unittest.TestCase):
             finally:
                 if original_home is None: os.environ.pop('CODEX_HOME',None)
                 else: os.environ['CODEX_HOME'] = original_home
+
+
+    def test_exact_system_git_commit_executable(self):
+        sha = '3bd14cf' + '1' * 33
+        executable = '/Library/Developer/CommandLineTools/usr/bin/git'
+        command = {'cwd': '/fixture/task', 'exit_code': 0,
+                   'command': f"{executable} add calc.py && {executable} commit -m 'Fix total to triple signed integers'",
+                   'output': '[codex/fix 3bd14cf] Fix total to triple signed integers\n'}
+        self.assertTrue(committed_task_observed([command], Path('/fixture/task'), sha, objects=[sha]))
+        for impostor in ('/tmp/git', '/tmp/Developer/CommandLineTools/usr/bin/git', '/usr/local/bin/git'):
+            self.assertFalse(committed_task_observed([{**command, 'command': command['command'].replace(executable, impostor)}], Path('/fixture/task'), sha, objects=[sha]))
 
 
 
