@@ -565,7 +565,7 @@ def substantive_child_challenge(record: dict, task: Path) -> bool:
 
 
 def git_commit_message(words: list[str]) -> bool:
-    if words[:3] == ['git', 'commit', '-m'] and len(words) == 4:
+    if words[:3] in (['git', 'commit', '-m'], ['git', 'commit', '-am']) and len(words) == 4:
         return True
     if len(words) == 8 and words[0] == 'git' and words[1] == '-c' and words[3] == '-c' \
             and words[5:7] == ['commit', '-m']:
@@ -587,13 +587,18 @@ def committed_task_observed(commands: list[dict], task: Path, sha: str, repo: Pa
         segments = [normalize_git_words(words) for words in segments]
         if not any(git_commit_message(words) for words in segments):
             continue
+        if any(words[:3] == ['git', 'commit', '-am'] for words in segments) and len(segments) != 1:
+            continue
         supported = all(
             words in (['git', 'add', 'calc.py'], ['git', 'add', '--', 'calc.py']) or
             git_commit_message(words) or
             direct_check(shlex.join(words), '--challenge') or readonly_git_tail(shlex.join(words))
             for words in segments)
         if supported:
-            for match in re.finditer(r'(?m)^\[codex/fix ([0-9a-f]{7,40})\] ', command.get('output', '')):
+            matches = list(re.finditer(r'(?m)^\[codex/fix ([0-9a-f]{7,40})\] ', command.get('output', '')))
+            if len(matches) != 1:
+                continue
+            for match in matches:
                 observed = match[1]
                 if repo is not None:
                     resolved = subprocess.run(['git', '-C', str(repo), 'rev-parse', '--verify', observed + '^{commit}'], text=True, capture_output=True)
@@ -1101,6 +1106,14 @@ class Tests(unittest.TestCase):
                 'command': "git add calc.py && git -c user.name=Codex -c user.email=codex@local commit -m 'fix'",
                 'output': f'[codex/fix {sha[:7]}] fix\n'}
             self.assertTrue(committed_task_observed([configured_commit], task, sha, repo))
+            amend_tracked = {**configured_commit, 'command': "git commit -am 'fix'"}
+            self.assertTrue(committed_task_observed([amend_tracked], task, sha, repo))
+            for command in ("git commit -am 'fix' && git status --short --branch",
+                            "git commit -am 'fix' && git rev-parse HEAD",
+                            "git commit -am 'fix' && python3 verify.py --challenge"):
+                self.assertFalse(committed_task_observed([{**amend_tracked, 'command': command}], task, sha, repo))
+            ambiguous = {**amend_tracked, 'output': amend_tracked['output'] + '[codex/fix deadbee] other\n'}
+            self.assertFalse(committed_task_observed([ambiguous], task, sha, repo))
             native['rootCommands'][1]['output'] = 'f' * 40
             self.assertNotEqual(grade('merge-cleanup', f, parser_trace(task=task), native)['status'], 'passed')
             save_state_attestation(f, area)
