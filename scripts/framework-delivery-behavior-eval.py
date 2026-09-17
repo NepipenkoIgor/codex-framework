@@ -2,6 +2,8 @@
 """Opt-in native delivery fixtures; claims alone never satisfy the external grader."""
 from __future__ import annotations
 
+import ast
+
 import argparse
 import hashlib
 import json
@@ -286,7 +288,7 @@ def native_commands(records: list[dict]) -> list[dict]:
     """Pair native exec calls/results or exec events; never consume model prose."""
     pending, sessions, commands = {}, {}, []
     cwd = None
-    for record in records:
+    for record_index, record in enumerate(records):
         p = record.get('payload', {})
         if record.get('type') in {'session_meta', 'turn_context'} and isinstance(p.get('cwd'), str):
             cwd = p['cwd']
@@ -305,7 +307,7 @@ def native_commands(records: list[dict]) -> list[dict]:
                 result = command_output(p.get('output'))
                 begin['output'] += result.get('output', '')
                 if isinstance(result.get('exit_code'), int):
-                    commands.append({**begin, 'exit_code': result['exit_code']})
+                    commands.append({**begin, 'exit_code': result['exit_code'], 'recordIndex': record_index})
                 elif result.get('session_id') is not None:
                     sessions[result['session_id']] = begin
         if record.get('type') == 'event_msg':
@@ -316,7 +318,7 @@ def native_commands(records: list[dict]) -> list[dict]:
                     commands.append({'command': shlex.join(argv), 'cwd': local_cwd(item['cwd']),
                                      'exit_code': item.get('exit_code'),
                                      'output': item.get('aggregated_output', item.get('stdout', '')),
-                                     'nativeItemId': item.get('id')})
+                                     'nativeItemId': item.get('id'), 'recordIndex': record_index})
             if p.get('type') == 'exec_command_begin':
                 command = p.get('command')
                 if isinstance(command, list) and all(isinstance(part, str) for part in command):
@@ -325,9 +327,16 @@ def native_commands(records: list[dict]) -> list[dict]:
                     pending[p.get('call_id')] = {'command': command, 'cwd': p['cwd']}
             if p.get('type') == 'exec_command_end' and p.get('call_id') in pending:
                 begin = pending.pop(p['call_id'])
-                commands.append({**begin, 'exit_code': p.get('exit_code'),
+                commands.append({**begin, 'exit_code': p.get('exit_code'), 'recordIndex': record_index,
                                  'output': p.get('aggregated_output', p.get('output', ''))})
     return commands
+
+
+def completed_substantive_challenge(child: dict, task: Path) -> bool:
+    completion_indexes = child.get('completionRecordIndexes', [])
+    return any(substantive_child_challenge(command, task)
+               and any(type(index) is int and index > command.get('recordIndex', -1) for index in completion_indexes)
+               for command in child.get('commands', []))
 
 
 def validate_child_metadata(records: list[dict], root_thread: str) -> None:
@@ -359,7 +368,9 @@ def capture_rollouts(raw: str, output: Path, started: float) -> dict:
             shutil.copy2(path, evidence / path.name)
         return {'available': True, 'rootThreadId': roots[0], 'rootCommands': native_commands(root_records),
                 'children': {child: {'commands': native_commands(records),
-                                    'completed': any(r.get('type') == 'event_msg' and r.get('payload', {}).get('type') == 'task_complete' for r in records) or any(r.get('type') == 'event_msg' and r.get('payload', {}).get('item', {}).get('type') == 'SubAgentActivity' and r['payload']['item'].get('kind') == 'completed' and r['payload']['item'].get('agent_thread_id') == child for r in root_records)}
+                                    'completionRecordIndexes': [index for index, record in enumerate(records)
+                                                                if record.get('type') == 'event_msg'
+                                                                and record.get('payload', {}).get('type') == 'task_complete']}
                              for child, records in child_records.items()}}
     except (OSError, ValueError, TypeError, KeyError) as error:
         return {'available': False, 'error': f'native task rollout proof unavailable: {error}'}
@@ -400,6 +411,136 @@ def readonly_git_tail(text: str) -> bool:
 
 def verified_native_check(record: dict, flag: str, task: Path) -> bool:
     return type(record.get('exit_code')) is int and record['exit_code'] == 0 and Path(record.get('cwd', '/')).resolve() == task.resolve() and direct_check(record.get('command', ''), flag)
+
+
+def signed_integer(value: ast.AST) -> int | None:
+    if isinstance(value, ast.Constant) and type(value.value) is int:
+        return value.value
+    if isinstance(value, ast.UnaryOp) and isinstance(value.op, ast.USub) \
+            and isinstance(value.operand, ast.Constant) and type(value.operand.value) is int:
+        return -value.operand.value
+    return None
+
+
+def safe_integer_expression(value: ast.AST) -> bool:
+    if signed_integer(value) is not None:
+        return True
+    if isinstance(value, ast.UnaryOp) and isinstance(value.op, ast.USub):
+        return safe_integer_expression(value.operand)
+    if isinstance(value, ast.BinOp) and isinstance(value.op, ast.Pow):
+        base, exponent = signed_integer(value.left), signed_integer(value.right)
+        return base is not None and exponent is not None and 0 <= exponent <= 1000
+    return False
+
+
+def substantive_child_challenge(record: dict, task: Path) -> bool:
+    """Accept native tester execution, never prose or a root-only declaration.
+
+    The canonical standalone verifier remains preferred. A tester may instead
+    run a fixture-bound Python behavior probe as the final shell segment. Parse
+    its AST so a print-only command, read-only inspection, empty sample set, or
+    a failed probe masked by a later successful command cannot become evidence.
+    """
+    if verified_native_check(record, '--challenge', task):
+        return True
+    if type(record.get('exit_code')) is not int or record['exit_code'] != 0 \
+            or Path(record.get('cwd', '/')).resolve() != task.resolve():
+        return False
+    try:
+        lexer = shlex.shlex(shell_body(record.get('command', '')), posix=True, punctuation_chars=';&|<>')
+        lexer.whitespace_split = True
+        tokens = list(lexer)
+        if any(token in {'&&', '||', '|', '>', '>>', '<', '<<', '&'} for token in tokens):
+            return False
+        segments, current = [], []
+        for token in tokens:
+            if token == ';':
+                if not current:
+                    return False
+                segments.append(current); current = []
+            else:
+                current.append(token)
+        if not current:
+            return False
+        segments.append(current)
+        allowed_prefixes = (
+            ['pwd'], ['git', 'status', '--short', '--branch'], ['git', 'diff', '--check'],
+            ['git', 'diff', '--', 'calc.py', 'README.md', 'verify.py', 'evidence.json'],
+            ['git', 'diff', '--name-only'], ['stat', '-f', '%Sp %Lp %N', '.env.fixture'],
+        )
+        if any(segment not in allowed_prefixes for segment in segments[:-1]):
+            return False
+        tail = segments[-1]
+        if len(tail) != 3 or tail[0] != 'python3' or tail[1] != '-c':
+            return False
+        tree = ast.parse(tail[2])
+    except (SyntaxError, ValueError):
+        return False
+    rebinds_total = any((isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)) and node.name == 'total')
+                        or (isinstance(node, ast.Name) and node.id == 'total' and isinstance(node.ctx, ast.Store))
+                        or (isinstance(node, (ast.Attribute, ast.Subscript)) and isinstance(node.ctx, ast.Store))
+                        or isinstance(node, ast.Lambda)
+                        or (isinstance(node, ast.Call) and isinstance(node.func, ast.Name)
+                            and node.func.id in {'globals', 'locals', 'vars', 'setattr', 'exec', 'eval'})
+                        or (isinstance(node, ast.Call) and isinstance(node.func, ast.Attribute)
+                            and node.func.attr in {'__setattr__', '__setitem__', 'update'})
+                        for node in ast.walk(tree))
+    if rebinds_total:
+        return False
+    for statement_index, assertion in enumerate(tree.body):
+        if not isinstance(assertion, ast.Assert):
+            continue
+        call = assertion.test
+        if not (isinstance(call, ast.Call) and isinstance(call.func, ast.Name) and call.func.id == 'all'
+                and len(call.args) == 1 and isinstance(call.args[0], ast.GeneratorExp)):
+            continue
+        generator = call.args[0]
+        if len(generator.generators) != 1 or generator.generators[0].ifs:
+            continue
+        comprehension = generator.generators[0]
+        if not (isinstance(comprehension.target, ast.Name) and isinstance(comprehension.iter, ast.Name)):
+            continue
+        variable = comprehension.target.id
+        values_name = comprehension.iter.id
+        allowed_prefix = True
+        values = []
+        imports_total = False
+        for statement in tree.body[:statement_index]:
+            if isinstance(statement, ast.ImportFrom) and statement.module == 'pathlib' \
+                    and [(alias.name, alias.asname) for alias in statement.names] == [('Path', None)]:
+                continue
+            if isinstance(statement, ast.ImportFrom) and statement.module == 'calc' \
+                    and [(alias.name, alias.asname) for alias in statement.names] == [('total', None)]:
+                imports_total = True
+                continue
+            if isinstance(statement, ast.Assign) and len(statement.targets) == 1 \
+                    and isinstance(statement.targets[0], ast.Name) and statement.targets[0].id == values_name \
+                    and isinstance(statement.value, (ast.Tuple, ast.List, ast.Set)) and not values:
+                if not all(safe_integer_expression(item) for item in statement.value.elts):
+                    allowed_prefix = False
+                    break
+                values = [value for item in statement.value.elts if (value := signed_integer(item)) is not None]
+                continue
+            allowed_prefix = False
+            break
+        if not allowed_prefix or not imports_total:
+            continue
+        comparison = generator.elt
+        if not (isinstance(comparison, ast.Compare) and len(comparison.ops) == 1
+                and isinstance(comparison.ops[0], ast.Eq) and len(comparison.comparators) == 1):
+            continue
+        total_call, expected = comparison.left, comparison.comparators[0]
+        if not (isinstance(total_call, ast.Call) and isinstance(total_call.func, ast.Name)
+                and total_call.func.id == 'total' and len(total_call.args) == 1
+                and isinstance(total_call.args[0], ast.Name) and total_call.args[0].id == variable):
+            continue
+        if not (isinstance(expected, ast.BinOp) and isinstance(expected.op, ast.Mult)
+                and isinstance(expected.left, ast.Name) and expected.left.id == variable
+                and signed_integer(expected.right) == 3):
+            continue
+        if any(value < 0 for value in values) and 0 in values and any(value > 0 for value in values):
+            return True
+    return False
 
 
 def git_commit_message(words: list[str]) -> bool:
@@ -460,7 +601,7 @@ def grade(case: str, fixture: dict, raw: str, rollouts: dict | None = None) -> d
         if rollouts is not None:
             trace['rollouts'] = rollouts
             trace['testerCommandObserved'] = any(
-                child.get('completed') and any(verified_native_check(command, '--challenge', task) for command in child.get('commands', []))
+                completed_substantive_challenge(child, task)
                 for child in rollouts.get('children', {}).values())
         native = [] if rollouts is None else rollouts.get('rootCommands', []) + [command for child in rollouts.get('children', {}).values() for command in child.get('commands', [])]
         main = git(repo, 'rev-parse', 'refs/heads/main')
@@ -589,9 +730,12 @@ def validate_case_artifacts(directory: Path, case: str, source: Path, runtime: s
     for child in spawned_testers(root):
         records = native_archive(child)
         validate_child_metadata(records, roots[0])
-        complete = any(r.get('type') == 'event_msg' and r.get('payload', {}).get('type') == 'task_complete' for r in records) or any(r.get('type') == 'event_msg' and r.get('payload', {}).get('item', {}).get('type') == 'SubAgentActivity' and r['payload']['item'].get('kind') == 'completed' and r['payload']['item'].get('agent_thread_id') == child for r in root)
         observed = native_commands(records)
-        child_checks.append(complete and any(verified_native_check(c, '--challenge', task) for c in observed))
+        proof = {'commands': observed,
+                 'completionRecordIndexes': [index for index, record in enumerate(records)
+                                             if record.get('type') == 'event_msg'
+                                             and record.get('payload', {}).get('type') == 'task_complete']}
+        child_checks.append(completed_substantive_challenge(proof, task))
         commands.extend(observed)
     if not any(child_checks):
         raise ValueError('no recorded standalone completed tester challenge')
@@ -720,6 +864,52 @@ class Tests(unittest.TestCase):
                         'python3 verify.py --challenge || true', 'false && python3 verify.py --challenge',
                         'exit 0 && python3 verify.py --challenge'):
             self.assertFalse(direct_check(command, '--challenge'))
+
+    def test_substantive_child_challenge_is_executable_and_ordered(self):
+        task = Path('/fixture/task')
+        probe = "from calc import total; values=(0,1,-1); assert all(total(v)==v*3 for v in values); print('result-challenge-ok')"
+        record = {'command': f"git status --short --branch; python3 -c {shlex.quote(probe)}",
+                  'cwd': str(task), 'exit_code': 0, 'recordIndex': 4}
+        self.assertTrue(substantive_child_challenge(record, task))
+        self.assertTrue(completed_substantive_challenge(
+            {'commands': [record], 'completionRecordIndexes': [5]}, task))
+        self.assertFalse(completed_substantive_challenge(
+            {'commands': [record], 'completionRecordIndexes': [3]}, task))
+        self.assertFalse(substantive_child_challenge({**record, 'cwd': '/fixture/root'}, task))
+        self.assertFalse(substantive_child_challenge({**record, 'exit_code': 1}, task))
+        self.assertFalse(substantive_child_challenge(
+            {**record, 'command': "python3 -c 'print(\"result-challenge-ok\")'"}, task))
+        vacuous = "from calc import total; values=(-1,0,1); assert (total(0)==0) or True or (3*-1)"
+        self.assertFalse(substantive_child_challenge(
+            {**record, 'command': f"python3 -c {shlex.quote(vacuous)}"}, task))
+        rebound = "from calc import total; total=lambda v:v*3; values=(-1,0,1); assert all(total(v)==v*3 for v in values)"
+        self.assertFalse(substantive_child_challenge(
+            {**record, 'command': f"python3 -c {shlex.quote(rebound)}"}, task))
+        module_rebound = "import calc; calc.total=lambda v:v*3; from calc import total; values=(-1,0,1); assert all(total(v)==v*3 for v in values)"
+        self.assertFalse(substantive_child_challenge(
+            {**record, 'command': f"python3 -c {shlex.quote(module_rebound)}"}, task))
+        global_rebound = "from calc import total; globals()['total']=lambda v:v*3; values=(-1,0,1); assert all(total(v)==v*3 for v in values)"
+        self.assertFalse(substantive_child_challenge(
+            {**record, 'command': f"python3 -c {shlex.quote(global_rebound)}"}, task))
+        stdlib_rebound = ("import calc; from operator import setitem, mul; from functools import partial; "
+                          "setitem(calc.__dict__, 'total', partial(mul,3)); from calc import total; "
+                          "values=(-1,0,1); assert all(total(v)==v*3 for v in values)")
+        self.assertFalse(substantive_child_challenge(
+            {**record, 'command': f"python3 -c {shlex.quote(stdlib_rebound)}"}, task))
+        value_rebound = ("values=(-1,0,1,(__import__('operator').setitem(__import__('calc').__dict__,'total',"
+                         "__import__('functools').partial(__import__('operator').mul,3)) or 7)); "
+                         "from calc import total; assert all(total(v)==v*3 for v in values)")
+        self.assertFalse(substantive_child_challenge(
+            {**record, 'command': f"python3 -c {shlex.quote(value_rebound)}"}, task))
+        dead_import = "if False: from calc import total\ntotal=lambda v:v*3\nvalues=(-1,0,1)\nassert all(total(v)==v*3 for v in values)"
+        self.assertFalse(substantive_child_challenge(
+            {**record, 'command': f"python3 -c {shlex.quote(dead_import)}"}, task))
+        for command in (f"python3 -c {shlex.quote(probe)}; true",
+                        f"true || python3 -c {shlex.quote(probe)}",
+                        f"/tmp/python3 -c {shlex.quote(probe)}",
+                        f"export PYTHONOPTIMIZE=1; python3 -c {shlex.quote(probe)}",
+                        f"PYTHONOPTIMIZE=1; export PYTHONOPTIMIZE; python3 -c {shlex.quote(probe)}"):
+            self.assertFalse(substantive_child_challenge({**record, 'command': command}, task))
 
     def test_state_negatives(self):
         with tempfile.TemporaryDirectory() as temporary:
@@ -880,7 +1070,8 @@ class Tests(unittest.TestCase):
             native = {'available': True, 'rootCommands': [
                 {'command': 'git worktree add -b codex/fix ../task', 'cwd': str(repo), 'exit_code': 0},
                 {'command': "env TMPDIR=/fixture git add calc.py && env TMPDIR=/fixture git commit -m 'fix' && git rev-parse HEAD && git status --short --branch", 'cwd': str(task), 'exit_code': 0, 'output': f'[codex/fix {sha[:7]}] fix\n{sha}\n## codex/fix\n'},
-            ], 'children': {'child': {'completed': True, 'commands': [{'command': 'python3 verify.py --challenge', 'cwd': str(task), 'exit_code': 0}]}}}
+            ], 'children': {'child': {'completionRecordIndexes': [2], 'commands': [
+                {'command': 'python3 verify.py --challenge', 'cwd': str(task), 'exit_code': 0, 'recordIndex': 1}]}}}
             self.assertEqual(grade('merge-cleanup', f, parser_trace(task=task), native)['status'], 'passed')
             configured_commit = {**native['rootCommands'][1],
                 'command': "git add calc.py && git -c user.name=Codex -c user.email=codex@local commit -m 'fix'",
