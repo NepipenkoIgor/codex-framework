@@ -11,7 +11,7 @@ This optional template is not an onboarding requirement. Discover existing proje
 - Commands: reference existing scripts/CI for install, development, checks, migrations and release; do not duplicate values.
 - Environment map: name local, test, staging, production, and preview targets plus their authority source.
 - Mutation boundary: state which environments/accounts/projects may be changed and what requires explicit approval.
-- Verification: name the provider-visible, runtime, UI/device, and caller-visible evidence required for completion.
+- Verification: name provider-visible, runtime, UI/device and caller-visible evidence, every required CLI/API/connector identity, and where missing access blocks planning, implementation or delivery.
 
 ## Project-specific rules
 

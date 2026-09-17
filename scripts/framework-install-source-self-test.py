@@ -72,8 +72,12 @@ with tempfile.TemporaryDirectory(prefix='framework-source-test-') as temporary:
     shutil.rmtree(skill_collision)
     guidance = home / '.codex/AGENTS.md'
     guidance.write_text('user guidance')
+    before = snapshot(home)
+    result = run(setup, cwd=source, env=env, ok=False)
+    assert snapshot(home) == before and 'strict global guidance is not active' in result.stderr
+    guidance.unlink()
     run(setup, cwd=source, env=env)
-    assert guidance.read_text() == 'user guidance' and not guidance.is_symlink()
+    assert guidance.is_symlink()
     state_path = home / '.codex/frameworks/.codex-framework-links.json'
     state = json.loads(state_path.read_text())
     assert state['sourceIdentity']['mode'] == 'detached'
@@ -86,7 +90,7 @@ with tempfile.TemporaryDirectory(prefix='framework-source-test-') as temporary:
     source.rename(moved)
     run(['git', 'status', '--porcelain'], cwd=durable, env=env)
     assert (home / '.agents/skills/framework-management/SKILL.md').is_file()
-    assert guidance.read_text() == 'user guidance'
+    assert guidance.is_symlink() and guidance.read_text() == (durable / 'templates/global/AGENTS.md').read_text()
     source = durable
     # Native prompt input/config checks are independent; inspect source check directly.
     check = ['python3', 'scripts/framework-link-install.py', '--check', '--state', str(state_path), '--source-root', str(source), '--guidance', f'{guidance}={source}/templates/global/AGENTS.md']

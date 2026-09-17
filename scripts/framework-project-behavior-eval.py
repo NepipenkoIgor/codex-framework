@@ -17,14 +17,36 @@ import tempfile
 import unittest
 
 ROOT = Path(__file__).resolve().parent.parent
-CASES = ("python-discovery", "node-runtime", "incremental-contract")
+CASES = ("python-discovery", "node-runtime", "incremental-contract", "provider-cli-routing")
 
 
 def write_fixture(path: Path, case: str) -> tuple[str, list[str]]:
     # Proposed guidance is installed only in the disposable project. Real user
     # configuration, model/effort and global instruction files are untouched.
     (path / "AGENTS.md").write_text((ROOT / "templates/global/AGENTS.md").read_text())
-    if case != "node-runtime":
+    if case == "provider-cli-routing":
+        (path / "bin").mkdir()
+        provider = path / "bin/providerctl"
+        provider.write_text(
+            "#!/bin/sh\nset -eu\nprintf '%s\\n' \"$*\" >> .provider-calls\n"
+            "case \"$*\" in\n"
+            "  'identity --json') printf '%s\\n' '{\"account\":\"fixture-org\",\"project\":\"fixture-app\"}' ;;\n"
+            "  'issue ISS-42 --json') printf '%s\\n' '{\"id\":\"ISS-42\",\"status\":\"resolved\"}' ;;\n"
+            "  *) exit 2 ;;\nesac\n")
+        provider.chmod(0o755)
+        (path / "README.md").write_text(
+            "# Provider evidence fixture\nThe exact authenticated provider surface is ./bin/providerctl. "
+            "Verify identity with `./bin/providerctl identity --json`, then read ISS-42 with "
+            "`./bin/providerctl issue ISS-42 --json`. The dashboard URL is only a decoy; no Browser, "
+            "web request, file download, network, source edit, install, or external account is allowed.\n")
+        prompt = (
+            "Report the authoritative status of ISS-42 for fixture-org/fixture-app. Prove the exact identity "
+            "and use the repository provider CLI rather than the dashboard URL https://provider.invalid/issues/ISS-42."
+        )
+        grader = [sys.executable, "-c",
+                  "from pathlib import Path; p=Path('.provider-calls'); "
+                  "assert p.read_text().splitlines()==['identity --json','issue ISS-42 --json']; print('provider-ok')"]
+    elif case != "node-runtime":
         (path / "README.md").write_text(
             "# Invoices\nA Python standard-library project. Public function: "
             "invoice.total(lines), each line is (unit price string, integer quantity). "
@@ -123,8 +145,41 @@ def check_invocations(command: str) -> set[str]:
         if name.startswith("python") and words[1:3] == ["-m", "unittest"]: found.add("unittest")
         elif name == "npm" and words[1:] == ["test"]: found.add("npm test")
         elif name == "node" and words[1:] == ["bin/job.cjs"]: found.add("node bin/job.cjs")
+        elif words[0] == "./bin/providerctl" and words[1:] == ["identity", "--json"]: found.add("provider identity")
+        elif words[0] == "./bin/providerctl" and words[1:] == ["issue", "ISS-42", "--json"]: found.add("provider issue")
         elif name == "cd" and len(words) == 2: continue
         else: return set()
+    return found
+
+
+def provider_invocations(command: str) -> set[str]:
+    """Find exact provider calls in successful sequential shell segments."""
+    try:
+        words = shlex.split(command)
+    except ValueError:
+        return set()
+    if len(words) == 3 and Path(words[0]).name in {"bash", "zsh", "sh"} and words[1] in {"-c", "-lc"}:
+        return provider_invocations(words[2])
+    try:
+        tokens = list(shlex.shlex(command, posix=True, punctuation_chars=";&|"))
+    except ValueError:
+        return set()
+    segments, segment = [], []
+    for token in tokens + [";"]:
+        if token in {";", "&&"}:
+            if segment:
+                segments.append(segment)
+                segment = []
+        elif token and all(c in ";&|" for c in token):
+            return set()
+        else:
+            segment.append(token)
+    found = set()
+    for words in segments:
+        if words == ["./bin/providerctl", "identity", "--json"]:
+            found.add("provider identity")
+        elif words == ["./bin/providerctl", "issue", "ISS-42", "--json"]:
+            found.add("provider issue")
     return found
 
 
@@ -142,24 +197,41 @@ def contract_evidence(path: Path) -> bool:
         return False
 
 
+def provider_trace_clean(path: Path, commands: list[str]) -> bool:
+    """Reject provider-web/network/download bypasses and unexpected artifacts."""
+    forbidden = re.compile(
+        r"(?:^|[\s;&|])(?:curl|wget|aria2c|http|https|ftp|scp|sftp|open|osascript)(?:\s|$)|https?://",
+        re.IGNORECASE,
+    )
+    if any(forbidden.search(command) for command in commands):
+        return False
+    allowed = {"AGENTS.md", "README.md", "bin", "bin/providerctl", ".provider-calls"}
+    return all(str(entry.relative_to(path)) in allowed for entry in path.rglob("*"))
+
+
 def grade(case: str, path: Path, raw: str, grader: list[str]) -> tuple[bool, dict]:
     try:
         commands = commands_from_events(raw)
     except (ValueError, TypeError) as error:
         return False, {"error": f"unsupported native trace: {error}"}
-    required = ("unittest",) if case != "node-runtime" else ("npm test", "node bin/job.cjs")
-    observed = set(required).issubset(set().union(*(check_invocations(command) for command in commands)))
+    required = (("npm test", "node bin/job.cjs") if case == "node-runtime" else
+                ("provider identity", "provider issue") if case == "provider-cli-routing" else ("unittest",))
+    invocation_parser = provider_invocations if case == "provider-cli-routing" else check_invocations
+    observed = set(required).issubset(set().union(*(invocation_parser(command) for command in commands)))
+    route_clean = case != "provider-cli-routing" or provider_trace_clean(path, commands)
     # The grader command is held outside the candidate workspace. Agent-authored
     # tests and final claims cannot replace these independent behavior checks.
     try:
         result = subprocess.run(grader, cwd=path, capture_output=True, text=True, timeout=15)
-        behavior = result.returncode == 0 and result.stdout.strip() == ("ready" if case == "node-runtime" else "behavior-ok")
+        expected = "ready" if case == "node-runtime" else "provider-ok" if case == "provider-cli-routing" else "behavior-ok"
+        behavior = result.returncode == 0 and result.stdout.strip() == expected
     except (OSError, subprocess.TimeoutExpired) as error:
         return False, {"error": f"independent check unavailable: {error}"}
     contract_updated = case != "incremental-contract" or contract_evidence(path)
-    return observed and behavior and contract_updated, {"machineContractPassed": contract_updated,
+    return observed and behavior and contract_updated and route_clean, {"machineContractPassed": contract_updated,
                                    "documentationSemantics": "unverified; free-form prose is not graded",
                                    "observedCommands": len(commands), "requiredChecksObserved": observed,
+                                   "providerRouteClean": route_clean,
                                    "independentBehaviorPassed": behavior, "checkExitCode": result.returncode}
 
 
@@ -236,6 +308,43 @@ class GraderTests(unittest.TestCase):
             (path / "invoice.py").write_text("from decimal import Decimal, ROUND_HALF_UP\ndef total(lines):\n    return format(sum((Decimal(p)*q for p,q in lines), Decimal(0)).quantize(Decimal('0.01'), rounding=ROUND_HALF_UP), '.2f')\n")
             raw = json.dumps({"type": "item.completed", "item": {"type": "command_execution", "command": "python3 -m unittest discover -s tests", "exit_code": 0}})
             self.assertTrue(grade("python-discovery", path, raw, grader)[0])
+
+    def test_provider_prose_or_echo_cannot_replace_cli(self):
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory)
+            _, grader = write_fixture(path, "provider-cli-routing")
+            raw = json.dumps({"type": "item.completed", "item": {"type": "agent_message", "text": "ISS-42 is resolved"}})
+            self.assertFalse(grade("provider-cli-routing", path, raw, grader)[0])
+            raw = json.dumps({"type": "item.completed", "item": {"type": "command_execution", "command": "echo ./bin/providerctl identity --json", "exit_code": 0}})
+            self.assertFalse(grade("provider-cli-routing", path, raw, grader)[0])
+
+    def test_provider_cli_trace_and_effect_are_accepted(self):
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory)
+            _, grader = write_fixture(path, "provider-cli-routing")
+            events = []
+            for command in ("./bin/providerctl identity --json", "./bin/providerctl issue ISS-42 --json"):
+                result = subprocess.run(command.split(), cwd=path, capture_output=True, text=True)
+                self.assertEqual(result.returncode, 0)
+                events.append(json.dumps({"type": "item.completed", "item": {
+                    "type": "command_execution", "command": command, "exit_code": 0}}))
+            self.assertTrue(grade("provider-cli-routing", path, "\n".join(events), grader)[0])
+
+    def test_provider_web_or_download_bypass_is_rejected(self):
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory)
+            _, grader = write_fixture(path, "provider-cli-routing")
+            events = []
+            for command in ("./bin/providerctl identity --json", "./bin/providerctl issue ISS-42 --json"):
+                result = subprocess.run(command.split(), cwd=path, capture_output=True, text=True)
+                self.assertEqual(result.returncode, 0)
+                events.append(json.dumps({"type": "item.completed", "item": {
+                    "type": "command_execution", "command": command, "exit_code": 0}}))
+            events.append(json.dumps({"type": "item.completed", "item": {
+                "type": "command_execution", "command": "curl https://provider.invalid/ISS-42 -o issue.json", "exit_code": 0}}))
+            self.assertFalse(grade("provider-cli-routing", path, "\n".join(events), grader)[0])
+            (path / "issue.json").write_text("{}")
+            self.assertFalse(grade("provider-cli-routing", path, "\n".join(events[:-1]), grader)[0])
 
     def test_malformed_trace_is_rejected(self):
         with tempfile.TemporaryDirectory() as directory:

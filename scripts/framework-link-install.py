@@ -128,12 +128,22 @@ def main() -> int:
                 old_root is not None and target_of(framework_link) == Path(old_root).resolve()
                 and target_of(guidance) == (Path(old_root) / "templates/global/AGENTS.md").resolve()
             )
+            merged_guidance = (
+                guidance.is_file()
+                and not guidance.is_symlink()
+                and guidance_source.read_bytes() in guidance.read_bytes()
+            )
             if str(guidance) in previous_links or legacy_owned or (not guidance.exists() and not guidance.is_symlink()):
                 desired_links[guidance] = guidance_source
                 if legacy_owned and not args.check and str(guidance) not in previous_links:
                     previous_links[str(guidance)] = str(target_of(guidance))
+            elif merged_guidance:
+                print(f"strict global guidance is active in preserved user-owned file: {guidance}")
             else:
-                print(f"preserved user-owned guidance: {guidance}")
+                raise ValueError(
+                    "strict global guidance is not active; user-owned collision preserved: "
+                    f"{guidance}. Merge the framework agreement into that file or move it aside, then rerun setup"
+                )
         desired_files = dict(parse_file(item) for item in args.file)
         desired_file_contents = {
             destination: source.read_bytes() for destination, source in desired_files.items()

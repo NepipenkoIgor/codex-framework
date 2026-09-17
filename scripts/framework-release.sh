@@ -5,6 +5,7 @@ ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 QUALITY_DIR=""
 ACTIVE_PID=""
 DELIVERY_DIR=""
+PROVIDER_DIR=""
 
 usage() {
   printf 'usage: framework-release.sh [--quality-dir PATH] [--delivery-artifact-dir PATH]\n' >&2
@@ -45,7 +46,10 @@ on_signal() {
   exit 130
 }
 GATE_DIR="$(mktemp -d "${TMPDIR:-/tmp}/codex-framework-release-gates.XXXXXX")"
-cleanup_gates() { rm -rf -- "$GATE_DIR"; }
+cleanup_gates() {
+  rm -rf -- "$GATE_DIR"
+  [ -z "$PROVIDER_DIR" ] || rm -rf -- "$PROVIDER_DIR"
+}
 trap 'cleanup_gates; cleanup' EXIT
 trap on_signal INT TERM HUP
 
@@ -74,6 +78,11 @@ run_gate effectiveInstallDoctor bash scripts/framework-doctor.sh --skip-evidence
 run_gate nativeSkillLoaderCanary bash scripts/framework-skill-loader-live-eval.sh
 run_gate liveVersionResolution bash scripts/framework-version-drift-check.sh --live
 run_gate nativeCapabilityCurrency python3 scripts/framework-native-capability-check.py --live
+
+# Execute, rather than merely classify, the native provider-routing decision.
+PROVIDER_DIR="$(mktemp -d "${TMPDIR:-/tmp}/codex-framework-provider-behavior.XXXXXX")"
+run_stage python3 "$ROOT/scripts/framework-project-behavior-eval.py" --live \
+  --case provider-cli-routing --artifact-dir "$PROVIDER_DIR" --timeout 300
 
 # Keep raw native delivery traces separately from skill-corpus artifacts.
 # Supplied evidence is reused only after source-bound validation; no live rerun.

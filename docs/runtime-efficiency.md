@@ -2,13 +2,19 @@
 
 Native Codex owns goals, tasks, worktrees, agent lifecycle, approvals, compaction and monitoring. The global agreement is the automatic default across Git projects; no project onboarding file or user request for debate is needed.
 
+## Ordered delivery gates
+
+Material code work follows one state machine: capability and identity preflight; acceptance criteria plus a pre-mutation tester/architect challenge; implementation; runtime and visible-UI debug; a post-implementation tester challenge; any applicable independent high-risk review; then PR. Evidence from a later state never backfills a skipped earlier state. Green unit, headless, or CI results do not replace visible in-app Browser evidence for a runnable web path, and a provider website never replaces an available authenticated CLI/API/connector.
+
+The pipeline is surface-aware, not silently weaker. The desktop app can provide visible in-app Browser acceptance. Codex CLI and IDE do not expose that Browser; when UI acceptance is required there, the result remains unverified and PR delivery waits for a desktop/browser handoff. Missing provider authentication likewise pauses the dependent lane before planning or coding while independent safe work may continue. The framework cannot pre-authorize accounts or copy credentials across machines.
+
 ## Work and waiting
 
 Complete coherent batches against explicit acceptance criteria and source/config/environment identity. A checkpoint neither spends an execution allowance nor cancels authority to continue fixing a CI defect. Reuse unchanged evidence. Read a live operation once, retain its handle and use native attached waits rather than model-driven micro-polls. A timeout is not a failed process; continue observing the same handle. Native heartbeats serve requested monitoring and stay quiet without actionable changes. Never add a local scheduler or lifecycle hook.
 
 ## Evidence-based challenge
 
-Every substantive implementation, fix, architecture decision and delivery automatically receives a bounded tester counterexample or architect contract challenge. Trivial non-behavioral edits still receive an explicit parent self-check. Parent owns requirements, integration and adjudication; developer must fix a reproduction or refute the finding with evidence. A false-positive test is not a product defect. Reuse the challenger for targeted repair verification; do not create recurring debate rounds or vote by agent agreement.
+Every substantive implementation, fix, architecture decision and delivery automatically receives a bounded pre-mutation tester counterexample or architect contract challenge and a post-implementation tester challenge. Trivial non-behavioral edits still receive an explicit parent self-check. Parent owns requirements, integration and adjudication; developer must fix a reproduction or refute the finding with evidence. A false-positive test is not a product defect. Reuse the challenger for targeted repair verification; do not create recurring debate rounds or vote by agent agreement.
 
 The high-risk reviewer receives an immutable diff and neutral request/criteria/contracts/checks. No-history spawn does not remove every source of runtime context: injected task memory invalidates strict independence. Report an unavailable boundary honestly and do not restart the same review under a new name. One review/revision bounds that review; it never blocks subsequent authorized CI repair. Materially new risk may require its own review.
 
