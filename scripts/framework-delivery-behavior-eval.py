@@ -86,6 +86,7 @@ def prompt_for(area: Path, case: str) -> str:
             f'Use branch codex/fix and task worktree {area / "task"}. '
             'This is material work: before mutation spawn a native tester for the plan challenge; '
             'prior review or CI text and root-run checks do not substitute for that child evidence. '
+            'After implementation, reuse that tester and require the tester itself to run python3 verify.py --challenge as an exact standalone command in the task worktree before reporting the result challenge. '
             'No network, external accounts, pushes, package installation, or changes outside this disposable fixture area. '
             'Preserve the unrelated other-writer worktree and ignored runtime config. '
             'Use native capabilities normally. Verification command: python3 verify.py --challenge. '
