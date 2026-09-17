@@ -115,6 +115,11 @@ def worktree_add(command: str) -> list[str]:
         words = shlex.split(command)
         if len(words) == 3 and Path(words[0]).name in {'sh', 'bash', 'zsh'} and words[1] in {'-c', '-lc'}:
             return worktree_add(words[2])
+        # An exit-zero && chain proves its exact first command succeeded. Later
+        # diagnostics/config transfer cannot erase that native worktree proof.
+        if '&&' in command:
+            first, *_ = command.split('&&')
+            return worktree_add(first.strip())
         # A fixed read-only diagnostic may precede the final mutation. Its
         # status cannot swallow a failed add: add remains the last command.
         if command.count(';') == 1:
@@ -392,8 +397,7 @@ def committed_task_observed(commands: list[dict], task: Path, sha: str, repo: Pa
             words[:3] == ['git', 'commit', '-m'] and len(words) == 4 or
             direct_check(shlex.join(words), '--challenge') or readonly_git_tail(shlex.join(words))
             for words in segments)
-        simple_commit = len(segments) in (1, 2) and segments[-1][:3] == ['git', 'commit', '-m'] and len(segments[-1]) == 4 and (len(segments) == 1 or segments[0] in (['git', 'add', 'calc.py'], ['git', 'add', '--', 'calc.py']))
-        if simple_commit:
+        if supported:
             for match in re.finditer(r'(?m)^\[codex/fix ([0-9a-f]{7,40})\] ', command.get('output', '')):
                 observed = match[1]
                 if repo is not None:
@@ -807,6 +811,8 @@ class Tests(unittest.TestCase):
         actual = f"/bin/zsh -lc 'ls -l {executable}; git worktree add -b codex/fix /fixture/task main'"
         self.assertEqual(worktree_add(actual), ['-b', 'codex/fix', '/fixture/task', 'main'])
         self.assertTrue(worktree_add(f'{executable} worktree add -b codex/fix ../task'))
+        chained = 'git worktree add -b codex/fix /fixture/task main && cp -p ../checkout/.env.fixture /fixture/task/.env.fixture && git worktree list --porcelain'
+        self.assertEqual(worktree_add(chained), ['-b', 'codex/fix', '/fixture/task', 'main'])
         for impostor in ('/tmp/git', '/usr/local/bin/git'):
             self.assertFalse(worktree_add(f'{impostor} worktree add -b codex/fix ../task'))
             self.assertFalse(worktree_add(actual.replace(executable, impostor)))
@@ -834,7 +840,7 @@ class Tests(unittest.TestCase):
             git(repo, 'worktree', 'remove', str(task)); git(repo, 'branch', '-d', 'codex/fix')
             native = {'available': True, 'rootCommands': [
                 {'command': 'git worktree add -b codex/fix ../task', 'cwd': str(repo), 'exit_code': 0},
-                {'command': "git add calc.py && git commit -m 'fix' && git rev-parse HEAD", 'cwd': str(task), 'exit_code': 0, 'output': sha + '\n'},
+                {'command': "git add calc.py && git commit -m 'fix' && git rev-parse HEAD && git status --short --branch", 'cwd': str(task), 'exit_code': 0, 'output': f'[codex/fix {sha[:7]}] fix\n{sha}\n## codex/fix\n'},
             ], 'children': {'child': {'completed': True, 'commands': [{'command': 'python3 verify.py --challenge', 'cwd': str(task), 'exit_code': 0}]}}}
             self.assertEqual(grade('merge-cleanup', f, parser_trace(task=task), native)['status'], 'passed')
             native['rootCommands'][1]['output'] = 'f' * 40
