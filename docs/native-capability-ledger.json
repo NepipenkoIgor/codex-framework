@@ -1,6 +1,6 @@
 {
   "schemaVersion": 3,
-  "reviewedAt": "2026-09-17T17:45:36+00:00",
+  "reviewedAt": "2026-09-17T21:39:01+00:00",
   "codexVersion": "codex-cli 0.154.0",
   "baselineReleaseTag": "rust-v0.149.0",
   "latestReleaseTag": "rust-v0.154.0",
@@ -14,7 +14,7 @@
     {
       "kind": "changelog",
       "url": "https://learn.chatgpt.com/docs/changelog",
-      "sha256": "e4a9c69a0b6c8af8acc907606983b7c6b23344450236a5cfe29dfbcd3d860ed7"
+      "sha256": "6e9e397c0e0a25ea444c3e639272bb0e60fbd3166669777994cb1e71f4e8bd19"
     },
     {
       "kind": "release",
