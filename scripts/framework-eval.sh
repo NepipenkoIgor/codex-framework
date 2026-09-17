@@ -390,7 +390,8 @@ mandatory_delivery_pipeline_contract() {
   local instructions="$ROOT/templates/global/AGENTS.md"
   grep -q '^## Mandatory delivery pipeline$' "$instructions" \
     && grep -Eqi 'before planning or coding.*,? prove.*CLI/API/connector' "$instructions" \
-    && grep -Eqi 'before mutation.*,? give a tester' "$instructions" \
+    && grep -Eqi 'before mutation.*,? spawn a native tester' "$instructions" \
+    && grep -Fqi 'root-run checks never substitute' "$instructions" \
     && grep -q 'visible in-app Browser' "$instructions" \
     && grep -q 'delivery stops before PR' "$instructions" \
     && grep -q 'create or update a PR only when every gate is green' "$instructions" \
