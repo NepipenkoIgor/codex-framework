@@ -434,6 +434,25 @@ def safe_integer_expression(value: ast.AST) -> bool:
     return False
 
 
+def integer_sign(value: ast.AST) -> int | None:
+    integer = signed_integer(value)
+    if integer is not None:
+        return (integer > 0) - (integer < 0)
+    if isinstance(value, ast.UnaryOp) and isinstance(value.op, ast.USub):
+        sign = integer_sign(value.operand)
+        return None if sign is None else -sign
+    if isinstance(value, ast.BinOp) and isinstance(value.op, ast.Pow):
+        base, exponent = signed_integer(value.left), signed_integer(value.right)
+        if base is None or exponent is None or not 0 <= exponent <= 1000:
+            return None
+        if exponent == 0:
+            return 1
+        if base == 0:
+            return 0
+        return -1 if base < 0 and exponent % 2 else 1
+    return None
+
+
 def substantive_child_challenge(record: dict, task: Path) -> bool:
     """Accept native tester execution, never prose or a root-only declaration.
 
@@ -472,9 +491,9 @@ def substantive_child_challenge(record: dict, task: Path) -> bool:
         if any(segment not in allowed_prefixes for segment in segments[:-1]):
             return False
         tail = segments[-1]
-        if len(tail) != 3 or tail[0] != 'python3' or tail[1] != '-c':
+        if tail[:1] != ['python3'] or tail[1:-1] not in (['-c'], ['-B', '-c']):
             return False
-        tree = ast.parse(tail[2])
+        tree = ast.parse(tail[-1])
     except (SyntaxError, ValueError):
         return False
     rebinds_total = any((isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)) and node.name == 'total')
@@ -520,7 +539,7 @@ def substantive_child_challenge(record: dict, task: Path) -> bool:
                 if not all(safe_integer_expression(item) for item in statement.value.elts):
                     allowed_prefix = False
                     break
-                values = [value for item in statement.value.elts if (value := signed_integer(item)) is not None]
+                values = [sign for item in statement.value.elts if (sign := integer_sign(item)) is not None]
                 continue
             allowed_prefix = False
             break
@@ -872,6 +891,8 @@ class Tests(unittest.TestCase):
         record = {'command': f"git status --short --branch; python3 -c {shlex.quote(probe)}",
                   'cwd': str(task), 'exit_code': 0, 'recordIndex': 4}
         self.assertTrue(substantive_child_challenge(record, task))
+        self.assertTrue(substantive_child_challenge(
+            {**record, 'command': f"python3 -B -c {shlex.quote(probe)}"}, task))
         self.assertTrue(completed_substantive_challenge(
             {'commands': [record], 'completionRecordIndexes': [5]}, task))
         self.assertFalse(completed_substantive_challenge(
@@ -908,6 +929,7 @@ class Tests(unittest.TestCase):
         for command in (f"python3 -c {shlex.quote(probe)}; true",
                         f"true || python3 -c {shlex.quote(probe)}",
                         f"/tmp/python3 -c {shlex.quote(probe)}",
+                        f"python3 -O -c {shlex.quote(probe)}",
                         f"export PYTHONOPTIMIZE=1; python3 -c {shlex.quote(probe)}",
                         f"PYTHONOPTIMIZE=1; export PYTHONOPTIMIZE; python3 -c {shlex.quote(probe)}"):
             self.assertFalse(substantive_child_challenge({**record, 'command': command}, task))
