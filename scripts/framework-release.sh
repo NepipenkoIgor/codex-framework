@@ -47,10 +47,24 @@ on_signal() {
 }
 GATE_DIR="$(mktemp -d "${TMPDIR:-/tmp}/codex-framework-release-gates.XXXXXX")"
 cleanup_gates() {
+  local status="$1"
   rm -rf -- "$GATE_DIR"
-  [ -z "$PROVIDER_DIR" ] || rm -rf -- "$PROVIDER_DIR"
+  if [ -n "$PROVIDER_DIR" ]; then
+    if [ "$status" -eq 0 ]; then
+      rm -rf -- "$PROVIDER_DIR"
+    else
+      printf 'Retained failed provider artifacts: %s\n' "$PROVIDER_DIR" >&2
+    fi
+  fi
 }
-trap 'cleanup_gates; cleanup' EXIT
+cleanup_all() {
+  local status=$?
+  trap - EXIT
+  cleanup_gates "$status"
+  cleanup
+  exit "$status"
+}
+trap cleanup_all EXIT
 trap on_signal INT TERM HUP
 
 run_stage() {

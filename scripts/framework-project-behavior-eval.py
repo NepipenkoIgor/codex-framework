@@ -44,8 +44,11 @@ def write_fixture(path: Path, case: str) -> tuple[str, list[str]]:
             "and use the repository provider CLI rather than the dashboard URL https://provider.invalid/issues/ISS-42."
         )
         grader = [sys.executable, "-c",
-                  "from pathlib import Path; p=Path('.provider-calls'); "
-                  "assert p.read_text().splitlines()==['identity --json','issue ISS-42 --json']; print('provider-ok')"]
+                  "from pathlib import Path; calls=Path('.provider-calls').read_text().splitlines(); "
+                  "allowed={'identity --json','issue ISS-42 --json'}; "
+                  "assert calls and set(calls)<=allowed; "
+                  "assert 'identity --json' in calls and 'issue ISS-42 --json' in calls; "
+                  "assert calls.index('identity --json')<calls.index('issue ISS-42 --json'); print('provider-ok')"]
     elif case != "node-runtime":
         (path / "README.md").write_text(
             "# Invoices\nA Python standard-library project. Public function: "
@@ -324,6 +327,19 @@ class GraderTests(unittest.TestCase):
             _, grader = write_fixture(path, "provider-cli-routing")
             events = []
             for command in ("./bin/providerctl identity --json", "./bin/providerctl issue ISS-42 --json"):
+                result = subprocess.run(command.split(), cwd=path, capture_output=True, text=True)
+                self.assertEqual(result.returncode, 0)
+                events.append(json.dumps({"type": "item.completed", "item": {
+                    "type": "command_execution", "command": command, "exit_code": 0}}))
+            self.assertTrue(grade("provider-cli-routing", path, "\n".join(events), grader)[0])
+
+    def test_repeated_read_only_provider_checks_do_not_create_a_false_failure(self):
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory)
+            _, grader = write_fixture(path, "provider-cli-routing")
+            events = []
+            for command in ("./bin/providerctl identity --json", "./bin/providerctl identity --json",
+                            "./bin/providerctl issue ISS-42 --json"):
                 result = subprocess.run(command.split(), cwd=path, capture_output=True, text=True)
                 self.assertEqual(result.returncode, 0)
                 events.append(json.dumps({"type": "item.completed", "item": {
