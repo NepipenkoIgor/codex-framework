@@ -124,6 +124,17 @@ def worktree_add(command: str) -> list[str]:
         words = shlex.split(command)
         if len(words) == 3 and Path(words[0]).name in {'sh', 'bash', 'zsh'} and words[1] in {'-c', '-lc'}:
             return worktree_add(words[2])
+        # An exit-zero shell sequence also proves an exact final worktree add.
+        # A command after the add remains rejected because it becomes the tail.
+        if ';' in command:
+            proof = worktree_add(command.rsplit(';', 1)[1].strip())
+            prefix = command.rsplit(';', 1)[0]
+            guarded = (prefix.startswith('test ! -e ')
+                       and 'git show-ref --verify --quiet refs/heads/codex/fix' in prefix
+                       and 'rc=$?' in prefix and 'if [ "$rc" -eq 0 ]' in prefix
+                       and prefix.rstrip().endswith('fi'))
+            if proof and guarded:
+                return proof
         # An exit-zero && chain proves its exact first command succeeded. Later
         # diagnostics/config transfer cannot erase that native worktree proof.
         if '&&' in command:
@@ -827,6 +838,8 @@ class Tests(unittest.TestCase):
         self.assertEqual(worktree_add(chained), ['-b', 'codex/fix', '/fixture/task', 'main'])
         env_chained = 'env TMPDIR=/fixture git worktree add -b codex/fix /fixture/task main && cp -p ../checkout/.env.fixture /fixture/task/.env.fixture'
         self.assertEqual(worktree_add(env_chained), ['-b', 'codex/fix', '/fixture/task', 'main'])
+        guarded = 'test ! -e /fixture/task && git show-ref --verify --quiet refs/heads/codex/fix; rc=$?; if [ "$rc" -eq 0 ]; then exit 2; fi; git worktree add -b codex/fix /fixture/task main'
+        self.assertEqual(worktree_add(guarded), ['-b', 'codex/fix', '/fixture/task', 'main'])
         for impostor in ('/tmp/git', '/usr/local/bin/git'):
             self.assertFalse(worktree_add(f'{impostor} worktree add -b codex/fix ../task'))
             self.assertFalse(worktree_add(actual.replace(executable, impostor)))
