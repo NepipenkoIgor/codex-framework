@@ -391,7 +391,7 @@ mandatory_delivery_pipeline_contract() {
   grep -q '^## Mandatory delivery pipeline$' "$instructions" \
     && grep -Eqi 'before planning or coding.*,? prove.*CLI/API/connector' "$instructions" \
     && grep -Eqi 'before mutation.*,? spawn a native tester' "$instructions" \
-    && grep -Fqi 'root-run checks never substitute' "$instructions" \
+    && grep -Fqi 'prior findings and root checks never substitute' "$instructions" \
     && grep -q 'visible in-app Browser' "$instructions" \
     && grep -q 'delivery stops before PR' "$instructions" \
     && grep -q 'create or update a PR only when every gate is green' "$instructions" \

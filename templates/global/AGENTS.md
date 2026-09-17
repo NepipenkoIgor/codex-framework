@@ -20,7 +20,7 @@ Apply these defaults in every repository unless a closer project instruction ove
 For material implementation, fix or delivery, run in order:
 
 1. **Preflight:** before planning or coding, prove the project contract and each required CLI/API/connector, authentication, identity and target. If one is missing, stop and ask for its setup; never substitute a provider website, browser download or account.
-2. **Plan challenge:** state criteria, consumers, risks and the smallest implementation. Before mutation, spawn a native tester for a behavior counterexample, or architect for the contract; root-run checks never substitute. Developer answers with evidence; parent adjudicates.
+2. **Plan challenge:** state criteria, consumers, risks and the smallest implementation. Before mutation, spawn a native tester for a behavior counterexample, or architect for the contract; prior findings and root checks never substitute. Developer answers with evidence; parent adjudicates.
 3. **Implementation:** reuse boundaries and primitives; justify abstractions, dependencies or duplication. Apply correctness, failure visibility, security/privacy, performance, accessibility, observability and public-page SEO where relevant.
 4. **Runtime debug:** run focused and affected checks in the actual runtime. Exercise a runnable web path early and after the final change in the visible in-app Browser, checking DOM, console, network, interaction, responsive state and fresh load; headless E2E is supplementary. If Browser is unavailable, UI acceptance is unverified and delivery stops before PR.
 5. **Result challenge:** tester attacks behavior and failure paths; developer fixes or rebuts with evidence, then reruns affected checks. Run high-risk review only afterward.

@@ -109,6 +109,15 @@ SYSTEM_GIT = frozenset({'/usr/bin/git', '/Library/Developer/CommandLineTools/usr
                         '/Applications/Xcode.app/Contents/Developer/usr/bin/git'})
 
 
+def normalize_git_words(words: list[str]) -> list[str]:
+    if len(words) >= 3 and words[0] == 'env' and words[1].startswith('TMPDIR='):
+        temporary = Path(words[1].split('=', 1)[1])
+        if not temporary.is_absolute() or '..' in temporary.parts:
+            return words
+        words = words[2:]
+    return ['git', *words[1:]] if words and words[0] in SYSTEM_GIT else words
+
+
 def worktree_add(command: str) -> list[str]:
     try:
         command = command.rstrip().removesuffix(';').rstrip()
@@ -129,7 +138,8 @@ def worktree_add(command: str) -> list[str]:
                 return worktree_add(tail.strip())
         if any(c in command for c in (';', '&', '|', '\n', '>', '<')):
             return []
-        if not words or words[0] not in SYSTEM_GIT | {'git'}:
+        words = normalize_git_words(words)
+        if not words or words[0] != 'git':
             return []
         words = words[1:]
         if words[:1] == ['-C']:
@@ -389,7 +399,7 @@ def committed_task_observed(commands: list[dict], task: Path, sha: str, repo: Pa
         segments = [shlex.split(part.strip()) for part in body.split('&&')]
         # Exact native system locations only. A basename or resolved /tmp symlink
         # must never promote an unrelated executable into trusted Git evidence.
-        segments = [['git', *words[1:]] if words and words[0] in SYSTEM_GIT else words for words in segments]
+        segments = [normalize_git_words(words) for words in segments]
         if not any(words[:3] == ['git', 'commit', '-m'] and len(words) == 4 for words in segments):
             continue
         supported = all(
@@ -463,6 +473,8 @@ def grade(case: str, fixture: dict, raw: str, rollouts: dict | None = None) -> d
         native = [] if rollouts is None else rollouts.get('rootCommands', []) + [command for child in rollouts.get('children', {}).values() for command in child.get('commands', [])]
         if rollouts is not None:
             command_ok = any(verified_native_check(command, required_flag, task) for command in native)
+            if case != 'pending-evidence':
+                command_ok = command_ok or any(verified_native_check(command, required_flag, repo) for command in native)
         # Main checkout must remain untouched while waiting, and only task changes
         # may reach main after merge. Untracked ignored config remains preserved.
         clean_main = not git(repo, 'status', '--porcelain')
@@ -813,6 +825,8 @@ class Tests(unittest.TestCase):
         self.assertTrue(worktree_add(f'{executable} worktree add -b codex/fix ../task'))
         chained = 'git worktree add -b codex/fix /fixture/task main && cp -p ../checkout/.env.fixture /fixture/task/.env.fixture && git worktree list --porcelain'
         self.assertEqual(worktree_add(chained), ['-b', 'codex/fix', '/fixture/task', 'main'])
+        env_chained = 'env TMPDIR=/fixture git worktree add -b codex/fix /fixture/task main && cp -p ../checkout/.env.fixture /fixture/task/.env.fixture'
+        self.assertEqual(worktree_add(env_chained), ['-b', 'codex/fix', '/fixture/task', 'main'])
         for impostor in ('/tmp/git', '/usr/local/bin/git'):
             self.assertFalse(worktree_add(f'{impostor} worktree add -b codex/fix ../task'))
             self.assertFalse(worktree_add(actual.replace(executable, impostor)))
@@ -840,7 +854,7 @@ class Tests(unittest.TestCase):
             git(repo, 'worktree', 'remove', str(task)); git(repo, 'branch', '-d', 'codex/fix')
             native = {'available': True, 'rootCommands': [
                 {'command': 'git worktree add -b codex/fix ../task', 'cwd': str(repo), 'exit_code': 0},
-                {'command': "git add calc.py && git commit -m 'fix' && git rev-parse HEAD && git status --short --branch", 'cwd': str(task), 'exit_code': 0, 'output': f'[codex/fix {sha[:7]}] fix\n{sha}\n## codex/fix\n'},
+                {'command': "env TMPDIR=/fixture git add calc.py && env TMPDIR=/fixture git commit -m 'fix' && git rev-parse HEAD && git status --short --branch", 'cwd': str(task), 'exit_code': 0, 'output': f'[codex/fix {sha[:7]}] fix\n{sha}\n## codex/fix\n'},
             ], 'children': {'child': {'completed': True, 'commands': [{'command': 'python3 verify.py --challenge', 'cwd': str(task), 'exit_code': 0}]}}}
             self.assertEqual(grade('merge-cleanup', f, parser_trace(task=task), native)['status'], 'passed')
             native['rootCommands'][1]['output'] = 'f' * 40
