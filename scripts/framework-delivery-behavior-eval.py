@@ -82,6 +82,8 @@ def prompt_for(area: Path, case: str) -> str:
              'Run the authorized CI repair check python3 verify.py --ci.' if case == 'ci-repair' else '')
     return (f'Fix the substantive calc.total behavior against README. {integration} {extra} '
             f'Use branch codex/fix and task worktree {area / "task"}. '
+            'This is material work: before mutation spawn a native tester for the plan challenge; '
+            'prior review or CI text and root-run checks do not substitute for that child evidence. '
             'No network, external accounts, pushes, package installation, or changes outside this disposable fixture area. '
             'Preserve the unrelated other-writer worktree and ignored runtime config. '
             'Use native capabilities normally. Verification command: python3 verify.py --challenge. '
@@ -400,6 +402,16 @@ def verified_native_check(record: dict, flag: str, task: Path) -> bool:
     return type(record.get('exit_code')) is int and record['exit_code'] == 0 and Path(record.get('cwd', '/')).resolve() == task.resolve() and direct_check(record.get('command', ''), flag)
 
 
+def git_commit_message(words: list[str]) -> bool:
+    if words[:3] == ['git', 'commit', '-m'] and len(words) == 4:
+        return True
+    if len(words) == 8 and words[0] == 'git' and words[1] == '-c' and words[3] == '-c' \
+            and words[5:7] == ['commit', '-m']:
+        keys = {words[2].split('=', 1)[0], words[4].split('=', 1)[0]}
+        return keys == {'user.name', 'user.email'} and '=' in words[2] and '=' in words[4]
+    return False
+
+
 def committed_task_observed(commands: list[dict], task: Path, sha: str, repo: Path | None = None, objects: list[str] | None = None) -> bool:
     for command in commands:
         if command.get('exit_code') != 0 or Path(command.get('cwd', '/')).resolve() != task.resolve():
@@ -411,11 +423,11 @@ def committed_task_observed(commands: list[dict], task: Path, sha: str, repo: Pa
         # Exact native system locations only. A basename or resolved /tmp symlink
         # must never promote an unrelated executable into trusted Git evidence.
         segments = [normalize_git_words(words) for words in segments]
-        if not any(words[:3] == ['git', 'commit', '-m'] and len(words) == 4 for words in segments):
+        if not any(git_commit_message(words) for words in segments):
             continue
         supported = all(
             words in (['git', 'add', 'calc.py'], ['git', 'add', '--', 'calc.py']) or
-            words[:3] == ['git', 'commit', '-m'] and len(words) == 4 or
+            git_commit_message(words) or
             direct_check(shlex.join(words), '--challenge') or readonly_git_tail(shlex.join(words))
             for words in segments)
         if supported:
@@ -870,6 +882,10 @@ class Tests(unittest.TestCase):
                 {'command': "env TMPDIR=/fixture git add calc.py && env TMPDIR=/fixture git commit -m 'fix' && git rev-parse HEAD && git status --short --branch", 'cwd': str(task), 'exit_code': 0, 'output': f'[codex/fix {sha[:7]}] fix\n{sha}\n## codex/fix\n'},
             ], 'children': {'child': {'completed': True, 'commands': [{'command': 'python3 verify.py --challenge', 'cwd': str(task), 'exit_code': 0}]}}}
             self.assertEqual(grade('merge-cleanup', f, parser_trace(task=task), native)['status'], 'passed')
+            configured_commit = {**native['rootCommands'][1],
+                'command': "git add calc.py && git -c user.name=Codex -c user.email=codex@local commit -m 'fix'",
+                'output': f'[codex/fix {sha[:7]}] fix\n'}
+            self.assertTrue(committed_task_observed([configured_commit], task, sha, repo))
             native['rootCommands'][1]['output'] = 'f' * 40
             self.assertNotEqual(grade('merge-cleanup', f, parser_trace(task=task), native)['status'], 'passed')
             save_state_attestation(f, area)
