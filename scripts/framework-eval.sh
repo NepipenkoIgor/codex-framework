@@ -541,8 +541,9 @@ capability_discovery_contract() {
       && grep -Eqi 'Empty or mixed-warning/truncated/unsupported results are inconclusive' "$instructions" \
       && grep -Eqi 'same-scope authenticated connector/API' "$instructions" \
       && grep -Fqi 'Before target-dependent provider use' "$instructions" \
-      && grep -Eqi 'flags.*,? env.*,? repo config.*,? credential/profile.*,? and link/cache selectors to agree' "$instructions" \
-      && grep -Eqi 'Missing/stale/conflicting selectors block' "$instructions" \
+      && grep -Eqi 'flags.*,? env.*,? repo config.*,? credential/profile.*,? and link/cache selectors agree' "$instructions" \
+      && grep -Eqi 'Parse identity/target first.*,? only after success.*reads or mutations.*,? never concurrently' "$instructions" \
+      && grep -Eqi 'Conflicts block until repair and recheck' "$instructions" \
       && grep -Eqi 'Browser requires both an exhausted same-scope CLI/API/connector path.*,? UI-only evidence/action' "$instructions" \
       && grep -Eqi 'Missing plugins do not block working tools' "$instructions" \
       && grep -Eqi 'Request only a user-named plugin after tool/CLI discovery is exhausted and it uniquely supplies the capability' "$instructions" \
@@ -601,7 +602,9 @@ capability_discovery_omission_counterexamples() {
     'Empty or mixed-warning' \
     'target-dependent provider use' \
     'link/cache selectors' \
-    'Missing/stale/conflicting selectors' \
+    'Parse identity/target first' \
+    'never concurrently' \
+    'Conflicts block until repair and recheck' \
     'same-scope authenticated connector/API' \
     'Browser requires both an exhausted same-scope CLI/API/connector path' \
     'Missing plugins do not block working tools' \
