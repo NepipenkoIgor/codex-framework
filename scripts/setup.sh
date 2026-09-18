@@ -2,7 +2,7 @@
 set -euo pipefail
 
 # Fail before using required tools or touching installation paths.
-for dependency in python3 git; do
+for dependency in python3 git codex; do
   command -v "$dependency" >/dev/null 2>&1 || {
     printf 'Required dependency missing: %s. Install it using your OS package manager, then rerun setup.\n' "$dependency" >&2
     exit 1
@@ -145,7 +145,7 @@ python3 "$REPO_DIR/scripts/framework-install.py" "${install_args[@]}"
 
 python3 "$REPO_DIR/scripts/framework-link-install.py" "${link_args[@]}" "${profile_args[@]}"
 
-GLOBAL_GUIDANCE_STATUS="$GLOBAL_GUIDANCE_TARGET (managed link if absent or explicitly owned; user guidance preserved)"
+GLOBAL_GUIDANCE_STATUS="$GLOBAL_GUIDANCE_TARGET (managed link; setup fails closed on unmanaged guidance)"
 
 cat <<EOF
 Installed skills:

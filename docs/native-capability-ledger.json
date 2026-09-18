@@ -1,10 +1,10 @@
 {
   "schemaVersion": 3,
-  "reviewedAt": "2026-09-16T17:40:52+00:00",
-  "codexVersion": "codex-cli 0.154.0",
+  "reviewedAt": "2026-09-18T02:52:29+00:00",
+  "codexVersion": "codex-cli 0.155.0",
   "baselineReleaseTag": "rust-v0.149.0",
-  "latestReleaseTag": "rust-v0.154.0",
-  "changelogReviewedThrough": "2026-09-14",
+  "latestReleaseTag": "rust-v0.155.0",
+  "changelogReviewedThrough": "2026-09-17",
   "sources": [
     {
       "kind": "manual",
@@ -14,12 +14,12 @@
     {
       "kind": "changelog",
       "url": "https://learn.chatgpt.com/docs/changelog",
-      "sha256": "c21b530841e7383e2cbcfa0da8fa268482dc7f389970454934c98d7a47a66080"
+      "sha256": "c79ccc12a94c05b99d0e6a3b0f3ef2628880777f368cea8d62a2dda51ca2bff5"
     },
     {
       "kind": "release",
       "url": "https://api.github.com/repos/openai/codex/releases/latest",
-      "sha256": "95af6d0faa5af5055081c07f0e8e4d92c70d764a536d453baa4e2c350f8815e9"
+      "sha256": "1e1a072edac742d0a0d0be4b39c6757c19ef098645b845dcd204e49caa142226"
     }
   ],
   "releaseCoverage": [
@@ -123,6 +123,25 @@
         "live-extension-refresh",
         "async-mcp-hooks",
         "native-doctor-diagnostics"
+      ]
+    },
+    {
+      "tag": "python-v0.154.0",
+      "publishedAt": "2026-09-10T19:51:43Z",
+      "capabilityIds": [
+        "native-python-sdk-events"
+      ]
+    },
+    {
+      "tag": "rust-v0.155.0",
+      "publishedAt": "2026-09-17T23:14:43Z",
+      "capabilityIds": [
+        "experimental-voice",
+        "task-ergonomics",
+        "mcp-user-verification",
+        "native-agent-lifecycle",
+        "provider-credential-commands",
+        "approval-review"
       ]
     }
   ],
@@ -501,6 +520,39 @@
         ".codex/config.toml",
         ".codex/agents/reviewer.toml",
         "docs/native-capability-review.md"
+      ]
+    },
+    {
+      "id": "experimental-voice",
+      "nativeFeature": "Experimental TUI voice conversations with live transcripts and microphone controls",
+      "decision": "permission-gated",
+      "localOverlap": "A framework voice wrapper would duplicate an explicitly experimental native surface and bypass microphone and feature consent.",
+      "action": "Leave voice disabled by default. Use native /experimental and /voice only after explicit user activation on a supported build; do not add framework audio capture or transcript lifecycle code.",
+      "evidence": [
+        "templates/global/AGENTS.md",
+        "docs/native-capability-review.md"
+      ]
+    },
+    {
+      "id": "mcp-user-verification",
+      "nativeFeature": "Touch ID user verification for MCP requests in supported local macOS TUI sessions",
+      "decision": "adopted",
+      "localOverlap": "Framework approval prompts or biometric wrappers would weaken native request binding and platform verification.",
+      "action": "Use the native verification request when exposed, preserve its cancellation and authorization boundary, and never treat device support or prior verification as standing authority.",
+      "evidence": [
+        "templates/global/AGENTS.md",
+        "docs/native-capability-review.md"
+      ]
+    },
+    {
+      "id": "provider-credential-commands",
+      "nativeFeature": "Amazon Bedrock credential commands with native caching, expiry refresh, and authentication recovery",
+      "decision": "permission-gated",
+      "localOverlap": "A framework credential cache or browser fallback would duplicate provider authentication and obscure account, role, region, and expiry identity.",
+      "action": "Use configured native credential commands only when the target provider identity and command authority are explicit; keep secrets out of framework state and fail closed on authentication or selector conflict.",
+      "evidence": [
+        "templates/global/AGENTS.md",
+        "AGENTS.md"
       ]
     },
     {

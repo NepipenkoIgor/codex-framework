@@ -14,6 +14,10 @@ Apply the loop to any feature, bug fix, refactor, or review that can change call
 4. After a meaningful change, rely on verified hot reload only when it actually occurred. Otherwise reload the task tab. Finish with a fresh-load journey and affected loading, empty, error, success, auth, responsive, keyboard/focus, and persisted/server outcomes.
 5. Headless browser tests remain valuable regression evidence but do not replace the visible in-app Browser loop. A build, unit test, HTTP status, or screenshot alone is not interactive acceptance.
 
+Visible in-app Browser evidence is a delivery gate for a runnable web path. Record the exact route, state, interaction, console/network result, and final source/environment identity. Automated browser suites prove their own harness only. If the active surface has no in-app Browser, UI acceptance stays unverified and delivery stops before PR; do not substitute `curl`, HTTP 200, a provider dashboard, an external browser profile, or a headless-only run.
+
+Provider control planes use the opposite route: authenticated connector/MCP or CLI/API for data and actions. Open GitHub Actions, Sentry, Supabase, Vercel or another provider in Browser only for an irreducibly visual/UI-only question after same-scope authenticated paths are exhausted and the gap is stated. Browser downloads are not an API.
+
 ## Browser recovery and cleanup
 
 - A missing, stale, or closed tab does not invalidate the browser. Discard only the tab binding, inspect current session tabs, and reacquire the exact owned tab or create a fresh task-owned tab in the same binding. Re-select only after an explicit browser-disconnected result.

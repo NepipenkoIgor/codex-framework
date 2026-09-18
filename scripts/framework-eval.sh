@@ -17,6 +17,15 @@ check() {
   fi
 }
 
+same_resolved_path() {
+  python3 - "$1" "$2" <<'PY'
+from pathlib import Path
+import sys
+
+raise SystemExit(0 if Path(sys.argv[1]).resolve(strict=False) == Path(sys.argv[2]).resolve(strict=False) else 1)
+PY
+}
+
 bootstrap_preserves_native_config() {
   local fixture before after
   fixture="$(mktemp -d "${TMPDIR:-/tmp}/codex-bootstrap-native.XXXXXX")"
@@ -62,29 +71,49 @@ project_config_is_source_owned() {
 setup_collision_safety() {
   local fixture case_dir skill_before skill_after guidance_before guidance_after state_before state_after external_before external_after
   fixture="$(mktemp -d "${TMPDIR:-/tmp}/codex-framework-setup-eval.XXXXXX")"
-  for kind in nonempty empty symlink; do
+  for kind in absent merged nonempty empty symlink; do
     case_dir="$fixture/$kind"
-    mkdir -p "$case_dir/.agents/skills"
+    mkdir -p "$case_dir/.agents/skills" "$case_dir/.codex"
     case "$kind" in
-      nonempty) printf '%s\n' 'user-owned guidance' > "$case_dir/AGENTS.md" ;;
-      empty) : > "$case_dir/AGENTS.md" ;;
+      absent) ;;
+      merged) { cat "$ROOT/templates/global/AGENTS.md"; printf '\n# Personal addition\n'; } > "$case_dir/.codex/AGENTS.md" ;;
+      nonempty) printf '%s\n' 'user-owned guidance' > "$case_dir/.codex/AGENTS.md" ;;
+      empty) : > "$case_dir/.codex/AGENTS.md" ;;
       symlink)
         printf '%s\n' 'user-owned linked guidance' > "$case_dir/guidance-source.md"
-        ln -s "$case_dir/guidance-source.md" "$case_dir/AGENTS.md"
+        ln -s "$case_dir/guidance-source.md" "$case_dir/.codex/AGENTS.md"
         ;;
     esac
-    if [ -L "$case_dir/AGENTS.md" ]; then
-      guidance_before="link:$(readlink "$case_dir/AGENTS.md")"
+    if [ ! -e "$case_dir/.codex/AGENTS.md" ] && [ ! -L "$case_dir/.codex/AGENTS.md" ]; then
+      guidance_before=absent
+    elif [ -L "$case_dir/.codex/AGENTS.md" ]; then
+      guidance_before="link:$(readlink "$case_dir/.codex/AGENTS.md")"
     else
-      guidance_before="file:$(shasum -a 256 "$case_dir/AGENTS.md")"
+      guidance_before="file:$(shasum -a 256 "$case_dir/.codex/AGENTS.md")"
+    fi
+    if [ "$kind" = merged ]; then
+      CODEX_HOME="$case_dir/.codex" CODEX_SKILLS_HOME="$case_dir/.agents/skills" bash "$ROOT/scripts/setup.sh" --development --pack frontend >/dev/null
+      [ ! -L "$case_dir/.codex/AGENTS.md" ] || return 1
+      guidance_after="file:$(shasum -a 256 "$case_dir/.codex/AGENTS.md")"
+      [ "$guidance_before" = "$guidance_after" ] || return 1
+      [ -e "$case_dir/.agents/skills/.codex-framework-install.json" ] || return 1
+      continue
+    fi
+    if [ "$kind" != absent ]; then
+      if CODEX_HOME="$case_dir/.codex" CODEX_SKILLS_HOME="$case_dir/.agents/skills" bash "$ROOT/scripts/setup.sh" --development --pack frontend >/dev/null 2>&1; then return 1; fi
+      if [ -L "$case_dir/.codex/AGENTS.md" ]; then guidance_after="link:$(readlink "$case_dir/.codex/AGENTS.md")"; else guidance_after="file:$(shasum -a 256 "$case_dir/.codex/AGENTS.md")"; fi
+      [ "$guidance_before" = "$guidance_after" ] || return 1
+      [ ! -e "$case_dir/.agents/skills/.codex-framework-install.json" ] || return 1
+      continue
     fi
     CODEX_HOME="$case_dir/.codex" CODEX_SKILLS_HOME="$case_dir/.agents/skills" bash "$ROOT/scripts/setup.sh" --development --pack frontend >/dev/null
-    if [ -L "$case_dir/AGENTS.md" ]; then
-      guidance_after="link:$(readlink "$case_dir/AGENTS.md")"
+    if [ -L "$case_dir/.codex/AGENTS.md" ]; then
+      guidance_after="link:$(readlink "$case_dir/.codex/AGENTS.md")"
     else
-      guidance_after="file:$(shasum -a 256 "$case_dir/AGENTS.md")"
+      guidance_after="file:$(shasum -a 256 "$case_dir/.codex/AGENTS.md")"
     fi
-    [ "$guidance_before" = "$guidance_after" ] || return 1
+    [ "$guidance_before" = absent ] && [ -L "$case_dir/.codex/AGENTS.md" ] \
+      && same_resolved_path "$case_dir/.codex/AGENTS.md" "$ROOT/templates/global/AGENTS.md" || return 1
     [ -L "$case_dir/.agents/skills/framework-management" ] || return 1
     for profile in architect reviewer tester; do
       [ -f "$case_dir/.codex/agents/codex-framework-$profile.toml" ] || return 1
@@ -114,7 +143,7 @@ setup_collision_safety() {
   if CODEX_HOME="$case_dir/.codex" CODEX_SKILLS_HOME="$case_dir/.agents/skills" bash "$ROOT/scripts/setup.sh" --development >/dev/null 2>&1; then
     return 1
   fi
-  [ "$(readlink "$case_dir/.agents/skills/framework-management")" = "$ROOT/skills/framework-management" ] || return 1
+  same_resolved_path "$case_dir/.agents/skills/framework-management" "$ROOT/skills/framework-management" || return 1
   [ ! -e "$case_dir/.agents/skills/.codex-framework-install.json" ] || return 1
 
   case_dir="$fixture/auxiliary-collision"
@@ -124,7 +153,7 @@ setup_collision_safety() {
   if CODEX_HOME="$case_dir/.codex" CODEX_SKILLS_HOME="$case_dir/.agents/skills" bash "$ROOT/scripts/setup.sh" --development >/dev/null 2>&1; then
     return 1
   fi
-  [ "$(readlink "$case_dir/.codex/agents/codex-framework-reviewer.toml")" = "$case_dir/user-reviewer.toml" ] || return 1
+  same_resolved_path "$case_dir/.codex/agents/codex-framework-reviewer.toml" "$case_dir/user-reviewer.toml" || return 1
   [ ! -e "$case_dir/.agents/skills/.codex-framework-install.json" ] || return 1
 
   case_dir="$fixture/legacy"
@@ -327,7 +356,7 @@ falsification_review_contract() {
     && grep -q 'report the independence contract as invalid instead of certifying' "$ROOT/.codex/agents/reviewer.toml" \
     && grep -q 'Every actionable finding must include severity, concrete evidence' "$ROOT/.codex/agents/reviewer.toml" \
     && grep -q 'no inherited conversation turns or prior-agent history' "$ROOT/templates/global/AGENTS.md" \
-    && grep -q 'avoid recursive debate loops' "$ROOT/templates/global/AGENTS.md" \
+    && grep -q 'do not create recurring debate rounds' "$ROOT/docs/runtime-efficiency.md" \
     && python3 "$ROOT/scripts/framework-review-context-check.py"
 }
 
@@ -359,12 +388,25 @@ native_feature_adoption_contract() {
 
 runtime_efficiency_contract() {
   local instructions="$ROOT/templates/global/AGENTS.md"
-  grep -Fq 'Automatically use evidence-based challenge' "$instructions" \
+  grep -Fq '## Mandatory delivery pipeline' "$instructions" \
     && grep -Fq 'continue waiting on the same live handle' "$instructions" \
     && grep -Fq 'Reuse a check while its code SHA, command/config, environment' "$instructions" \
     && grep -Fq 'never authorized fixes for later CI failures' "$instructions" \
     && test -s "$ROOT/docs/runtime-efficiency.md" \
     && python3 -m json.tool "$ROOT/evals/runtime-efficiency-output.schema.json" >/dev/null
+}
+
+mandatory_delivery_pipeline_contract() {
+  local instructions="$ROOT/templates/global/AGENTS.md"
+  grep -q '^## Mandatory delivery pipeline$' "$instructions" \
+    && grep -Eqi 'before planning or coding.*,? prove.*CLI/API/connector' "$instructions" \
+    && grep -Eqi 'before mutation.*,? spawn a native tester' "$instructions" \
+    && grep -Fqi 'prior findings and root checks never substitute' "$instructions" \
+    && grep -q 'visible in-app Browser' "$instructions" \
+    && grep -q 'delivery stops before PR' "$instructions" \
+    && grep -q 'create or update a PR only when every gate is green' "$instructions" \
+    && grep -q 'Provider control planes use the opposite route' "$ROOT/docs/interactive-development.md" \
+    && grep -q '^## Ordered delivery gates$' "$ROOT/docs/runtime-efficiency.md"
 }
 
 project_environment_authority_contract() {
@@ -509,9 +551,10 @@ capability_discovery_contract() {
       && grep -Eqi 'Empty or mixed-warning/truncated/unsupported results are inconclusive' "$instructions" \
       && grep -Eqi 'same-scope authenticated connector/API' "$instructions" \
       && grep -Fqi 'Before target-dependent provider use' "$instructions" \
-      && grep -Eqi 'flags.*,? env.*,? repo config.*,? credential/profile.*,? and link/cache selectors to agree' "$instructions" \
-      && grep -Eqi 'Missing/stale/conflicting selectors block' "$instructions" \
-      && grep -Eqi 'Browser requires a stated CLI/API gap.*,? UI-only evidence/action' "$instructions" \
+      && grep -Eqi 'flags.*,? env.*,? repo config.*,? credential/profile.*,? and link/cache selectors agree' "$instructions" \
+      && grep -Eqi 'Parse identity/target first.*,? only after success.*reads or mutations.*,? never concurrently' "$instructions" \
+      && grep -Eqi 'Conflicts block until repair and recheck' "$instructions" \
+      && grep -Eqi 'Browser requires both an exhausted same-scope CLI/API/connector path.*,? UI-only evidence/action' "$instructions" \
       && grep -Eqi 'Missing plugins do not block working tools' "$instructions" \
       && grep -Eqi 'Request only a user-named plugin after tool/CLI discovery is exhausted and it uniquely supplies the capability' "$instructions" \
       && grep -Eqi 'otherwise report the exact unsupported operation' "$instructions" \
@@ -569,9 +612,11 @@ capability_discovery_omission_counterexamples() {
     'Empty or mixed-warning' \
     'target-dependent provider use' \
     'link/cache selectors' \
-    'Missing/stale/conflicting selectors' \
+    'Parse identity/target first' \
+    'never concurrently' \
+    'Conflicts block until repair and recheck' \
     'same-scope authenticated connector/API' \
-    'Browser requires a stated CLI/API gap' \
+    'Browser requires both an exhausted same-scope CLI/API/connector path' \
     'Missing plugins do not block working tools' \
     'user-named plugin' \
     'uniquely supplies the capability' \
@@ -621,6 +666,7 @@ check 'bounded falsification-review contract exists' falsification_review_contra
 check 'interactive Browser and mobile device lifecycle is automatic and task-owned' interactive_development_contract
 check 'current native task and automation features have explicit adoption boundaries' native_feature_adoption_contract
 check 'bounded goal, wait, verification, and reviewer efficiency contracts exist' runtime_efficiency_contract
+check 'material delivery has ordered capability, challenge, Browser, review, and PR gates' mandatory_delivery_pipeline_contract
 check 'project and environment authority fails closed before substitute infrastructure' project_environment_authority_contract
 check 'project and environment authority rejects contradictory fallback authorization' project_environment_authority_counterexample
 check 'project and environment authority rejects required-field omissions' project_environment_authority_omission_counterexamples
@@ -665,7 +711,7 @@ check 'every skill has a strict quality and routing contract' python3 "$ROOT/scr
 check 'quality evaluator rejects its counterexamples' python3 "$ROOT/scripts/framework-skill-quality.py" self-test
 check 'release evidence rejects fabricated attestations' python3 "$ROOT/scripts/framework-release-evidence.py" self-test
 check 'release interruption owns and terminates evaluator children' grep -q 'terminate_active_processes' "$ROOT/scripts/framework-skill-quality.py"
-check 'setup preserves colliding user skill and all existing guidance targets' setup_collision_safety
+check 'setup fails closed without changing colliding user content or inactive global guidance' setup_collision_safety
 check 'managed agent copies update safely and migrate legacy symlinks' managed_profile_copy_safety
 check 'project pack sync is declarative, idempotent, pruning, and collision-safe' project_pack_sync_safety
 check 'bootstrap preserves native user config' bootstrap_preserves_native_config
