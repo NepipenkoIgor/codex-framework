@@ -12,7 +12,7 @@ Review $ARGUMENTS.
 
 ## Ground the review
 
-Read instructions, diff and callers, manifests/lockfiles, native configuration, routing/state/storage/API contracts, tests, and release/runtime policy. Establish the installed framework/toolchain and affected platforms from evidence. Verify version-sensitive claims against local types/configuration or matching official documentation; do not recommend latest patterns that require an unrequested migration.
+Read instructions, diff and callers, manifests/lockfiles, native configuration, routing/state/storage/API contracts, tests, and release/runtime policy. Establish the installed framework/toolchain and affected platforms from evidence. Preserve existing pins; for an authorized greenfield choice, resolve stable/LTS versions with the framework stack-context command and matching official compatibility sources, then treat the generated manifest and lockfile as the authoritative version contract. Verify version-sensitive claims against local types/configuration or matching official documentation; do not recommend latest patterns that require an unrequested migration.
 
 Trace changed execution paths in risk order: first establish the affected caller-visible/native path and authority/data/lifecycle invariants, then falsify the highest-impact path, and only then run dependent static, build, device and lifecycle checks whose prerequisites are supported by earlier evidence. Report only actionable defects with severity, concrete evidence, file/line, affected behavior, and a reproduction or missing executable check. Do not treat stylistic preference, lack of memoization, unpinned transitive packages, a root/jailbreak heuristic, or use of an unfashionable library as a defect without a demonstrated contract or risk.
 
