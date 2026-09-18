@@ -17,6 +17,15 @@ check() {
   fi
 }
 
+same_resolved_path() {
+  python3 - "$1" "$2" <<'PY'
+from pathlib import Path
+import sys
+
+raise SystemExit(0 if Path(sys.argv[1]).resolve(strict=False) == Path(sys.argv[2]).resolve(strict=False) else 1)
+PY
+}
+
 bootstrap_preserves_native_config() {
   local fixture before after
   fixture="$(mktemp -d "${TMPDIR:-/tmp}/codex-bootstrap-native.XXXXXX")"
@@ -103,7 +112,8 @@ setup_collision_safety() {
     else
       guidance_after="file:$(shasum -a 256 "$case_dir/.codex/AGENTS.md")"
     fi
-    [ "$guidance_before" = absent ] && [ "$guidance_after" = "link:$ROOT/templates/global/AGENTS.md" ] || return 1
+    [ "$guidance_before" = absent ] && [ -L "$case_dir/.codex/AGENTS.md" ] \
+      && same_resolved_path "$case_dir/.codex/AGENTS.md" "$ROOT/templates/global/AGENTS.md" || return 1
     [ -L "$case_dir/.agents/skills/framework-management" ] || return 1
     for profile in architect reviewer tester; do
       [ -f "$case_dir/.codex/agents/codex-framework-$profile.toml" ] || return 1
@@ -133,7 +143,7 @@ setup_collision_safety() {
   if CODEX_HOME="$case_dir/.codex" CODEX_SKILLS_HOME="$case_dir/.agents/skills" bash "$ROOT/scripts/setup.sh" --development >/dev/null 2>&1; then
     return 1
   fi
-  [ "$(readlink "$case_dir/.agents/skills/framework-management")" = "$ROOT/skills/framework-management" ] || return 1
+  same_resolved_path "$case_dir/.agents/skills/framework-management" "$ROOT/skills/framework-management" || return 1
   [ ! -e "$case_dir/.agents/skills/.codex-framework-install.json" ] || return 1
 
   case_dir="$fixture/auxiliary-collision"
@@ -143,7 +153,7 @@ setup_collision_safety() {
   if CODEX_HOME="$case_dir/.codex" CODEX_SKILLS_HOME="$case_dir/.agents/skills" bash "$ROOT/scripts/setup.sh" --development >/dev/null 2>&1; then
     return 1
   fi
-  [ "$(readlink "$case_dir/.codex/agents/codex-framework-reviewer.toml")" = "$case_dir/user-reviewer.toml" ] || return 1
+  same_resolved_path "$case_dir/.codex/agents/codex-framework-reviewer.toml" "$case_dir/user-reviewer.toml" || return 1
   [ ! -e "$case_dir/.agents/skills/.codex-framework-install.json" ] || return 1
 
   case_dir="$fixture/legacy"
