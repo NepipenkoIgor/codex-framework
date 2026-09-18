@@ -102,8 +102,8 @@
       "outputSha256": "0b06c86921bc09757e524f4725770e4cfb55bde1a46af743d80450cc3cc16490"
     }
   ],
-  "generatedAt": "2026-09-18T03:39:50+00:00",
-  "gitHeadAtGeneration": "ca0f9727f4a8d652c80f1dc3382b404f76d58ea3",
+  "generatedAt": "2026-09-18T03:55:26+00:00",
+  "gitHeadAtGeneration": "17ef1d8c5e87edf9477136103476099f882b74e5",
   "schemaVersion": 3,
   "skillCorpusAttestation": [
     {
@@ -2135,5 +2135,5 @@
       "verdict": "pass"
     }
   ],
-  "sourceDigest": "4b323db9bf72538abf754e1e6784f815ad9239650dadbc3eb07b76beda4e2dda"
+  "sourceDigest": "fc08b0450e2d63f4e14c4071c8ccd6d25195182f73c0ab6edde35f98adfaa1e4"
 }
