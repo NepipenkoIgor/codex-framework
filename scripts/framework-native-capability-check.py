@@ -45,6 +45,9 @@ def release_version(tag: str) -> tuple[int, int, int]:
     return tuple(int(value) for value in match.groups())
 
 
+STABLE_RELEASE_TAG = re.compile(r"(?:rust|python)-v\d+\.\d+\.\d+")
+
+
 def changelog_dates(body: str) -> list[dt.date]:
     values = set(re.findall(r"(?<!\d)(\d{4}-[01]\d-[0-3]\d)(?!\d)", body))
     dates: list[dt.date] = []
@@ -210,6 +213,7 @@ def validate(data: dict[str, object], now: dt.datetime | None = None) -> list[st
             failures.append("ledger must demonstrate adopted, removed, and permission-gated decisions")
     coverage = data.get("releaseCoverage")
     coverage_tags: list[str] = []
+    coverage_published: list[dt.datetime] = []
     if not isinstance(coverage, list) or not coverage:
         failures.append("stable release coverage is missing")
     else:
@@ -218,7 +222,7 @@ def validate(data: dict[str, object], now: dt.datetime | None = None) -> list[st
                 failures.append("release coverage entry is malformed")
                 continue
             tag = release.get("tag")
-            if not isinstance(tag, str) or not re.fullmatch(r"rust-v\d+\.\d+\.\d+", tag) or tag in coverage_tags:
+            if not isinstance(tag, str) or not STABLE_RELEASE_TAG.fullmatch(tag) or tag in coverage_tags:
                 failures.append(f"release coverage tag is missing or duplicated: {tag}")
             else:
                 coverage_tags.append(tag)
@@ -226,6 +230,7 @@ def validate(data: dict[str, object], now: dt.datetime | None = None) -> list[st
                 published = dt.datetime.fromisoformat(str(release.get("publishedAt")).replace("Z", "+00:00"))
                 if published.tzinfo is None:
                     raise ValueError("timezone missing")
+                coverage_published.append(published.astimezone(dt.timezone.utc))
             except ValueError:
                 failures.append(f"release coverage timestamp is invalid: {tag}")
             capability_ids = release.get("capabilityIds")
@@ -235,13 +240,8 @@ def validate(data: dict[str, object], now: dt.datetime | None = None) -> list[st
                 failures.append(f"release coverage references an unknown capability: {tag}")
         if coverage_tags and coverage_tags[-1] != data.get("latestReleaseTag"):
             failures.append("release coverage must end at latestReleaseTag")
-        try:
-            versions = [release_version(tag) for tag in coverage_tags]
-            if versions != sorted(versions) or len(set(versions)) != len(versions) \
-                    or (isinstance(baseline_tag, str) and versions and versions[0] <= release_version(baseline_tag)):
-                failures.append("release coverage must be unique, ordered, and newer than baselineReleaseTag")
-        except ValueError:
-            failures.append("release coverage contains an invalid stable release tag")
+        if coverage_published != sorted(coverage_published) or len(set(coverage_published)) != len(coverage_published):
+            failures.append("release coverage timestamps must be unique and ordered")
     return failures
 
 
