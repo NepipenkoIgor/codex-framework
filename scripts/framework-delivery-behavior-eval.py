@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import ast
+import copy
 
 import argparse
 import hashlib
@@ -221,7 +222,8 @@ def decode_object(value) -> dict:
 
 
 def spawned_testers(records: list[dict]) -> list[str]:
-    calls, tasks, children, activities = {}, {}, [], []
+    calls: dict[str, dict[str, object]] = {}
+    activities: list[dict] = []
     for record in records:
         p = record.get('payload', {})
         if record.get('type') == 'event_msg' and p.get('type') == 'item_completed':
@@ -233,19 +235,55 @@ def spawned_testers(records: list[dict]) -> list[str]:
         if p.get('type') == 'function_call' and p.get('name', '').split('.')[-1] == 'spawn_agent':
             arguments = decode_object(p.get('arguments', '{}'))
             if arguments.get('agent_type') == 'tester':
-                calls[p.get('call_id')] = True
+                call_id = p.get('call_id')
+                task_name = arguments.get('task_name')
+                if not isinstance(call_id, str) or not call_id:
+                    raise ValueError('tester spawn has no call_id')
+                if task_name is not None and (not isinstance(task_name, str)
+                                              or not re.fullmatch(r'[a-z0-9_]+', task_name)):
+                    raise ValueError('tester spawn task_name is malformed')
+                if call_id in calls:
+                    raise ValueError('duplicate tester spawn call_id')
+                calls[call_id] = {'path': f'/root/{task_name}' if task_name is not None else None,
+                                  'output': set(), 'activity': set()}
         if p.get('type') == 'function_call_output' and p.get('call_id') in calls:
             result = decode_object(p.get('output', '{}'))
             child = result.get('agent_id')
             if isinstance(child, str):
-                children.append(child)
-            if isinstance(result.get('task_name'), str):
-                tasks[p['call_id']] = result['task_name']
-    # Native v2 links the returned task path to a UUID in a typed activity item.
-    # Both the originating call ID and returned path must match exactly.
-    children.extend(item['agent_thread_id'] for item in activities
-                    if item.get('id') in tasks and item.get('agent_path') == tasks[item['id']]
-                    and isinstance(item.get('agent_thread_id'), str))
+                calls[p['call_id']]['output'].add(child)
+            elif child is not None:
+                raise ValueError('tester spawn output agent_id is malformed')
+            returned_path = result.get('task_name')
+            if returned_path is not None:
+                if not isinstance(returned_path, str) or not re.fullmatch(r'/root/[a-z0-9_]+', returned_path):
+                    raise ValueError('tester spawn output task path is malformed')
+                if calls[p['call_id']]['path'] is not None and returned_path != calls[p['call_id']]['path']:
+                    raise ValueError('tester spawn output task path conflicts with request')
+                calls[p['call_id']]['path'] = returned_path
+    # Native v2 links the spawn call directly to a typed activity. Reconcile it
+    # with older function output when both exist; never union conflicting IDs.
+    for item in activities:
+        call_id = item.get('id')
+        if call_id not in calls:
+            continue
+        if calls[call_id]['path'] is None:
+            raise ValueError('tester activity has no canonical task path')
+        if item.get('agent_path') != calls[call_id]['path']:
+            raise ValueError('tester activity path conflicts with spawn request')
+        child = item.get('agent_thread_id')
+        if not isinstance(child, str) or not child:
+            raise ValueError('tester activity thread identity is malformed')
+        calls[call_id]['activity'].add(child)
+    children: list[str] = []
+    for state in calls.values():
+        output_ids = state['output']
+        activity_ids = state['activity']
+        if len(output_ids) > 1 or len(activity_ids) > 1:
+            raise ValueError('tester spawn has conflicting child identities')
+        if output_ids and activity_ids and output_ids != activity_ids:
+            raise ValueError('tester output and activity identities conflict')
+        resolved = output_ids or activity_ids
+        children.extend(resolved)
     return sorted(set(children))
 
 
@@ -883,6 +921,46 @@ def parser_trace(flag='--challenge', task=None) -> str:
 
 
 class Tests(unittest.TestCase):
+    def test_native_v2_spawn_activity_proves_tester_identity_without_tool_output(self):
+        records = [
+            {'type': 'response_item', 'payload': {
+                'type': 'function_call', 'name': 'spawn_agent', 'call_id': 'spawn-1',
+                'arguments': json.dumps({'agent_type': 'tester', 'task_name': 'challenge'}),
+            }},
+            {'type': 'event_msg', 'payload': {'type': 'item_completed', 'item': {
+                'type': 'SubAgentActivity', 'kind': 'started', 'id': 'spawn-1',
+                'agent_thread_id': 'child-1', 'agent_path': '/root/challenge',
+            }}},
+        ]
+        self.assertEqual(spawned_testers(records), ['child-1'])
+        wrong_path = copy.deepcopy(records)
+        wrong_path[1]['payload']['item']['agent_path'] = '/root/other'
+        with self.assertRaises(ValueError):
+            spawned_testers(wrong_path)
+        wrong_role = copy.deepcopy(records)
+        wrong_role[0]['payload']['arguments'] = json.dumps({'agent_type': 'worker', 'task_name': 'challenge'})
+        self.assertEqual(spawned_testers(wrong_role), [])
+        for task_name in ('', '../other'):
+            malformed = copy.deepcopy(records)
+            malformed[0]['payload']['arguments'] = json.dumps({'agent_type': 'tester', 'task_name': task_name})
+            with self.assertRaises(ValueError):
+                spawned_testers(malformed)
+        missing_call = copy.deepcopy(records)
+        del missing_call[0]['payload']['call_id']
+        with self.assertRaises(ValueError):
+            spawned_testers(missing_call)
+        multiple = copy.deepcopy(records) + [copy.deepcopy(records[1])]
+        multiple[-1]['payload']['item']['agent_thread_id'] = 'child-2'
+        with self.assertRaises(ValueError):
+            spawned_testers(multiple)
+        conflict = copy.deepcopy(records)
+        conflict.insert(1, {'type': 'response_item', 'payload': {
+            'type': 'function_call_output', 'call_id': 'spawn-1',
+            'output': json.dumps({'agent_id': 'child-output', 'task_name': '/root/challenge'}),
+        }})
+        with self.assertRaises(ValueError):
+            spawned_testers(conflict)
+
     def test_trace_negatives(self):
         self.assertFalse(trace_evidence(json.dumps({'type': 'agent_message', 'text': 'tester passed'}))['testerCommandObserved'])
         self.assertTrue(trace_evidence(parser_trace())['testerCommandObserved'])
@@ -1042,7 +1120,8 @@ class Tests(unittest.TestCase):
         self.assertEqual(spawned_testers(records), ['child'])
         item = records[-1]['payload']['item']
         item['agent_path'] = '/root/unrelated'
-        self.assertEqual(spawned_testers(records), [])
+        with self.assertRaises(ValueError):
+            spawned_testers(records)
         item['agent_path'] = '/root/challenge'
         item['id'] = 'other-call'
         self.assertEqual(spawned_testers(records), [])
