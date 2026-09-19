@@ -129,7 +129,7 @@ Framework maintenance has a mandatory native-capability currency gate. Every aud
 
 ## Interactive web and mobile development
 
-Runnable web implementation and diagnosis use an early repository-native dev server plus the visible in-app Browser by default. Codex reuses the Browser binding, recovers a lost tab inside that binding, opens the affected localhost route, and iterates with DOM, console, network, runtime, interaction, responsive, and fresh-load evidence. Invisible/headless E2E remains supplementary regression coverage, not a substitute for caller-visible acceptance.
+Runnable web implementation and diagnosis lock to an early repository-native dev server plus the visible in-app Browser. Codex reuses that binding, recovers a lost tab inside it, opens the affected localhost route, and iterates with DOM, console, network, runtime, interaction, responsive, and fresh-load evidence. Chrome or Edge is used only when the user explicitly names it for the current task and never substitutes for required in-app acceptance. Invisible/headless E2E remains supplementary regression coverage.
 
 Runnable native-mobile work similarly boots or attaches to a repository-configured visible simulator, emulator, or device and launches the app early. Repository/platform tooling owns target selection; the framework does not hardcode a device or implement an emulator manager. Parallel UI writers require separate worktrees, ports, servers, and task-owned tabs/targets. Normal closeout stops only exact task-owned resources. See `docs/interactive-development.md`.
 
@@ -146,9 +146,11 @@ Generic behavior is defined once in the global working agreement. Repository and
 
 ## Automatic challenge and worktree isolation
 
-The global agreement automatically requests a tester counterexample for substantive implementation, fixes and delivery, and an architect challenge for cross-system contracts. Developer and tester can disagree: each must produce a reproduction or concrete rebuttal; parent resolves against acceptance criteria. High-risk review uses a neutral immutable diff and explicit no-history boundary. Injected task memory makes strict independence unavailable. A review limit never cancels permission to repair later CI failures. Trivial non-behavioral edits receive a parent self-check rather than a ceremonial agent.
+Every native task receives a bounded human-style evidence debate. Trivial and read-only work gets one compact challenger exchange; material work gets a pre-mutation tester/architect challenge and a post-implementation tester challenge. The developer explicitly accepts and repairs or rebuts each claim with evidence, the same challenger marks it resolved, withdrawn or unresolved, and the parent adjudicates before mutation and result acceptance. Material-risk review still uses one fresh read-only reviewer, a neutral immutable diff and an explicit no-history boundary. Agent agreement is not proof, and debate does not become an unbounded voting loop.
 
 Every Git-project mutation uses a task-owned native worktree, including single-agent work. Tracked config travels with Git; only identified required ignored config is copied with permissions preserved and environment identity checked. Other models' dirty files, caches, credentials and worktrees are not shared or swept up. After verified merge and clean named-base synchronization, remove only clean owned worktrees and merged branches. Installed releases are durable and outside temporary task cleanup. See `docs/runtime-efficiency.md` for the complete evidence contract.
+
+For broad goals, the parent operates as lead while native workers own independent substantive lanes in separate worktrees. Blockers are lane-scoped; the whole goal blocks only when no ready lane remains. Latest user steering overrides stale goal or compacted context. Safe continuity records credential locations and identity metadata, never secret values. Consequential confirmations are current-turn, single-use and target-specific; external state changes use read/compare/preview/mutate/read-back. Scope discovered during work is classified before it can expand the request.
 
 ## Token efficiency
 

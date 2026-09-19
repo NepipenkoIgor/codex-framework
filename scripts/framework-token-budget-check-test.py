@@ -29,6 +29,15 @@ class Diagnostics(unittest.TestCase):
             path.write_text("\n".join(json.dumps(entry) for entry in entries))
             return budget.rollout_report(path, **kwargs)
 
+    def analyze_family(self, roots, *, profile="advisory"):
+        with tempfile.TemporaryDirectory() as directory:
+            paths = []
+            for index, entries in enumerate(roots):
+                path = Path(directory)/f"fixture-{index}.jsonl"
+                path.write_text("\n".join(json.dumps(entry) for entry in entries))
+                paths.append(path)
+            return budget.family_report(paths, profile=profile)
+
     def test_duplicate_response_and_cumulative_are_separate(self):
         report, errors = self.analyze([record(), record(), record(2, "r2")])
         self.assertFalse(errors)
@@ -113,6 +122,132 @@ class Diagnostics(unittest.TestCase):
                 self.assertEqual(run.call_args.kwargs["cwd"], Path(directory))
                 self.assertEqual(report["project"], str(Path(directory).resolve()))
                 self.assertFalse(errors)
+
+    def test_explicit_family_provenance_and_usage_do_not_double_count(self):
+        root_response = record(response_id="root-response")
+        root_response["timestamp"] = "2026-09-18T20:00:00Z"
+        child_response = record(response_id="child-response")
+        child_response["timestamp"] = "2026-09-18T20:01:00Z"
+        root = [{"type": "session_meta", "payload": {"id": "root-id", "source": "cli"}},
+                root_response]
+        child = [{"type": "session_meta", "payload": {"id": "child-id", "source": {
+            "subagent": {"thread_spawn": {"parent_thread_id": "root-id", "agent_type": "worker"}}}}},
+                 child_response]
+        report, errors = self.analyze_family([root, child], profile="certification")
+        self.assertFalse(errors)
+        self.assertTrue(report["provenanceValid"])
+        self.assertEqual(report["sessionsByProfile"], {"root": 1, "worker": 1})
+        self.assertEqual(report["providerUsage"]["input_tokens"], 20)
+        self.assertEqual(report["responses"], 2)
+
+        child[-1] = record(response_id="root-response")
+        report, errors = self.analyze_family([root, child])
+        self.assertFalse(report["provenanceValid"])
+        self.assertTrue(any("double counting" in error for error in errors))
+
+    def test_certification_rejects_unavailable_response_rate(self):
+        report = {name: 0 for name in budget.CERTIFICATION_LIMITS}
+        report.update({
+            "responsesPerHour": None,
+            "responseCountExact": True,
+            "responseTimestampsComplete": False,
+            "provenanceValid": True,
+            "sessionsByProfile": {"root": 1, "worker": 1},
+        })
+        errors = budget.certification_failures(report)
+        self.assertTrue(any("responsesPerHour" in error for error in errors))
+        self.assertTrue(any("timestamp" in error for error in errors))
+
+    def test_inherited_parent_metadata_does_not_rewrite_child_identity(self):
+        root_meta = {"type": "session_meta", "payload": {
+            "id": "root-id", "source": "vscode"}}
+        child_meta = {"type": "session_meta", "payload": {
+            "id": "child-id", "parent_thread_id": "root-id", "source": {
+                "subagent": {"thread_spawn": {
+                    "parent_thread_id": "root-id", "agent_role": "worker"}}}}}
+        report, errors = self.analyze([
+            child_meta, record(response_id="child-response"), root_meta])
+        self.assertFalse(errors)
+        self.assertEqual(report["sessionId"], "child-id")
+        self.assertEqual(report["parentThreadId"], "root-id")
+        self.assertEqual(report["threadRole"], "child")
+        self.assertEqual(report["agentProfile"], "worker")
+
+    def test_inherited_parent_events_are_excluded_from_child_diagnostics(self):
+        root_meta = {"type": "session_meta", "payload": {
+            "id": "root-id", "source": "vscode"}}
+        child_meta = {"type": "session_meta", "payload": {
+            "id": "child-id", "parent_thread_id": "root-id", "source": {
+                "subagent": {"thread_spawn": {
+                    "parent_thread_id": "root-id", "agent_role": "worker"}}}}}
+        inherited_start = {"type": "event_msg", "payload": {
+            "type": "task_started", "turn_id": "root-turn"}}
+        child_start = {"type": "event_msg", "payload": {
+            "type": "task_started", "turn_id": "child-turn"}}
+        inherited_output = {"type": "response_item", "payload": {
+            "type": "function_call_output", "output": "inherited"}}
+        child_output = {"type": "response_item", "payload": {
+            "type": "function_call_output", "output": "owned"}}
+        child_record = record(response_id="child-response")
+        child_record["payload"]["thread_id"] = "child-id"
+        child_record["payload"]["turn_id"] = "child-turn"
+        report, errors = self.analyze([
+            child_meta, root_meta, inherited_start, inherited_output,
+            child_start, child_output, child_record])
+        self.assertFalse(errors)
+        self.assertEqual(report["toolOutputCalls"], 1)
+        self.assertEqual(report["rawLoggedToolOutputTextChars"], len("owned"))
+
+    def test_family_rejects_missing_parent_and_certification_requires_worker(self):
+        root = [{"type": "session_meta", "payload": {"id": "root-id", "source": "cli"}},
+                record(response_id="root-response")]
+        child = [{"type": "session_meta", "payload": {"id": "child-id", "source": {
+            "subagent": {"thread_spawn": {"parent_thread_id": "absent", "agent_type": "tester"}}}}},
+                 record(response_id="child-response")]
+        report, errors = self.analyze_family([root, child], profile="certification")
+        self.assertFalse(report["provenanceValid"])
+        self.assertTrue(any("absent parent" in error for error in errors))
+        self.assertTrue(any("worker" in error for error in errors))
+
+    def test_family_rejects_disconnected_child_cycle(self):
+        root = [{"type": "session_meta", "payload": {"id": "root-id", "source": "cli"}},
+                record(response_id="root-response")]
+        child_a = [{"type": "session_meta", "payload": {"id": "child-a", "source": {
+            "subagent": {"thread_spawn": {"parent_thread_id": "child-b", "agent_type": "worker"}}}}},
+                   record(response_id="child-a-response")]
+        child_b = [{"type": "session_meta", "payload": {"id": "child-b", "source": {
+            "subagent": {"thread_spawn": {"parent_thread_id": "child-a", "agent_type": "tester"}}}}},
+                   record(response_id="child-b-response")]
+        report, errors = self.analyze_family([root, child_a, child_b], profile="certification")
+        self.assertFalse(report["provenanceValid"])
+        self.assertTrue(any("cyclic" in error for error in errors))
+
+    def test_runtime_churn_and_repeated_output_diagnostics(self):
+        blocked = {"type": "response_item", "payload": {"type": "function_call",
+            "name": "update_goal", "arguments": json.dumps({"status": "blocked"})}}
+        continuation = {"type": "event_msg", "payload": {"type": "user_message",
+            "message": '<codex_internal_context source="goal">continue</codex_internal_context>'}}
+        doc = {"type": "response_item", "payload": {"type": "function_call_output",
+            "output": "Control native apps or browsers on the user’s computer through the initialized cua API."}}
+        report, errors = self.analyze([record(), blocked, continuation, blocked, doc, doc])
+        self.assertFalse(errors)
+        self.assertEqual(report["goalBlockedContinuationChurn"], 1)
+        self.assertEqual(report["computerUseDocumentationLoads"], 2)
+        self.assertEqual(report["repeatedComputerUseDocumentationLoads"], 1)
+        self.assertEqual(report["repeatedToolOutputCalls"], 1)
+
+    def test_identical_external_read_results_are_correlated_by_call_id(self):
+        entries = [record()]
+        for index in range(4):
+            entries.extend([
+                {"type": "response_item", "payload": {"type": "function_call", "call_id": f"c{index}",
+                    "name": "exec_command", "arguments": json.dumps({"cmd": "gh run view 42"})}},
+                {"type": "response_item", "payload": {"type": "function_call_output", "call_id": f"c{index}",
+                    "output": "queued"}},
+            ])
+        report, errors = self.analyze(entries)
+        self.assertFalse(errors)
+        self.assertEqual(report["maxIdenticalExternalReadResults"], 4)
 
 
 if __name__ == "__main__":

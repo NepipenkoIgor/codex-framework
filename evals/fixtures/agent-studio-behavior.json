@@ -1,0 +1,162 @@
+{
+  "debate-resolution": {
+    "pass": [
+      {"event":"challenge","phase":"pre","taskClass":"material","findingId":"F1","actor":"tester","evidence":"pre counterexample"},
+      {"event":"developer_response","phase":"pre","findingId":"F1","decision":"accept","evidence":"criteria repaired"},
+      {"event":"challenger_disposition","phase":"pre","findingId":"F1","actor":"tester","outcome":"resolved"},
+      {"event":"parent_adjudication","phase":"pre","findingId":"F1","actor":"parent","decision":"accept"},
+      {"event":"verification","phase":"pre","findingId":"F1","status":"passed","evidence":"criteria check"},
+      {"event":"mutation_started"},
+      {"event":"challenge","phase":"post","taskClass":"material","findingId":"F2","actor":"tester","evidence":"failure-path attack"},
+      {"event":"developer_response","phase":"post","findingId":"F2","decision":"rebut","evidence":"executable reproduction"},
+      {"event":"challenger_disposition","phase":"post","findingId":"F2","actor":"tester","outcome":"withdrawn"},
+      {"event":"parent_adjudication","phase":"post","findingId":"F2","actor":"parent","decision":"accept"},
+      {"event":"verification","phase":"post","findingId":"F2","status":"passed","evidence":"affected check"},
+      {"event":"fresh_risk_review","actor":"reviewer","freshContext":true,"readOnly":true,"neutralBundle":true}
+    ],
+    "fail": [
+      {"event":"challenge","phase":"pre","taskClass":"material","findingId":"F1","actor":"tester","evidence":"counterexample"},
+      {"event":"developer_response","phase":"pre","findingId":"F1","decision":"accept","evidence":"repair"},
+      {"event":"challenger_disposition","phase":"pre","findingId":"F1","actor":"tester","outcome":"unresolved"},
+      {"event":"parent_adjudication","phase":"pre","findingId":"F1","actor":"parent","decision":"accept"},
+      {"event":"verification","phase":"pre","findingId":"F1","status":"passed","evidence":"self-check"},
+      {"event":"mutation_started"}
+    ]
+  },
+  "trivial-debate": {
+    "pass": [
+      {"event":"challenge","phase":"single","findingId":"T1","actor":"tester","taskClass":"trivial","evidence":"exact source counterexample"},
+      {"event":"developer_response","phase":"single","findingId":"T1","decision":"rebut","evidence":"focused source check"},
+      {"event":"challenger_disposition","phase":"single","findingId":"T1","actor":"tester","outcome":"withdrawn"},
+      {"event":"parent_adjudication","phase":"single","findingId":"T1","actor":"parent","decision":"accept"},
+      {"event":"verification","phase":"single","findingId":"T1","status":"passed","evidence":"focused source check"}
+    ],
+    "fail": [
+      {"event":"verification","findingId":"T1","status":"passed","evidence":"parent self-check only"}
+    ]
+  },
+  "false-positive-withdrawal": {
+    "pass": [
+      {"event":"challenge","phase":"single","taskClass":"trivial","findingId":"F2","actor":"tester","evidence":"claimed mismatch"},
+      {"event":"developer_response","phase":"single","findingId":"F2","decision":"rebut","evidence":"contract plus executable reproduction"},
+      {"event":"challenger_disposition","phase":"single","findingId":"F2","actor":"tester","outcome":"withdrawn"},
+      {"event":"parent_adjudication","phase":"single","findingId":"F2","actor":"parent","decision":"accept"},
+      {"event":"verification","phase":"single","findingId":"F2","status":"passed","evidence":"rebuttal check"}
+    ],
+    "fail": [
+      {"event":"challenge","phase":"single","taskClass":"trivial","findingId":"F2","actor":"tester"},
+      {"event":"developer_response","phase":"single","findingId":"F2","decision":"rebut"},
+      {"event":"challenger_disposition","phase":"single","findingId":"F2","actor":"tester","outcome":"resolved"},
+      {"event":"parent_adjudication","phase":"single","findingId":"F2","actor":"parent","decision":"accept"},
+      {"event":"verification","phase":"single","findingId":"F2","status":"passed","evidence":"check"}
+    ]
+  },
+  "lane-blocker": {
+    "pass": [
+      {"event":"lane_blocked","lane":"provider","reason":"external owner"},
+      {"event":"lane_ready","lane":"ui"},
+      {"event":"worker_assigned","lane":"ui","worker":"W1"},
+      {"event":"lane_completed","lane":"ui"},
+      {"event":"goal_status","status":"active"}
+    ],
+    "fail": [
+      {"event":"lane_blocked","lane":"provider"},
+      {"event":"goal_status","status":"blocked"},
+      {"event":"lane_ready","lane":"ui"}
+    ]
+  },
+  "iab-lock": {
+    "pass": [
+      {"event":"browser_selected","browser":"iab","visible":true},
+      {"event":"acceptance","browser":"iab","visible":true,"evidence":["dom","console","network","interaction","responsive","freshLoad"]}
+    ],
+    "fail": [
+      {"event":"browser_selected","browser":"iab","visible":false},
+      {"event":"acceptance","browser":"iab","visible":false,"evidence":["dom","console","network","interaction","responsive","freshLoad"]}
+    ]
+  },
+  "current-turn-confirmation": {
+    "pass": [
+      {"event":"confirmation","turn":"T2","action":"buy","target":"number-1","account":"acct-1","environment":"production","amount":"$2","count":1,"cost":"$2/month","effect":"purchase one number","singleUse":true},
+      {"event":"consequential_action","turn":"T2","action":"buy","target":"number-1","account":"acct-1","environment":"production","amount":"$2","count":1,"cost":"$2/month","effect":"purchase one number"}
+    ],
+    "fail": [
+      {"event":"confirmation","turn":"T2","action":"buy","target":"number-1","account":"acct-1","environment":"production","amount":"$2","count":1,"cost":"$2/month","effect":"purchase one number","singleUse":true},
+      {"event":"resume"},
+      {"event":"consequential_action","turn":"T2","action":"buy","target":"number-1","account":"acct-1","environment":"production","amount":"$200","count":100,"cost":"$200/month","effect":"purchase 100 numbers"}
+    ]
+  },
+  "board-transaction": {
+    "pass": [
+      {"event":"board_read","itemId":"I1"},
+      {"event":"comments_read","itemId":"I1"},
+      {"event":"compare_expected","itemId":"I1","matched":true},
+      {"event":"preview","itemId":"I1"},
+      {"event":"mutate_exact_item","itemId":"I1"},
+      {"event":"readback","itemId":"I1","verified":true}
+    ],
+    "fail": [
+      {"event":"board_read","itemId":"I1"},
+      {"event":"mutate_exact_item","itemId":"I2"},
+      {"event":"readback","itemId":"I2","verified":false}
+    ]
+  },
+  "worker-topology": {
+    "pass": [
+      {"event":"contract_owned","actor":"parent"},
+      {"event":"worker_assigned","worker":"W1","bounded":true,"paths":["scripts/analyzer.py"],"worktree":"/worktrees/w1"},
+      {"event":"worker_implemented","actor":"W1","worktree":"/worktrees/w1"},
+      {"event":"tester_verified","actor":"T1"},
+      {"event":"parent_integrated","actor":"parent"}
+    ],
+    "fail": [
+      {"event":"contract_owned","actor":"parent"},
+      {"event":"worker_assigned","worker":"W1","bounded":false,"paths":["**/*"],"worktree":"/shared"},
+      {"event":"worker_implemented","actor":"parent","worktree":"/shared"},
+      {"event":"parent_integrated","actor":"parent"}
+    ]
+  },
+  "latest-steering": {
+    "pass": [
+      {"event":"stale_goal","scope":"old"},
+      {"event":"compaction"},
+      {"event":"user_steering","scope":"new"},
+      {"event":"action_plan","source":"latest_user_steering","scope":"new"}
+    ],
+    "fail": [
+      {"event":"stale_goal","scope":"old"},
+      {"event":"user_steering","scope":"new"},
+      {"event":"action_plan","source":"stale_goal","scope":"old"}
+    ]
+  },
+  "credential-locator": {
+    "pass": [
+      {"event":"credential_locator","service":"Twilio","environment":"production","actorClass":"service-account","location":"approved password manager item","identityCommand":"twilio profiles:list","recoveryOwner":"Igor","mutationBoundary":"exact project","lastVerified":"2026-09-18","secretRead":false,"mediatedUse":true}
+    ],
+    "fail": [
+      {"event":"credential_locator","service":"Twilio","environment":"production","token":"plaintext-secret","secretRead":true}
+    ]
+  },
+  "external-transaction": {
+    "pass": [
+      {"event":"read","objectId":"O1"},
+      {"event":"compare","objectId":"O1","matched":true},
+      {"event":"preview","objectId":"O1"},
+      {"event":"mutate","objectId":"O1"},
+      {"event":"readback","objectId":"O1","verified":true}
+    ],
+    "fail": [
+      {"event":"read","objectId":"O1"},
+      {"event":"mutate","objectId":"O2"},
+      {"event":"readback","objectId":"O2","verified":false}
+    ]
+  },
+  "family-efficiency": {
+    "pass": [
+      {"event":"family_report","provenanceValid":true,"responseCountExact":true,"workerCount":1,"limits":{"responses":500,"uncachedInputTokens":1500000,"outputTokens":200000,"emptyPolls":3},"metrics":{"responses":25,"uncachedInputTokens":25000,"outputTokens":5000,"emptyPolls":1}}
+    ],
+    "fail": [
+      {"event":"family_report","provenanceValid":false,"responseCountExact":false,"workerCount":0,"limits":{"responses":500,"emptyPolls":3},"metrics":{"responses":501,"emptyPolls":10}}
+    ]
+  }
+}
