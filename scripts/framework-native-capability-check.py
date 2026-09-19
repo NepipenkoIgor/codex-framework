@@ -11,6 +11,7 @@ import json
 import re
 import subprocess
 import urllib.request
+from collections.abc import Callable
 from html.parser import HTMLParser
 from pathlib import Path
 from urllib.parse import urlparse
@@ -111,6 +112,72 @@ def release_snapshot(value: object) -> bytes:
         for key in ("tag_name", "name", "body", "published_at", "target_commitish", "html_url")
     }
     return json.dumps(stable, ensure_ascii=False, sort_keys=True, separators=(",", ":")).encode()
+
+
+def stable_release_interval(
+    releases: list[object], baseline: object, latest: object,
+) -> tuple[list[dict[str, object]], list[str]]:
+    stable_descending: list[dict[str, object]] = []
+    stable_tags_seen: set[str] = set()
+    for index, item in enumerate(releases):
+        if not isinstance(item, dict):
+            raise ValueError(f"release entry {index} is not an object")
+        tag = item.get("tag_name")
+        if not isinstance(tag, str) or not tag:
+            raise ValueError(f"release entry {index} has no tag_name")
+        if not isinstance(item.get("draft"), bool) or not isinstance(item.get("prerelease"), bool):
+            raise ValueError(f"release entry {tag} has malformed draft/prerelease flags")
+        if item["draft"] or item["prerelease"] or not STABLE_RELEASE_TAG.fullmatch(tag):
+            continue
+        published = item.get("published_at")
+        if not isinstance(published, str):
+            raise ValueError(f"stable release {tag} has no published_at")
+        try:
+            parsed = dt.datetime.fromisoformat(published.replace("Z", "+00:00"))
+        except ValueError as error:
+            raise ValueError(f"stable release {tag} has invalid published_at") from error
+        if parsed.tzinfo is None:
+            raise ValueError(f"stable release {tag} has a timezone-free published_at")
+        if tag in stable_tags_seen:
+            raise ValueError(f"duplicate stable release tag: {tag}")
+        stable_tags_seen.add(tag)
+        stable_descending.append(item)
+    stable = list(reversed(stable_descending))
+    stable_tags = [item.get("tag_name") for item in stable]
+    if baseline not in stable_tags or latest not in stable_tags:
+        missing = [str(tag) for tag in (baseline, latest) if tag not in stable_tags]
+        raise ValueError(f"release pagination did not reach required tags: {missing}")
+    start = stable_tags.index(baseline) + 1
+    end = stable_tags.index(latest) + 1
+    if start > end:
+        raise ValueError("release interval is not chronological")
+    bounded = stable[stable_tags.index(baseline):end]
+    bounded_times = [
+        dt.datetime.fromisoformat(str(item["published_at"]).replace("Z", "+00:00")).astimezone(dt.timezone.utc)
+        for item in bounded
+    ]
+    if any(left >= right for left, right in zip(bounded_times, bounded_times[1:])):
+        raise ValueError("stable release timestamps are duplicated or not chronological")
+    return stable, [str(tag) for tag in stable_tags[start:end]]
+
+
+def collect_release_pages(
+    fetch_page: Callable[[int], object], baseline: object, latest: object, max_pages: int = 20,
+) -> list[object]:
+    releases: list[object] = []
+    for page in range(1, max_pages + 1):
+        page_items = fetch_page(page)
+        if not isinstance(page_items, list):
+            raise ValueError(f"release API page {page} is not a list")
+        releases.extend(page_items)
+        page_tags = {
+            item.get("tag_name") for item in releases if isinstance(item, dict)
+        }
+        if baseline in page_tags and latest in page_tags:
+            return releases
+        if len(page_items) < 100:
+            break
+    raise ValueError("release pagination did not reach both interval boundaries")
 
 
 def source_url(data: dict[str, object], kind: str) -> str:
@@ -300,21 +367,20 @@ def live_failures(data: dict[str, object]) -> list[str]:
             failures.append(
                 f"official Codex release content changed: ledger fingerprint {sources['release'].get('sha256')}, current {current_fingerprint}"
             )
-    releases_url = "https://api.github.com/repos/openai/codex/releases?per_page=100"
     try:
-        releases_request = urllib.request.Request(
-            releases_url, headers={"Accept": "application/vnd.github+json", "User-Agent": "ai-codex-framework-capability-check"}
-        )
-        with urllib.request.urlopen(releases_request, timeout=20) as response:
-            releases = json.load(response)
-        stable = [item for item in reversed(releases)
-                  if isinstance(item, dict) and not item.get("draft") and not item.get("prerelease")]
-        stable_tags = [item.get("tag_name") for item in stable]
         baseline = data.get("baselineReleaseTag")
         latest_tag = data.get("latestReleaseTag")
-        start = stable_tags.index(baseline) + 1
-        end = stable_tags.index(latest_tag) + 1
-        expected = stable_tags[start:end]
+        def fetch_page(page: int) -> object:
+            releases_url = f"https://api.github.com/repos/openai/codex/releases?per_page=100&page={page}"
+            releases_request = urllib.request.Request(
+                releases_url,
+                headers={"Accept": "application/vnd.github+json", "User-Agent": "ai-codex-framework-capability-check"},
+            )
+            with urllib.request.urlopen(releases_request, timeout=20) as response:
+                return json.load(response)
+
+        releases = collect_release_pages(fetch_page, baseline, latest_tag)
+        stable, expected = stable_release_interval(releases, baseline, latest_tag)
         recorded = [item.get("tag") for item in data.get("releaseCoverage", []) if isinstance(item, dict)]
         if recorded != expected:
             failures.append(f"stable release coverage is incomplete: expected {expected}, recorded {recorded}")
@@ -361,6 +427,68 @@ def self_test(data: dict[str, object]) -> None:
     invalid["releaseCoverage"] = invalid["releaseCoverage"][:-1]
     assert any("release coverage" in item for item in validate(invalid)), \
         "partial stable-release coverage was accepted"
+    preview = lambda value: {
+        "tag_name": f"rust-v9.9.{value}-alpha.1", "draft": False, "prerelease": True,
+        "published_at": "2026-09-19T00:00:00Z",
+    }
+    stable_release = lambda tag, published: {
+        "tag_name": tag, "draft": False, "prerelease": False, "published_at": published,
+    }
+    pages = {
+        1: [preview(value) for value in range(100)],
+        2: [
+            preview(100),
+            stable_release("rust-v0.155.1", "2026-09-18T20:03:04Z"),
+            stable_release("rust-v0.155.0", "2026-09-17T23:14:43Z"),
+            stable_release("rust-v0.149.0", "2026-08-22T00:00:00Z"),
+        ],
+    }
+    fetched: list[int] = []
+    crowded = collect_release_pages(lambda page: fetched.append(page) or pages[page], "rust-v0.149.0", "rust-v0.155.1")
+    _, interval = stable_release_interval(crowded, "rust-v0.149.0", "rust-v0.155.1")
+    assert fetched == [1, 2], "release pagination did not fetch the boundary page"
+    assert interval == ["rust-v0.155.0", "rust-v0.155.1"], "stable release interval is incomplete"
+    try:
+        collect_release_pages(lambda _page: {}, "rust-v0.149.0", "rust-v0.155.1")
+    except ValueError:
+        pass
+    else:
+        raise AssertionError("non-list release page was accepted")
+    try:
+        collect_release_pages(lambda _page: [preview(value) for value in range(100)],
+                              "rust-v0.149.0", "rust-v0.155.1", max_pages=2)
+    except ValueError:
+        pass
+    else:
+        raise AssertionError("missing release boundary after max pages was accepted")
+    duplicate = [
+        stable_release("rust-v0.155.1", "2026-09-18T20:03:04Z"),
+        stable_release("rust-v0.155.1", "2026-09-18T20:03:04Z"),
+        stable_release("rust-v0.149.0", "2026-08-22T00:00:00Z"),
+    ]
+    try:
+        stable_release_interval(duplicate, "rust-v0.149.0", "rust-v0.155.1")
+    except ValueError:
+        pass
+    else:
+        raise AssertionError("duplicate stable release tag was accepted")
+    reversed_time = [
+        stable_release("rust-v0.155.1", "2026-01-01T00:00:00Z"),
+        stable_release("rust-v0.149.0", "2026-12-01T00:00:00Z"),
+    ]
+    try:
+        stable_release_interval(reversed_time, "rust-v0.149.0", "rust-v0.155.1")
+    except ValueError:
+        pass
+    else:
+        raise AssertionError("non-chronological stable release timestamps were accepted")
+    malformed = [{"tag_name": "rust-v0.155.1"}, stable_release("rust-v0.149.0", "2026-08-22T00:00:00Z")]
+    try:
+        stable_release_interval(malformed, "rust-v0.149.0", "rust-v0.155.1")
+    except ValueError:
+        pass
+    else:
+        raise AssertionError("malformed release entry was accepted")
     print("native capability ledger self-test: passed")
 
 
