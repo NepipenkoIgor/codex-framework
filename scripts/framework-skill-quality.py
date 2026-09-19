@@ -1309,7 +1309,7 @@ def validate_semantic_artifact(skill: str, artifact_dir: Path) -> None:
     for case in data["cases"]:
         for evidence in case["evidence"]:
             evidence_path = Path(evidence.split(": ", 1)[0])
-            require(evidence_path.is_file() and artifact_dir in evidence_path.parents, f"missing or external raw evidence for {skill}/{case['case_id']}")
+            require(evidence_path.is_file() and artifact_dir.resolve() in evidence_path.resolve().parents, f"missing or external raw evidence for {skill}/{case['case_id']}")
 
 
 def certify(artifact_dir: Path, selected: str | None) -> None:
