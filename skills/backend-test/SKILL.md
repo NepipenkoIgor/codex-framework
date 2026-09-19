@@ -3,8 +3,8 @@ name: backend-test
 description: Add framework-neutral backend unit, integration, contract, persistence, auth, concurrency, retry, and failure tests with the repository's installed harness. Use when no sharper Node, NestJS, Python, or .NET test specialization dominates; do not implement unrelated features.
 metadata:
   owner: codex-framework
-  reviewed: "2026-07-27"
-  version: 2.3
+  reviewed: "2026-09-19"
+  version: 2.4
   argument-hint: "behavior/contract, runtime/framework and installed runner, persistence/provider fidelity"
 ---
 
@@ -16,6 +16,6 @@ This is a `repository_write` workflow.
 2. Route Node, NestJS, Python or .NET-dominant coverage to its specialization. Preserve installed runner, language, application harness and database/provider tooling.
 3. Choose the smallest faithful unit, HTTP/application, persistence/migration, job/event, contract or concurrency boundary. Mock injected collaborators for pure logic; use schema/provider-compatible isolated infrastructure when constraints, transactions, locking, query or migration semantics matter.
 4. Block real external networks and production databases, queues, identity, email or payment providers. Fail unhandled calls and clean task-owned state, clocks, globals and processes.
-5. Every backend test deliverable must cover invalid input, unauthenticated 401, current-resource/current-tenant 403, and wrong-tenant resource substitution/denial as separate cases; a current-tenant permission denial is not evidence that cross-tenant lookup or mutation is isolated, and a conflict or idempotency test is not a substitute for request validation. Also cover duplicate/concurrent mutation, conflict/rollback, retry/idempotency and timeout-after-effect wherever those behaviors apply. Use deterministic barriers/clocks, not arbitrary sleeps. Verify response plus persisted/effect outcome.
+5. Every backend test deliverable must cover invalid input, unauthenticated 401, current-resource/current-tenant 403, and wrong-tenant resource substitution/denial as separate cases; a current-tenant permission denial is not evidence that cross-tenant lookup or mutation is isolated, and a conflict or idempotency test is not a substitute for request validation. Also cover duplicate/concurrent mutation, conflict/rollback, retry/idempotency and timeout-after-effect replay. Omit one of these failure paths only when concrete task or repository evidence proves it inapplicable, and report that evidence explicitly; a conditional proposal alone is not coverage. Use deterministic barriers/clocks, not arbitrary sleeps. Verify response plus persisted/effect outcome.
 
 Run focused and affected suites/checks. Report tests, installed harness/fidelity boundary, commands/results, cleanup and residual provider/deployment risk.

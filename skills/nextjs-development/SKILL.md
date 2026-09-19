@@ -3,8 +3,8 @@ name: nextjs-development
 description: Implement, debug, review, or test Next.js App Router behavior across Server and Client Components, Server Actions, Route Handlers, caching, authentication, and request boundaries. Use when Next.js runtime semantics dominate; do not use for generic React components, framework-neutral backend work, or migration planning alone.
 metadata:
   owner: codex-framework
-  reviewed: "2026-09-09"
-  version: 1.2
+  reviewed: "2026-09-19"
+  version: 1.3
   argument-hint: "mode, route or feature, observed behavior, repository path"
 ---
 
@@ -18,7 +18,7 @@ Handle the Next.js task in `$ARGUMENTS` using the repository's installed line.
 4. Prefer the existing repository pattern. Use a Server Component, Client Component, Server Action, Route Handler, proxy/middleware, cache primitive, or dynamic rendering only when its capability and security boundary fit the task.
 5. Validate inputs and authorize resources in trusted server code. Derive protected fields such as authoritative amount from server-owned data rather than merely validating submitted values. Treat action and route inputs as untrusted; do not rely on UI visibility as authorization.
 6. Before mutation, resolve exact routes/resources, actor and tenant authority, deployment target, data ownership, rollback, and bounded timeout/retry behavior. Stop when the target repository, authority, or safe verification boundary is missing.
-7. Verify the narrow caller-visible behavior plus the manifest's focused test, affected test, type-check, and build command categories. For cache or auth changes, exercise fresh request, replay, invalidation, unauthorized, side-effect failure, server/client render and hydration-mismatch behavior, and deployment-runtime paths.
+7. Verify the narrow caller-visible behavior plus the manifest's focused test, affected test, type-check, and build command categories. For cache or auth changes, exercise fresh request, cache replay, invalidation, unauthorized, side-effect failure, server/client render and hydration-mismatch behavior, and deployment-runtime paths. When a Server Action or Route Handler mutates state, separately replay the mutation itself and prove authorization, idempotency or duplicate-effect handling, persisted outcome, and cache consequences.
 8. Interpret each failure at its real boundary, correct the cause, then rerun the failed check and every affected authoritative check before claiming completion. Never invent an npm, pnpm, Bun, or other command when the manifest does not name it.
 
 ## Progressive detail

@@ -3,8 +3,8 @@ name: monorepo-management
 description: Configure and evolve existing or new monorepo workspaces, dependency graphs, task pipelines, caching, affected execution, and package boundaries. Use when repository changes to monorepo tooling are primary; route semantic versioning, changelogs, release branches, hotfixes, and release automation to release-management.
 metadata:
   owner: codex-framework
-  reviewed: "2026-07-27"
-  version: 2.0
+  reviewed: "2026-09-19"
+  version: 2.1
   argument-hint: "existing package manager/tool, workspace graph, task contracts, CI trust model, release and cache requirements"
 ---
 

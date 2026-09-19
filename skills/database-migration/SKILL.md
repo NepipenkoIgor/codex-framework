@@ -3,8 +3,8 @@ name: database-migration
 description: Design and implement schema and data migrations with expand-contract compatibility, online-DDL capability checks, bounded backfills, lock analysis, rollout gates, and recovery. Use when persisted structure or data representation changes; do not use for query tuning alone or greenfield data modeling without a migration.
 metadata:
   owner: codex-framework
-  reviewed: "2026-07-26"
-  version: 2.0
+  reviewed: "2026-09-19"
+  version: 2.1
   argument-hint: "engine/version, schema/data change, writers/readers, table size/traffic, deployment sequence, recovery objective"
 ---
 
@@ -15,7 +15,7 @@ Implement `$ARGUMENTS` against the exact database engine/version, migration runn
 ## Workflow
 
 1. Inspect instructions, manifests/lockfiles, migration history/runner, schema and ORM mappings, every reader/writer/job/export, exact production database configuration plus engine/version/extensions, replicas/CDC, table/index sizes, traffic and long transactions, deployment process, backup/restore evidence, and nearby tests. Treat deployed configuration and pins as capability authority unless engine or framework migration is explicit.
-2. Define current and target invariants, compatibility matrix, authoritative data, transformation, validation, rollout/rollback or forward-fix strategy, and stop/abort thresholds. Determine whether old and new application versions can overlap.
+2. Define current and target invariants, compatibility matrix, authoritative data, transformation, validation, rollout/rollback or forward-fix strategy, and concrete stop/abort thresholds. Derive the thresholds from measured workload and recovery evidence, obtain the required operational approval, and record them before rollout. Determine whether old and new application versions can overlap.
 3. Prefer expand → migrate/backfill → switch reads/writes → verify → contract when a one-step change would break overlapping binaries or hold unacceptable locks. Dual writes require one authoritative path, idempotency, reconciliation, and a bounded retirement plan.
 4. Verify each DDL operation against the installed engine/version and the applicable table, partition and index form. “Online”, “concurrent”, “instant”, and lock-free are capability- and operation-specific; inspect lock modes, table rewrite, validation scans, transaction restrictions, replica/CDC effects, temporary disk/WAL, and failure artifacts. Record the exact capability, engine/version and matching source beside the migration decision rather than relying on a remembered current-release claim.
 5. Backfill in resumable, idempotent, bounded batches with a stable key/range and checkpoint. Control concurrency from measured database headroom and replica lag. Handle rows created or changed during the backfill through dual-write, watermark/change capture, or a final reconciliation pass.
