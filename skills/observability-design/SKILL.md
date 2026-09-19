@@ -3,14 +3,14 @@ name: observability-design
 description: Design logs, metrics, traces, alerts, dashboards and health signals around user journeys, privacy, cost and operational ownership. Use when observability architecture is the requested deliverable; not for implementing a known instrumentation change.
 metadata:
   owner: codex-framework
-  reviewed: "2026-07-27"
-  version: 3.0
+  reviewed: "2026-09-19"
+  version: 3.1
   argument-hint: "topology and journeys, traffic/cardinality, data policy, installed telemetry stack, SLO/on-call and cost constraints"
 ---
 
 Design observability for $ARGUMENTS.
 
-Read instructions, manifests/lockfiles, topology/data flows, ingress/proxies, async boundaries, installed OTel/SDK/collector/backend, existing signals, privacy/retention policy, incidents and on-call ownership. Verify semantic conventions and APIs from installed package/schema/collector capabilities or matching official docs; current OpenTelemetry attributes evolve and remembered names are not authority. Before material mutation, resolve exact task-owned code/config/dashboard/alert targets, owner and write authority/permissions, plus effect-appropriate rollback/recovery.
+Read instructions, manifests/lockfiles, topology/data flows, ingress/proxies, async boundaries, installed OTel/SDK/collector/backend, existing signals, privacy/retention policy, incidents and on-call ownership. Keep required discovery separate from completed evidence: never claim a topology, flow or boundary was inspected unless task or tool evidence establishes that exact inspection; otherwise mark it pending. Verify semantic conventions and APIs from installed package/schema/collector capabilities or matching official docs; current OpenTelemetry attributes evolve and remembered names are not authority. Before material mutation, resolve exact task-owned code/config/dashboard/alert targets, owner and write authority/permissions, plus effect-appropriate rollback/recovery.
 
 Start from critical user/business journeys and questions. Define bounded event/metric/span schemas, provenance and owners. Accept inbound trace/correlation context only after parsing and trust-boundary validation; create a new context when invalid and never let caller-controlled IDs become authorization, log injection or unbounded indexed fields. Propagate across HTTP/RPC/messages/jobs with explicit links for fan-out and retries.
 

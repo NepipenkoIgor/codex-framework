@@ -3,8 +3,8 @@ name: backend-architecture
 description: Design read-only backend boundaries, contracts, data ownership, consistency, scaling, security, resilience, and migration for a concrete system. Use for cross-cutting design or material boundary change; route event-driven architecture, domain modeling, and scoped code implementation to their dedicated skills.
 metadata:
   owner: codex-framework
-  reviewed: "2026-07-27"
-  version: 2.1
+  reviewed: "2026-09-19"
+  version: 2.2
   argument-hint: "system/change, current stack, quality attributes, scale, data/consistency, compatibility and migration constraints"
 ---
 
@@ -13,7 +13,7 @@ metadata:
 Read [the full pattern guide](references/full-guide.md) only for the selected platform or alternative. Stay read-only.
 
 1. Map current request/event/job flows, data authority, auth/tenant boundaries, integrations, deployment units, SLOs, costs and operational pain from repository/runtime evidence.
-2. Rank quality attributes and invariants before choosing topology or technology. Generate stack context for version-sensitive capability and preserve existing pins.
+2. Rank quality attributes and invariants before choosing topology or technology. Generate stack context for version-sensitive capability, preserve existing pins, and require official documentation matched to the pinned runtime and protocol versions before relying on their behavior.
 3. Define contracts, ownership, consistency, failure/partial-outage behavior, timeout/cancellation, concurrency/idempotency, backpressure, security and observability.
 4. Compare the smallest viable boundary change with at least one simpler alternative; reject complexity with evidence.
 5. Design mixed-version compatibility, incremental migration, data reconciliation, canary, rollback and removal of transitional paths.

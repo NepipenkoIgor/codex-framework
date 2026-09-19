@@ -14,6 +14,7 @@ import subprocess
 import sys
 import tempfile
 import tomllib
+from hashlib import sha256
 
 
 ROOT = pathlib.Path(__file__).resolve().parents[1]
@@ -45,6 +46,27 @@ MAX_FAILED_EXTERNAL_WAITS = 5
 WARN_RESPONSES_PER_HOUR = 120
 WARN_NEAR_WINDOW_RESPONSES = 10
 WARN_FULL_GATE_RUNS = 3
+COMPUTER_USE_DOCUMENTATION_MARKERS = (
+    "Control native apps or browsers on the user’s computer",
+    "Control native apps or browsers on the user's computer",
+    "initialized cua API",
+    "rewriteDocumentation",
+)
+CERTIFICATION_LIMITS = {
+    "responses": 500,
+    "uncachedInputTokens": 1_500_000,
+    "outputTokens": 200_000,
+    "compactions": 5,
+    "nearWindowResponses": 5,
+    "responsesPerHour": 120,
+    "emptyPolls": 3,
+    "emptyPollsPerSession": 3,
+    "identicalExternalReads": 3,
+    "oversizedToolOutputs": 0,
+    "repeatedOversizedToolOutputs": 0,
+    "repeatedComputerUseDocumentation": 0,
+    "goalBlockedContinuationChurn": 0,
+}
 
 
 def valid_usage(value: object) -> bool:
@@ -80,6 +102,34 @@ def output_sizes(output: object) -> tuple[bool, int, int, int]:
         else:
             return False, 0, 0, serialized
     return True, text_chars, image_chars, serialized
+
+
+def output_text(output: object) -> str:
+    if isinstance(output, str):
+        return output
+    if not isinstance(output, list):
+        return ""
+    values: list[str] = []
+    for part in output:
+        if isinstance(part, dict):
+            value = part.get("text") or part.get("input_text") or part.get("output_text")
+            if isinstance(value, str):
+                values.append(value)
+    return "\n".join(values)
+
+
+def stable_digest(value: object) -> str:
+    return sha256(json.dumps(value, ensure_ascii=False, sort_keys=True,
+                             separators=(",", ":")).encode()).hexdigest()
+
+
+def nested_value(value: object, *keys: str) -> object:
+    current = value
+    for key in keys:
+        if not isinstance(current, dict):
+            return None
+        current = current.get(key)
+    return current
 
 
 def command_text(item: object) -> str:
@@ -349,7 +399,38 @@ def live_prompt_report(project: pathlib.Path = ROOT) -> tuple[dict[str, object],
     return report, failures
 
 
-def rollout_report(path: pathlib.Path, *, details: bool = False) -> tuple[dict[str, object], list[str]]:
+def owned_turn_id(path: pathlib.Path) -> str | None:
+    """Locate the first provider turn owned by this rollout, excluding fork history."""
+    primary_id: str | None = None
+    try:
+        lines = path.open(encoding="utf-8")
+    except OSError:
+        return None
+    with lines:
+        for line in lines:
+            try:
+                entry = json.loads(line)
+            except (json.JSONDecodeError, TypeError):
+                continue
+            if not isinstance(entry, dict):
+                continue
+            payload = entry.get("payload", {})
+            if not isinstance(payload, dict):
+                continue
+            if primary_id is None and entry.get("type") == "session_meta":
+                value = payload.get("id")
+                if isinstance(value, str) and value:
+                    primary_id = value
+            if primary_id is not None and entry.get("type") == "token_usage_record" \
+                    and payload.get("thread_id") == primary_id:
+                value = payload.get("turn_id")
+                if isinstance(value, str) and value:
+                    return value
+    return None
+
+
+def rollout_report(path: pathlib.Path, *, details: bool = False,
+                   internal: bool = False) -> tuple[dict[str, object], list[str]]:
     event_usages: list[tuple[dict[str, int], dict[str, int]]] = []
     response_usages: list[dict[str, int]] = []
     final_thread_usage: dict[str, int] = {}
@@ -361,6 +442,12 @@ def rollout_report(path: pathlib.Path, *, details: bool = False) -> tuple[dict[s
     duplicate_events = 0
     previous_event_signature = None
     thread_role = "unknown"
+    session_id: str | None = None
+    parent_thread_id: str | None = None
+    agent_profile = "unknown"
+    session_metadata_seen = False
+    primary_turn_id = owned_turn_id(path)
+    owned_events_started = primary_turn_id is None
     epoch = 0
     direct_commands: collections.Counter[str] = collections.Counter()
     previous_event_input = -1
@@ -372,12 +459,18 @@ def rollout_report(path: pathlib.Path, *, details: bool = False) -> tuple[dict[s
     tool_output_image_chars: list[int] = []
     tool_output_serialized_chars: list[int] = []
     output_calls: collections.Counter[str] = collections.Counter()
+    output_digests: collections.Counter[str] = collections.Counter()
+    oversized_output_digests: collections.Counter[str] = collections.Counter()
+    computer_use_documentation_loads = 0
     nested_tools: collections.Counter[str] = collections.Counter()
     external_reads: collections.Counter[str] = collections.Counter()
+    external_call_keys: dict[str, str] = {}
+    external_read_results: collections.Counter[str] = collections.Counter()
     empty_write_polls: collections.Counter[str] = collections.Counter()
     shell_poll_loops = 0
     failed_external_waits = 0
     compactions = 0
+    goal_events: list[str] = []
     root_turns: set[str] = set()
     nonblank_lines = 0
     malformed_lines = 0
@@ -408,16 +501,60 @@ def rollout_report(path: pathlib.Path, *, details: bool = False) -> tuple[dict[s
                 continue
             entry_type = entry.get("type")
             payload_type = payload.get("type")
-            if entry_type == "session_meta":
+            # A forked/subagent rollout can contain inherited parent history,
+            # including the parent's session_meta.  The first metadata record
+            # owns this file; later inherited records must not rewrite identity.
+            if entry_type == "session_meta" and not session_metadata_seen:
+                session_metadata_seen = True
+                candidate_id = payload.get("id")
+                if isinstance(candidate_id, str) and candidate_id:
+                    session_id = candidate_id
                 source = payload.get("source")
                 if isinstance(source, dict) and "subagent" in source:
                     thread_role = "child"
+                    candidate_parent = payload.get("parent_thread_id")
+                    if isinstance(candidate_parent, str) and candidate_parent:
+                        parent_thread_id = candidate_parent
+                    spawn = nested_value(source, "subagent", "thread_spawn")
+                    if isinstance(spawn, dict):
+                        candidate_parent = spawn.get("parent_thread_id")
+                        if isinstance(candidate_parent, str) and candidate_parent:
+                            parent_thread_id = candidate_parent
+                        for key in ("agent_type", "agent_role", "profile", "role"):
+                            value = spawn.get(key)
+                            if isinstance(value, str) and value:
+                                agent_profile = value
+                                break
+                    subagent = source.get("subagent")
+                    if isinstance(subagent, dict) and agent_profile == "unknown":
+                        for key in ("agent_type", "profile", "role", "other"):
+                            value = subagent.get(key)
+                            if isinstance(value, str) and value:
+                                agent_profile = value
+                                break
+                    if agent_profile == "unknown":
+                        agent_profile = "child"
                 elif source in ("cli", "vscode", "exec", "appServer"):
                     thread_role = "root"
+                    agent_profile = "root"
+            if not owned_events_started:
+                begins_owned_turn = (
+                    entry_type in {"event_msg", "turn_context"}
+                    and payload.get("turn_id") == primary_turn_id
+                    and (entry_type == "turn_context" or payload_type == "task_started")
+                )
+                if begins_owned_turn:
+                    owned_events_started = True
+                else:
+                    continue
             if (entry_type == "event_msg" and payload_type in {"user_message", "task_started"}) or entry_type == "turn_context":
                 epoch += 1
             if entry_type == "compacted":
                 compactions += 1
+            if entry_type == "event_msg" and payload_type == "user_message":
+                message = payload.get("message", "")
+                if isinstance(message, str) and "<codex_internal_context source=\"goal\">" in message:
+                    goal_events.append("continuation")
             if entry_type == "event_msg" and payload_type == "token_count":
                 info = payload.get("info", {})
                 usage = info.get("last_token_usage", {}) if isinstance(info, dict) else {}
@@ -475,12 +612,23 @@ def rollout_report(path: pathlib.Path, *, details: bool = False) -> tuple[dict[s
                     malformed_token_records += 1
             if entry_type == "response_item" and payload_type in {
                     "custom_tool_call_output", "function_call_output"}:
-                supported, text_chars, image_chars, serialized_chars = output_sizes(payload.get("output", []))
+                output = payload.get("output", [])
+                supported, text_chars, image_chars, serialized_chars = output_sizes(output)
                 if supported:
                     output_calls[payload_type] += 1
                     tool_output_text_chars.append(text_chars)
                     tool_output_image_chars.append(image_chars)
                     tool_output_serialized_chars.append(serialized_chars)
+                    digest = stable_digest(output)
+                    output_digests[digest] += 1
+                    if text_chars > 16_000:
+                        oversized_output_digests[digest] += 1
+                    visible = output_text(output)
+                    if any(marker in visible for marker in COMPUTER_USE_DOCUMENTATION_MARKERS):
+                        computer_use_documentation_loads += 1
+                    call_id = payload.get("call_id")
+                    if isinstance(call_id, str) and call_id in external_call_keys:
+                        external_read_results[f"{external_call_keys.pop(call_id)}:{digest}"] += 1
                 else:
                     malformed_tool_outputs += 1
             if entry_type == "response_item" and payload_type in {"custom_tool_call", "function_call"}:
@@ -500,12 +648,25 @@ def rollout_report(path: pathlib.Path, *, details: bool = False) -> tuple[dict[s
                         direct_commands[f"epoch={epoch} cwd={arguments.get('workdir', 'unobserved')} command={command}"] += 1
                     if name in {"write_stdin", "functions.write_stdin"} and arguments.get("chars", "") == "":
                         empty_write_polls[f"{epoch}:{arguments.get('session_id', 'unknown')}"] += 1
+                    call_id = payload.get("call_id")
+                    if isinstance(call_id, str):
+                        candidates = external_status_keys(json.dumps(arguments, sort_keys=True))
+                        if candidates:
+                            external_call_keys[call_id] = candidates[0]
+                    if name in {"update_goal", "functions.update_goal"} and arguments.get("status") == "blocked":
+                        goal_events.append("blocked")
                 if not isinstance(tool_input, str):
                     continue
                 for nested in re.findall(r"\btools\.([A-Za-z0-9_]+)", tool_input):
                     nested_tools[nested] += 1
+                if re.search(r"tools\.(?:mcp__cua_repl__)?rewriteDocumentation\b", tool_input):
+                    computer_use_documentation_loads += 1
                 for key in external_status_keys(tool_input):
                     external_reads[f"{epoch}:{key}"] += 1
+                call_id = payload.get("call_id")
+                candidates = external_status_keys(tool_input)
+                if isinstance(call_id, str) and candidates:
+                    external_call_keys[call_id] = candidates[0]
                 if "tools.write_stdin" in tool_input and re.search(r"chars\s*:\s*[\"']{2}", tool_input):
                     match = re.search(r"session_id\s*:\s*(\d+)", tool_input)
                     empty_write_polls[f"{epoch}:{match.group(1) if match else 'unknown'}"] += 1
@@ -529,6 +690,13 @@ def rollout_report(path: pathlib.Path, *, details: bool = False) -> tuple[dict[s
     responses_per_hour = round(response_count / duration_hours, 1) if duration_hours else None
     max_external_reads = max(external_reads.values(), default=0)
     max_empty_polls = max(empty_write_polls.values(), default=0)
+    repeated_tool_outputs = sum(count - 1 for count in output_digests.values() if count > 1)
+    repeated_oversized_outputs = sum(count - 1 for count in oversized_output_digests.values() if count > 1)
+    identical_external_results = max(external_read_results.values(), default=0)
+    goal_churn = sum(
+        goal_events[index:index + 3] == ["blocked", "continuation", "blocked"]
+        for index in range(max(0, len(goal_events) - 2))
+    )
     warnings: list[str] = []
     if responses_per_hour and responses_per_hour > WARN_RESPONSES_PER_HOUR:
         warnings.append(f"response rate is {responses_per_hour}/hour; investigate model-driven microsteps")
@@ -544,6 +712,9 @@ def rollout_report(path: pathlib.Path, *, details: bool = False) -> tuple[dict[s
         "eventUsageRecords": len(event_usages),
         "threadUsageRecords": len(response_usages),
         "threadRole": thread_role,
+        "sessionId": session_id,
+        "parentThreadId": parent_thread_id,
+        "agentProfile": agent_profile,
         "turns": len(root_turns),
         "rootTurns": len(root_turns) if thread_role == "root" else None,
         "childTurns": len(root_turns) if thread_role == "child" else None,
@@ -551,6 +722,7 @@ def rollout_report(path: pathlib.Path, *, details: bool = False) -> tuple[dict[s
         "duplicateEventSnapshots": duplicate_events,
         "unidentifiedResponseRecords": unidentified_responses,
         "responseCountExact": bool(response_usages) and not unidentified_responses and not malformed_token_records,
+        "responseTimestampsComplete": bool(response_usages) and len(response_times) == len(response_usages),
         "responseCountScope": "unique IDs in supplied records" if response_usages and not unidentified_responses else "record/snapshot estimate; response identity unavailable",
         "responseUsageSum": {key: sum(value[key] for value in response_usages) for key in USAGE_KEYS} if response_usages and not unidentified_responses else None,
         "compactions": compactions,
@@ -571,20 +743,28 @@ def rollout_report(path: pathlib.Path, *, details: bool = False) -> tuple[dict[s
         "rawLoggedToolOutputImageChars": sum(tool_output_image_chars),
         "rawLoggedToolOutputSerializedChars": sum(tool_output_serialized_chars),
         "toolOutputsOver16000TextChars": sum(value > 16_000 for value in tool_output_text_chars),
+        "repeatedToolOutputCalls": repeated_tool_outputs,
+        "repeatedOversizedToolOutputCalls": repeated_oversized_outputs,
         "largestToolOutputTextChars": max(tool_output_text_chars, default=0),
         "largestToolOutputImageChars": max(tool_output_image_chars, default=0),
         "largestToolOutputSerializedChars": max(tool_output_serialized_chars, default=0),
         "nestedToolCalls": dict(sorted(nested_tools.items())),
         "externalStatusReads": sum(external_reads.values()),
         "maxIdenticalExternalStatusReads": max_external_reads,
+        "maxIdenticalExternalReadResults": identical_external_results,
         "emptyWriteStdinPolls": sum(empty_write_polls.values()),
         "maxEmptyWriteStdinPollsPerSession": max_empty_polls,
         "shellPollingLoops": shell_poll_loops,
         "failedExternalWaitCommands": failed_external_waits,
+        "computerUseDocumentationLoads": computer_use_documentation_loads,
+        "repeatedComputerUseDocumentationLoads": max(0, computer_use_documentation_loads - 1),
+        "goalBlockedEvents": goal_events.count("blocked"),
+        "goalContinuationEvents": goal_events.count("continuation"),
+        "goalBlockedContinuationChurn": goal_churn,
         "fullGateCommandMentions": None,
         "maxRepeatedDirectCommandMentionsInEpoch": max(direct_commands.values(), default=0),
         "evidenceLimitations": [
-            "One rollout only; child usage is not added to root usage and inherited history cannot be excluded without provenance.",
+            "One rollout only; use --rollout-family for provenance-checked root and child accounting.",
             "Event token counts are cumulative snapshots, not independently identified responses.",
             "Commands in custom-tool source are textual candidates; execution, operation environment, state changes and heartbeat authorization are not proven.",
             "Check identity (code SHA, config, environment and inputs) is unavailable; full-gate identity is not inferred from command substrings.",
@@ -613,11 +793,226 @@ def rollout_report(path: pathlib.Path, *, details: bool = False) -> tuple[dict[s
     if details:
         report["perTurnFinalUsage"] = final_turn_usage
         report["directCommandMentionsByEpoch"] = dict(direct_commands)
+    if internal:
+        report["_responseIds"] = sorted(seen_responses)
+        report["_allToolCalls"] = dict(nested_tools)
+        report["_responseTimes"] = [value.isoformat() for value in response_times]
+        report["_outputDigests"] = dict(output_digests)
+        report["_oversizedOutputDigests"] = dict(oversized_output_digests)
+        report["_externalReadResults"] = dict(external_read_results)
     # Tool names are untrusted/unbounded identifiers; default output stays compact.
     if not details:
         report["nestedToolCalls"] = {name[:160]: count for name, count in nested_tools.most_common(20)}
         report["omittedToolNames"] = max(0, len(nested_tools) - 20)
     return report, failures
+
+
+def sum_usage(values: list[dict[str, int]]) -> dict[str, int]:
+    return {key: sum(value.get(key, 0) for value in values) for key in USAGE_KEYS}
+
+
+def certification_failures(report: dict[str, object]) -> list[str]:
+    failures: list[str] = []
+    checks = {
+        "responses": report.get("responses", 0),
+        "uncachedInputTokens": report.get("uncachedInputTokens", 0),
+        "outputTokens": report.get("outputTokens", 0),
+        "compactions": report.get("compactions", 0),
+        "nearWindowResponses": report.get("nearWindowResponses", 0),
+        "responsesPerHour": report.get("responsesPerHour"),
+        "emptyPolls": report.get("emptyWriteStdinPolls", 0),
+        "emptyPollsPerSession": report.get("maxEmptyWriteStdinPollsPerSession", 0),
+        "identicalExternalReads": max(
+            int(report.get("maxIdenticalExternalStatusReads", 0)),
+            int(report.get("maxIdenticalExternalReadResults", 0)),
+        ),
+        "oversizedToolOutputs": report.get("toolOutputsOver16000TextChars", 0),
+        "repeatedOversizedToolOutputs": report.get("repeatedOversizedToolOutputCalls", 0),
+        "repeatedComputerUseDocumentation": report.get("repeatedComputerUseDocumentationLoads", 0),
+        "goalBlockedContinuationChurn": report.get("goalBlockedContinuationChurn", 0),
+    }
+    for name, value in checks.items():
+        if not isinstance(value, (int, float)) or isinstance(value, bool):
+            failures.append(f"certification metric is unavailable: {name}")
+        elif value > CERTIFICATION_LIMITS[name]:
+            failures.append(
+                f"certification threshold exceeded: {name}={value} > {CERTIFICATION_LIMITS[name]}"
+            )
+    if report.get("responseCountExact") is not True:
+        failures.append("certification requires exact response identity and per-response usage")
+    if report.get("responseTimestampsComplete") is not True:
+        failures.append("certification requires a timestamp for every response in every rollout")
+    if report.get("provenanceValid") is not True:
+        failures.append("certification requires a complete root/child provenance graph")
+    profiles = report.get("sessionsByProfile", {})
+    if not isinstance(profiles, dict) or int(profiles.get("worker", 0)) < 1:
+        failures.append("certification requires at least one provenance-identified worker")
+    return failures
+
+
+def family_report(paths: list[pathlib.Path], *, details: bool = False,
+                  profile: str = "advisory") -> tuple[dict[str, object], list[str]]:
+    unique_paths: list[pathlib.Path] = []
+    seen_paths: set[pathlib.Path] = set()
+    for path in paths:
+        resolved = path.expanduser().resolve()
+        if resolved in seen_paths:
+            return {}, [f"rollout family repeats a path: {resolved}"]
+        seen_paths.add(resolved)
+        unique_paths.append(resolved)
+    if not unique_paths:
+        return {}, ["rollout family requires at least one explicitly supplied rollout"]
+
+    sessions: list[dict[str, object]] = []
+    failures: list[str] = []
+    session_ids: set[str] = set()
+    response_ids: set[str] = set()
+    duplicate_response_ids: set[str] = set()
+    for path in unique_paths:
+        report, errors = rollout_report(path, details=details, internal=True)
+        failures.extend(f"{path}: {error}" for error in errors)
+        session_id = report.get("sessionId")
+        if not isinstance(session_id, str) or not session_id:
+            failures.append(f"{path}: session_meta.payload.id is required for family provenance")
+        elif session_id in session_ids:
+            failures.append(f"rollout family repeats session id: {session_id}")
+        else:
+            session_ids.add(session_id)
+        ids = report.get("_responseIds", [])
+        if isinstance(ids, list):
+            for response_id in ids:
+                if response_id in response_ids:
+                    duplicate_response_ids.add(str(response_id))
+                response_ids.add(str(response_id))
+        sessions.append({"path": str(path), **report})
+    if duplicate_response_ids:
+        failures.append(
+            "rollout family response IDs overlap; refusing double counting: "
+            + ", ".join(sorted(duplicate_response_ids)[:10])
+        )
+
+    roots = [session for session in sessions if session.get("threadRole") == "root"]
+    graph_failures: list[str] = []
+    if len(roots) != 1:
+        failures.append(f"rollout family requires exactly one root; found {len(roots)}")
+    root_id = roots[0].get("sessionId") if len(roots) == 1 else None
+    parent_by_id = {
+        str(session.get("sessionId")): session.get("parentThreadId")
+        for session in sessions if session.get("threadRole") == "child"
+    }
+    for session in sessions:
+        if session.get("threadRole") == "child" and session.get("parentThreadId") not in session_ids:
+            graph_failures.append(
+                f"child {session.get('sessionId') or session['path']} has an absent parent "
+                f"{session.get('parentThreadId')!r}"
+            )
+            continue
+        if session.get("threadRole") != "child" or not isinstance(root_id, str):
+            continue
+        child_id = str(session.get("sessionId"))
+        cursor: object = child_id
+        visited: set[str] = set()
+        while cursor != root_id:
+            if not isinstance(cursor, str) or cursor in visited:
+                graph_failures.append(f"child {child_id} has cyclic or self-parent provenance")
+                break
+            visited.add(cursor)
+            cursor = parent_by_id.get(cursor)
+            if cursor is None:
+                graph_failures.append(f"child {child_id} is not reachable from root {root_id}")
+                break
+    failures.extend(graph_failures)
+    provenance_valid = len(roots) == 1 and not graph_failures and not duplicate_response_ids
+
+    usage_values = [session.get("responseUsageSum") for session in sessions]
+    exact = all(isinstance(value, dict) for value in usage_values) and not duplicate_response_ids
+    usage = sum_usage([value for value in usage_values if isinstance(value, dict)]) if exact else {}
+    output_digests: collections.Counter[str] = collections.Counter()
+    oversized_digests: collections.Counter[str] = collections.Counter()
+    external_results: collections.Counter[str] = collections.Counter()
+    tools_by_profile: dict[str, collections.Counter[str]] = collections.defaultdict(collections.Counter)
+    sessions_by_profile: collections.Counter[str] = collections.Counter()
+    timestamps: list[dt.datetime] = []
+    for session in sessions:
+        profile_name = str(session.get("agentProfile") or session.get("threadRole") or "unknown")
+        sessions_by_profile[profile_name] += 1
+        tools = session.get("_allToolCalls", {})
+        if isinstance(tools, dict):
+            tools_by_profile[profile_name].update({str(k): int(v) for k, v in tools.items()})
+        output_digests.update(session.get("_outputDigests", {}))
+        oversized_digests.update(session.get("_oversizedOutputDigests", {}))
+        external_results.update(session.get("_externalReadResults", {}))
+        for value in session.get("_responseTimes", []):
+            observed = timestamp(value)
+            if observed:
+                timestamps.append(observed)
+    response_count = sum(int(session.get("responses", 0)) for session in sessions)
+    duration_hours = 0.0
+    if len(timestamps) > 1:
+        duration_hours = max((max(timestamps) - min(timestamps)).total_seconds() / 3600, 1 / 3600)
+    repeated_outputs = sum(count - 1 for count in output_digests.values() if count > 1)
+    repeated_oversized = sum(count - 1 for count in oversized_digests.values() if count > 1)
+    family: dict[str, object] = {
+        "profile": profile,
+        "provenanceValid": provenance_valid,
+        "rootSessionId": roots[0].get("sessionId") if len(roots) == 1 else None,
+        "sessionCount": len(sessions),
+        "sessionsByProfile": dict(sorted(sessions_by_profile.items())),
+        "responseCountExact": exact,
+        "responseTimestampsComplete": all(
+            session.get("responseTimestampsComplete") is True for session in sessions
+        ),
+        "responses": response_count,
+        "providerUsage": usage if exact else None,
+        "uncachedInputTokens": (
+            usage.get("input_tokens", 0) - usage.get("cached_input_tokens", 0) if exact else None
+        ),
+        "outputTokens": usage.get("output_tokens") if exact else None,
+        "compactions": sum(int(session.get("compactions", 0)) for session in sessions),
+        "nearWindowResponses": sum(int(session.get("nearWindowResponses", 0)) for session in sessions),
+        "responsesPerHour": round(response_count / duration_hours, 1) if duration_hours else None,
+        "emptyWriteStdinPolls": sum(int(session.get("emptyWriteStdinPolls", 0)) for session in sessions),
+        "maxEmptyWriteStdinPollsPerSession": max(
+            (int(session.get("maxEmptyWriteStdinPollsPerSession", 0)) for session in sessions), default=0
+        ),
+        "externalStatusReads": sum(int(session.get("externalStatusReads", 0)) for session in sessions),
+        "maxIdenticalExternalStatusReads": max(
+            (int(session.get("maxIdenticalExternalStatusReads", 0)) for session in sessions), default=0
+        ),
+        "maxIdenticalExternalReadResults": max(external_results.values(), default=0),
+        "toolOutputsOver16000TextChars": sum(
+            int(session.get("toolOutputsOver16000TextChars", 0)) for session in sessions
+        ),
+        "repeatedToolOutputCalls": repeated_outputs,
+        "repeatedOversizedToolOutputCalls": repeated_oversized,
+        "computerUseDocumentationLoads": sum(
+            int(session.get("computerUseDocumentationLoads", 0)) for session in sessions
+        ),
+        "repeatedComputerUseDocumentationLoads": max(0, sum(
+            int(session.get("computerUseDocumentationLoads", 0)) for session in sessions
+        ) - 1),
+        "goalBlockedContinuationChurn": sum(
+            int(session.get("goalBlockedContinuationChurn", 0)) for session in sessions
+        ),
+        "toolCallsByProfile": {
+            name: dict(sorted(counter.items())) for name, counter in sorted(tools_by_profile.items())
+        },
+        "sessions": [
+            {
+                "path": session["path"],
+                "sessionId": session.get("sessionId"),
+                "parentThreadId": session.get("parentThreadId"),
+                "threadRole": session.get("threadRole"),
+                "agentProfile": session.get("agentProfile"),
+                "responses": session.get("responses"),
+            }
+            for session in sessions
+        ],
+        "thresholds": CERTIFICATION_LIMITS if profile == "certification" else None,
+    }
+    if profile == "certification":
+        failures.extend(certification_failures(family))
+    return family, failures
 
 
 def main() -> int:
@@ -626,6 +1021,10 @@ def main() -> int:
     parser.add_argument("--details", action="store_true", help="include per-turn usage and command detail")
     parser.add_argument("--live", action="store_true", help="inspect native model-visible prompt input")
     parser.add_argument("--rollout", type=pathlib.Path, help="report provider token/cache and tool-output evidence")
+    parser.add_argument("--rollout-family", type=pathlib.Path, nargs="+",
+                        help="explicit root and child rollout files; validates provenance and prevents response double counting")
+    parser.add_argument("--profile", choices=("advisory", "certification"), default="advisory",
+                        help="advisory diagnosis or strict controlled certification thresholds")
     parser.add_argument("--self-test", action="store_true", help="falsify budget and configuration counterexamples")
     args = parser.parse_args()
 
@@ -642,13 +1041,20 @@ def main() -> int:
         rollout, rollout_failures = rollout_report(args.rollout.expanduser(), details=args.details)
         report["rollout"] = rollout
         failures.extend(rollout_failures)
+    if args.rollout_family:
+        family, family_failures = family_report(args.rollout_family, details=args.details,
+                                                profile=args.profile)
+        report["rolloutFamily"] = family
+        failures.extend(family_failures)
+    elif args.profile == "certification":
+        failures.append("certification profile requires --rollout-family provenance evidence")
     print(json.dumps(report, indent=2, sort_keys=True))
     if failures:
         print("token budget check failed:", file=sys.stderr)
         for failure in failures:
             print(f"- {failure}", file=sys.stderr)
         return 1
-    behavior = report.get("rollout", {})
+    behavior = report.get("rolloutFamily", report.get("rollout", {}))
     warnings = behavior.get("warnings", []) if isinstance(behavior, dict) else []
     report_status = "warnings require investigation" if warnings else "not certified by static budgets"
     print(f"token structure checks passed; runtime efficiency: {report_status}")

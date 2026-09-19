@@ -718,6 +718,7 @@ check 'bootstrap preserves native user config' bootstrap_preserves_native_config
 check 'shell parsing wrapper is absent' test ! -e "$ROOT/scripts/hooks/pre-tool-use.sh"
 check 'installation source isolation fixtures pass' python3 "$ROOT/scripts/framework-install-source-self-test.py"
 check 'scoped token evidence fixtures pass' python3 "$ROOT/scripts/framework-token-budget-check-test.py"
+check 'agent-studio debate, safety, coordination, and efficiency counterexamples are rejected' python3 "$ROOT/scripts/framework-agent-studio-behavior-eval.py" --self-test
 check 'behavioral graders reject false acceptance' python3 "$ROOT/scripts/framework-project-behavior-eval.py" --self-test
 
 printf 'framework eval: %d checks, %d failures\n' "$total" "$failures"

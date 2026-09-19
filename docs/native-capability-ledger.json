@@ -1,25 +1,25 @@
 {
   "schemaVersion": 3,
-  "reviewedAt": "2026-09-18T02:52:29+00:00",
-  "codexVersion": "codex-cli 0.155.0",
+  "reviewedAt": "2026-09-19T05:31:32+00:00",
+  "codexVersion": "codex-cli 0.155.1",
   "baselineReleaseTag": "rust-v0.149.0",
-  "latestReleaseTag": "rust-v0.155.0",
-  "changelogReviewedThrough": "2026-09-17",
+  "latestReleaseTag": "rust-v0.155.1",
+  "changelogReviewedThrough": "2026-09-18",
   "sources": [
     {
       "kind": "manual",
-      "url": "https://developers.openai.com/codex/",
-      "sha256": "1ed561be0c30911da755597c662720f536b4d426642742c1671661031ed1c8f3"
+      "url": "https://learn.chatgpt.com/docs/codex/cli",
+      "sha256": "5cf95e6f311bf0452a81b6f69df244a21d638683e385c6716a49ea7699dced08"
     },
     {
       "kind": "changelog",
       "url": "https://learn.chatgpt.com/docs/changelog",
-      "sha256": "c79ccc12a94c05b99d0e6a3b0f3ef2628880777f368cea8d62a2dda51ca2bff5"
+      "sha256": "9d6079651263648de9bf010ae10a0cd7dbc7543d99b2c0572fec252ac92c7040"
     },
     {
       "kind": "release",
       "url": "https://api.github.com/repos/openai/codex/releases/latest",
-      "sha256": "1e1a072edac742d0a0d0be4b39c6757c19ef098645b845dcd204e49caa142226"
+      "sha256": "2e6609ae2bc08dbc2c77f84385b233a1e5b86e3691ee7f9475cbbe34be2d42e8"
     }
   ],
   "releaseCoverage": [
@@ -142,6 +142,14 @@
         "native-agent-lifecycle",
         "provider-credential-commands",
         "approval-review"
+      ]
+    },
+    {
+      "tag": "rust-v0.155.1",
+      "publishedAt": "2026-09-18T20:03:04Z",
+      "capabilityIds": [
+        "native-model-defaults",
+        "native-token-optimizations"
       ]
     }
   ],
@@ -307,11 +315,13 @@
       "id": "approval-review",
       "nativeFeature": "Automatic approval review through --approve-for-me",
       "decision": "permission-gated",
-      "localOverlap": "Framework-side auto-approval would weaken native sandbox and approval ownership.",
-      "action": "Use only when already enabled by the user for an eligible run; never set it from repository policy.",
+      "localOverlap": "Framework-side auto-approval or remembered broad confirmations would weaken native sandbox, approval ownership, and current-action binding.",
+      "action": "Use native approval review only when already enabled by the user for an eligible run; never set it from repository policy. Consequential product actions still require an exact current-turn single-use confirmation and invalidate it after compaction, target, price, or login changes.",
       "evidence": [
         "AGENTS.md",
-        "README.md"
+        "README.md",
+        "scripts/framework-agent-studio-behavior-eval.py",
+        "evals/fixtures/agent-studio-behavior.json"
       ]
     },
     {
@@ -444,7 +454,7 @@
       "nativeFeature": "Native model catalog and default-model updates including Astra visibility",
       "decision": "adopted",
       "localOverlap": "A project model pin or framework model router would prevent automatic native default adoption and become stale.",
-      "action": "Keep repository and ordinary profiles unpinned. Treat any user-owned global model pin as an explicit external choice and report that it overrides new native defaults without rewriting it.",
+      "action": "Keep repository and ordinary profiles unpinned. Treat any user-owned global model pin as an explicit external choice and report that it overrides new native defaults without rewriting it. Retain the 0.155.1 native reasoning-summary default fix; do not recreate provider-compatibility routing locally.",
       "evidence": [
         ".codex/config.toml",
         "templates/global/AGENTS.md",
@@ -508,6 +518,56 @@
         "templates/global/AGENTS.md",
         ".codex/agents/tester.toml",
         "docs/runtime-efficiency.md"
+      ]
+    },
+    {
+      "id": "native-goals",
+      "nativeFeature": "Persisted native Goals with continuation, usage accounting, pause, completion, and blocked state",
+      "decision": "adopted",
+      "localOverlap": "A framework goal file, task-state database, continuation hook, or blocker scheduler would duplicate native Goal lifecycle and can replay stale authority.",
+      "action": "Use native Goals for multi-step outcomes. Keep blockers lane-local while ready work remains, invalidate stale confirmation after continuation or compaction, and never add a parallel goal-state wrapper.",
+      "evidence": [
+        "AGENTS.md",
+        "docs/runtime-efficiency.md",
+        "scripts/framework-token-budget-check.py",
+        "scripts/framework-agent-studio-behavior-eval.py"
+      ]
+    },
+    {
+      "id": "local-memories",
+      "nativeFeature": "Native local memories and task-history recall",
+      "decision": "adopted",
+      "localOverlap": "Framework memory injection, transcript replay, secret storage, or an untracked project knowledge database would compete with native recall and weaken current evidence boundaries.",
+      "action": "Use native memory only for recall and continuity. Revalidate drift-prone identity and authority from tracked project/provider evidence; store credential locators rather than secret values and add no framework memory wrapper.",
+      "evidence": [
+        "templates/global/AGENTS.md",
+        "README.md",
+        "docs/token-efficiency.md"
+      ]
+    },
+    {
+      "id": "computer-use-iab",
+      "nativeFeature": "Native Computer Use and visible in-app Browser with task-owned tabs and DOM, console, network, interaction, responsive, and fresh-load evidence",
+      "decision": "permission-gated",
+      "localOverlap": "A Browser wrapper, silent Chrome fallback, repeated Computer Use documentation loader, or headless acceptance would duplicate or weaken the native visible surface.",
+      "action": "Lock product acceptance to the visible in-app Browser. Use Chrome or Edge only after explicit user selection, keep their evidence non-accepting for the product path, and leave Computer Use enablement and permissions native.",
+      "evidence": [
+        "docs/interactive-development.md",
+        "scripts/framework-token-budget-check.py",
+        "scripts/framework-agent-studio-behavior-eval.py",
+        "evals/fixtures/agent-studio-behavior.json"
+      ]
+    },
+    {
+      "id": "native-attached-waits",
+      "nativeFeature": "Native attached waits for live task, process, automation, and handoff handles",
+      "decision": "replaced",
+      "localOverlap": "Shell sleep loops, polling daemons, model-driven unchanged status reads, and restarted operations duplicate native attached waits and can lose handle identity.",
+      "action": "Wait on the same confirmed live native handle, preserve its cursor or session identity, and resume only on a meaningful transition. Keep runtime diagnosis advisory and add no polling or retry wrapper.",
+      "evidence": [
+        "templates/global/AGENTS.md",
+        "docs/runtime-efficiency.md",
+        "scripts/framework-token-budget-check.py"
       ]
     },
     {

@@ -14,7 +14,7 @@ concurrency:
   cancel-in-progress: true
 
 env:
-  CODEX_CLI_VERSION: 0.155.0
+  CODEX_CLI_VERSION: 0.155.1
 
 jobs:
   deterministic:

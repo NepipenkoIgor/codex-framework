@@ -3,14 +3,14 @@ name: feature-flags
 description: Implement feature-flag evaluation, rollout, kill-switch, stale-client, observability, and cleanup behavior with stable server-authoritative identity and snapshot semantics. Use when repository flag changes are requested; do not use for causal experiment design or inference.
 metadata:
   owner: codex-framework
-  reviewed: "2026-07-27"
-  version: 2.2
+  reviewed: "2026-09-19"
+  version: 2.3
   argument-hint: "flag purpose/owner, evaluation identities and attributes, server/client surfaces, rollout/kill-switch/staleness/cleanup"
 ---
 
 # Feature Flags
 
-1. Read instructions, manifests/lockfiles, installed flag provider/SDK, bootstrap/cache path, auth/tenant model, server and client evaluation surfaces, telemetry and tests. Preserve pins and verify APIs from installed types/config and matching official docs.
+1. Read instructions, manifests/lockfiles, installed flag provider/SDK, bootstrap/cache path, auth/tenant model, server and client evaluation surfaces, telemetry and tests. Preserve pins and verify APIs from installed types/config and matching official docs. Keep required discovery separate from completed evidence: never state that a surface was inspected unless task or tool evidence establishes that exact inspection; otherwise mark it pending.
 2. Define flag type: release, operational kill switch, permission/entitlement bridge, migration or experiment exposure. Route experiment assignment, power and causal inference to the experiment skill; a flag result is not causal evidence.
 3. Record owner, purpose, default and unavailable behavior, evaluation identity/attributes, creation and removal criteria, dependencies and audit sensitivity.
 

@@ -400,7 +400,10 @@ def semantic_evaluator_digest(evaluator_sha256: str | None = None) -> str:
         "batch_judge_schema": sha256_file(BATCH_JUDGE_SCHEMA),
         "implementation": evaluator_digest(
             (
-                run_codex, fixture_path, load_routing_artifact, reference_solver_prompt, scenario_judge_prompt,
+                codex_version, artifact_relative, receipt_path, write_invocation_receipt, validate_invocation_receipt,
+                run_codex, validate_semantic_raw_dir, run_codex_cached, prune_stale_semantic_receipts,
+                fixture_path, load_routing_artifact, reference_solver_prompt,
+                reference_judge_prompt, scenario_judge_prompt,
                 scenario_solver_batch_prompt, scenario_revision_batch_prompt, scenario_judge_batch_prompt,
                 blocking_assertion_results, semantic_live,
             ),
@@ -566,6 +569,51 @@ def run_codex(prompt: str, schema: Path | None, output: Path, stderr: Path) -> N
     write_invocation_receipt(prompt, schema, output)
 
 
+def validate_semantic_raw_dir(raw_dir: Path, artifact_dir: Path) -> Path:
+    artifact_root = artifact_dir.resolve()
+    expected_parent = artifact_root / "semantic-raw"
+    expected = expected_parent / raw_dir.name
+    require(raw_dir.parent.resolve() == expected_parent and not raw_dir.parent.is_symlink(), f"semantic raw parent is missing, symlinked, or external: {raw_dir.parent}")
+    require(raw_dir.is_dir() and not raw_dir.is_symlink(), f"semantic raw directory is missing or symlinked: {raw_dir}")
+    require(raw_dir.resolve() == expected, f"semantic raw directory escaped its canonical artifact subtree: {raw_dir}")
+    return expected
+
+
+def run_codex_cached(
+    prompt: str,
+    schema: Path | None,
+    output: Path,
+    stderr: Path,
+    artifact_dir: Path,
+    raw_dir: Path,
+    runner: Any = run_codex,
+) -> str:
+    """Reuse only byte- and identity-valid raw evidence; otherwise refresh it once."""
+    expected_raw_dir = validate_semantic_raw_dir(raw_dir, artifact_dir)
+    require(output.parent.resolve() == expected_raw_dir and stderr.parent.resolve() == expected_raw_dir, "semantic cache output escaped its skill raw directory")
+    require(not output.is_symlink() and not stderr.is_symlink(), "semantic cache output or stderr is symlinked")
+    receipt = receipt_path(output)
+    require(not receipt.is_symlink(), "semantic cache receipt is symlinked")
+    if output.is_file() and receipt.is_file():
+        try:
+            validate_invocation_receipt(output, prompt, schema, artifact_dir.resolve())
+            return "reused"
+        except (OSError, UnicodeDecodeError, json.JSONDecodeError, KeyError, ContractError):
+            pass
+    runner(prompt, schema, output, stderr)
+    validate_invocation_receipt(output, prompt, schema, artifact_dir.resolve())
+    return "refreshed"
+
+
+def prune_stale_semantic_receipts(raw_dir: Path, artifact_dir: Path, expected_receipts: set[Path]) -> None:
+    expected_raw_dir = validate_semantic_raw_dir(raw_dir, artifact_dir)
+    for stale_receipt in raw_dir.glob("*.receipt.json"):
+        require(not stale_receipt.is_symlink(), f"semantic receipt is symlinked: {stale_receipt}")
+        require(stale_receipt.parent.resolve() == expected_raw_dir, f"semantic receipt escaped its skill raw directory: {stale_receipt}")
+        if stale_receipt.resolve() not in expected_receipts:
+            stale_receipt.unlink()
+
+
 def reference_solver_prompt(skill: str, skill_text: str, task: str) -> str:
     return (
         "Do not use tools or change files. Based only on the main skill, state which optional repository-relative "
@@ -573,6 +621,17 @@ def reference_solver_prompt(skill: str, skill_text: str, task: str) -> str:
         f"(for example skills/{skill}/references/example.md), even when the main skill link is relative. Do not load "
         "unrelated detail.\n\n"
         f"Skill path: skills/{skill}/SKILL.md\nSkill:\n{skill_text}\n\nTask:\n{task}"
+    )
+
+
+def reference_judge_prompt(criterion: dict[str, Any], answer: str) -> str:
+    return (
+        "Strictly judge the proposed all-and-only reference selection. Existence is prevalidated only for the "
+        "contract-listed expected and forbidden repository paths; do not inspect or infer anything about the execution workspace. "
+        "Fail if any expected path is absent from the selected set, any repository reference outside the expected set is selected "
+        "(including an unrelated or invented path), or any forbidden path is selected. A path mentioned only to say it was not "
+        "selected does not count as selected. Return the assertion exactly once.\n\nCriteria:\n"
+        + json.dumps(criterion) + "\n\nAnswer:\n" + answer
     )
 
 
@@ -850,6 +909,12 @@ def semantic_live(skill: str, artifact_dir: Path, routing_artifact: Path, expect
     artifact_dir.mkdir(parents=True, exist_ok=True)
     raw_dir = artifact_dir / "semantic-raw" / skill
     raw_dir.mkdir(parents=True, exist_ok=True)
+    expected_receipts: set[Path] = set()
+
+    def evaluate(prompt: str, schema: Path | None, output: Path, stderr: Path) -> None:
+        expected_receipts.add(receipt_path(output).resolve())
+        run_codex_cached(prompt, schema, output, stderr, artifact_dir, raw_dir)
+
     contract_path = CONTRACT_ROOT / f"{skill}.json"; skill_path = skill_paths()[skill]
     contract = json.loads(contract_path.read_text())
     require(contract.get("contract_status") == "reviewed", f"semantic evaluation requires a domain-reviewed contract: {skill}")
@@ -866,7 +931,7 @@ def semantic_live(skill: str, artifact_dir: Path, routing_artifact: Path, expect
     for reference_case in contract["reference_routing"]:
         scenario_id = reference_case["id"]
         solver = raw_dir / f"{scenario_id}.answer.md"; solver_stderr = raw_dir / f"{scenario_id}.solver.stderr"
-        run_codex(reference_solver_prompt(skill, skill_text, reference_case["prompt"]), None, solver, solver_stderr)
+        evaluate(reference_solver_prompt(skill, skill_text, reference_case["prompt"]), None, solver, solver_stderr)
         assert_snapshot()
         judge_output = raw_dir / f"{scenario_id}.judge.json"; judge_stderr = raw_dir / f"{scenario_id}.judge.stderr"
         criterion = {
@@ -876,11 +941,7 @@ def semantic_live(skill: str, artifact_dir: Path, routing_artifact: Path, expect
                 "criterion": f"Selects all and only required references. Expected={reference_case['expected']}; forbidden={reference_case['forbidden']}."
             }],
         }
-        run_codex(
-            "Strictly judge the proposed reference selection. Return the assertion exactly once and fail if an expected path is "
-            "missing or a forbidden path is selected.\n\nCriteria:\n" + json.dumps(criterion) + "\n\nAnswer:\n" + solver.read_text(errors="ignore"),
-            JUDGE_SCHEMA, judge_output, judge_stderr,
-        )
+        evaluate(reference_judge_prompt(criterion, solver.read_text(errors="ignore")), JUDGE_SCHEMA, judge_output, judge_stderr)
         assert_snapshot()
         judged = json.loads(judge_output.read_text()); result = judged["assertions"][0]
         status = "pass" if judged.get("verdict") == "pass" and result["status"] == "pass" else "fail"
@@ -904,7 +965,7 @@ def semantic_live(skill: str, artifact_dir: Path, routing_artifact: Path, expect
                     "criterion": "The optional reference must remain subordinate to and consistent with the main workflow: no contradictory universal requirements, stale remembered version/API rule, unsafe mutation, hidden skill chain, or ownership expansion."
                 }],
             }
-            run_codex(
+            evaluate(
                 "Strictly falsify the optional reference against the main skill. Mark fail on any material contradiction or stale "
                 "unconditional recipe; a disclaimer in the main file does not neutralize contradictory reference instructions. "
                 "A failure must quote the exact contradictory MAIN and REFERENCE sentences with their displayed line numbers. "
@@ -930,7 +991,7 @@ def semantic_live(skill: str, artifact_dir: Path, routing_artifact: Path, expect
         })
     draft_answers_output = raw_dir / "scenarios.draft.answers.json"
     draft_answers_stderr = raw_dir / "scenarios.draft.answers.stderr"
-    run_codex(scenario_solver_batch_prompt(skill_text, scenario_inputs), BATCH_ANSWER_SCHEMA, draft_answers_output, draft_answers_stderr)
+    evaluate(scenario_solver_batch_prompt(skill_text, scenario_inputs), BATCH_ANSWER_SCHEMA, draft_answers_output, draft_answers_stderr)
     assert_snapshot()
     draft_rows = json.loads(draft_answers_output.read_text()).get("answers", [])
     draft_answers_by_id = {row.get("case_id"): row.get("answer") for row in draft_rows}
@@ -938,7 +999,7 @@ def semantic_live(skill: str, artifact_dir: Path, routing_artifact: Path, expect
     require(len(draft_rows) == len(draft_answers_by_id) and set(draft_answers_by_id) == expected_case_ids, f"solver draft batch coverage mismatch for {skill}")
     batch_answers_output = raw_dir / "scenarios.answers.json"
     batch_answers_stderr = raw_dir / "scenarios.answers.stderr"
-    run_codex(
+    evaluate(
         scenario_revision_batch_prompt(skill_text, scenario_inputs, draft_answers_by_id),
         BATCH_ANSWER_SCHEMA,
         batch_answers_output,
@@ -951,7 +1012,7 @@ def semantic_live(skill: str, artifact_dir: Path, routing_artifact: Path, expect
     judge_inputs = [{**case, "answer": answers_by_id[case["case_id"]]} for case in scenario_inputs]
     batch_judge_output = raw_dir / "scenarios.judge.json"
     batch_judge_stderr = raw_dir / "scenarios.judge.stderr"
-    run_codex(scenario_judge_batch_prompt(skill_text, judge_inputs), BATCH_JUDGE_SCHEMA, batch_judge_output, batch_judge_stderr)
+    evaluate(scenario_judge_batch_prompt(skill_text, judge_inputs), BATCH_JUDGE_SCHEMA, batch_judge_output, batch_judge_stderr)
     assert_snapshot()
     judged_rows = json.loads(batch_judge_output.read_text()).get("cases", [])
     judged_by_id = {row.get("case_id"): row for row in judged_rows}
@@ -988,7 +1049,7 @@ def semantic_live(skill: str, artifact_dir: Path, routing_artifact: Path, expect
                     },
                 ],
             }, ensure_ascii=False)
-            run_codex(
+            evaluate(
                 "Act as a focused adjudicator after a primary falsification judge marked one critical assertion fail. A reversal is allowed "
                 "only when the candidate answer itself satisfies the material control or task evidence makes it inapplicable, and the candidate "
                 "does not contradict or bypass it. The skill text alone cannot cure candidate omission. "
@@ -1047,6 +1108,7 @@ def semantic_live(skill: str, artifact_dir: Path, routing_artifact: Path, expect
     ]
     verdict = "pass" if all(row["status"] == "pass" for row in dimensions.values()) and all(row["status"] == "pass" for row in case_results) else "fail"
     assert_snapshot()
+    prune_stale_semantic_receipts(raw_dir, artifact_dir, expected_receipts)
     payload = {
         "schema_version": 1,
         "run": {
@@ -1094,10 +1156,7 @@ def validate_semantic_raw(skill: str, artifact_dir: Path, contract: dict[str, An
                 "criterion": f"Selects all and only required references. Expected={reference_case['expected']}; forbidden={reference_case['forbidden']}.",
             }],
         }
-        judge_prompt = (
-            "Strictly judge the proposed reference selection. Return the assertion exactly once and fail if an expected path is "
-            "missing or a forbidden path is selected.\n\nCriteria:\n" + json.dumps(criterion) + "\n\nAnswer:\n" + answer
-        )
+        judge_prompt = reference_judge_prompt(criterion, answer)
         judge_output = raw_dir / f"{case_id}.judge.json"
         judged = validate_invocation_receipt(judge_output, judge_prompt, JUDGE_SCHEMA, artifact_dir)
         by_id = validate_judge_payload(judged, case_id, {"reference-selection"}, f"{skill}/{case_id}")
@@ -1250,7 +1309,7 @@ def validate_semantic_artifact(skill: str, artifact_dir: Path) -> None:
     for case in data["cases"]:
         for evidence in case["evidence"]:
             evidence_path = Path(evidence.split(": ", 1)[0])
-            require(evidence_path.is_file() and artifact_dir in evidence_path.parents, f"missing or external raw evidence for {skill}/{case['case_id']}")
+            require(evidence_path.is_file() and artifact_dir.resolve() in evidence_path.resolve().parents, f"missing or external raw evidence for {skill}/{case['case_id']}")
 
 
 def certify(artifact_dir: Path, selected: str | None) -> None:
@@ -1315,43 +1374,124 @@ def validate_compact_attestation(rows: Any) -> None:
         require(row["caseCount"] == expected_cases and row["verdict"] == "pass", f"compact skill attestation verdict mismatch: {skill}")
 
 
-def full_live(artifact_dir: Path, routing_artifact: Path, jobs: int, resume: bool) -> None:
+def validate_full_live_paths(artifact_dir: Path, routing_artifact: Path) -> tuple[Path, Path, Path]:
+    require(artifact_dir.is_dir() and not artifact_dir.is_symlink(), f"semantic artifact directory is missing or symlinked: {artifact_dir}")
+    artifact_root = artifact_dir.resolve()
+    require(routing_artifact.is_file() and not routing_artifact.is_symlink(), f"routing artifact is missing or symlinked: {routing_artifact}")
+    routing_path = routing_artifact.resolve()
+    require(routing_path.parent == artifact_root, f"routing artifact must be a direct child of the semantic artifact directory: {routing_artifact}")
+    manifest_path = artifact_root / "semantic-run-manifest.json"
+    require(not manifest_path.is_symlink(), f"semantic run manifest is symlinked: {manifest_path}")
+    return artifact_root, routing_path, manifest_path
+
+
+def write_json_atomic(path: Path, payload: Any) -> None:
+    require(path.parent.is_dir() and not path.parent.is_symlink(), f"atomic JSON parent is missing or symlinked: {path.parent}")
+    require(not path.is_symlink(), f"atomic JSON target is symlinked: {path}")
+    temporary_path: Path | None = None
+    try:
+        with tempfile.NamedTemporaryFile("w", dir=path.parent, prefix=f".{path.name}.", suffix=".tmp", delete=False) as handle:
+            temporary_path = Path(handle.name)
+            json.dump(payload, handle, indent=2, sort_keys=True)
+            handle.write("\n")
+            handle.flush()
+            os.fsync(handle.fileno())
+        os.replace(temporary_path, path)
+        temporary_path = None
+        directory_fd = os.open(path.parent, os.O_RDONLY)
+        try:
+            os.fsync(directory_fd)
+        finally:
+            os.close(directory_fd)
+    finally:
+        if temporary_path is not None and temporary_path.exists() and not temporary_path.is_symlink():
+            temporary_path.unlink()
+
+
+def prepare_semantic_run(
+    artifact_dir: Path,
+    routing_artifact: Path,
+    snapshot: dict[str, Any],
+    names: list[str],
+    resume: bool,
+    refresh: bool,
+) -> tuple[Path, Path, Path, list[str]]:
+    require(not (resume and refresh), "--resume and --refresh are mutually exclusive")
+    artifact_root, routing_path, manifest_path = validate_full_live_paths(artifact_dir, routing_artifact)
+    if refresh:
+        require(manifest_path.is_file(), f"semantic run manifest is missing for --refresh: {manifest_path}")
+        json.loads(manifest_path.read_text())
+        write_json_atomic(manifest_path, snapshot)
+    elif manifest_path.exists():
+        require(resume, f"semantic run manifest already exists without --resume: {manifest_path}")
+        require(json.loads(manifest_path.read_text()) == snapshot, "semantic run manifest does not match the current immutable source snapshot")
+    else:
+        require(not resume, f"semantic run manifest is missing for --resume: {manifest_path}")
+        write_json_atomic(manifest_path, snapshot)
+    pending: list[str] = []
+    for skill in names:
+        target = artifact_root / f"quality-{skill}.json"
+        if refresh:
+            pending.append(skill)
+            continue
+        if not target.exists():
+            pending.append(skill)
+            continue
+        require(resume, f"semantic artifact already exists without --resume: {target}")
+        validate_semantic_artifact(skill, artifact_root)
+        print(f"semantic quality {skill}: resume accepted digest-valid artifact")
+    return artifact_root, routing_path, manifest_path, pending
+
+
+def finalize_semantic_run(
+    artifact_dir: Path,
+    routing_artifact: Path,
+    manifest_path: Path,
+    snapshot: dict[str, Any],
+    names: list[str],
+    failures: list[str],
+    semantic_digest_reader: Any = semantic_digest,
+    certify_runner: Any = None,
+) -> None:
+    artifact_root, routing_path, expected_manifest = validate_full_live_paths(artifact_dir, routing_artifact)
+    require(manifest_path.resolve() == expected_manifest and not manifest_path.is_symlink(), "semantic run manifest path changed during evaluation")
+    require(json.loads(manifest_path.read_text()) == snapshot, "semantic run manifest changed during evaluation")
+    require(sha256_file(routing_path) == snapshot["routing_artifact_sha256"], "routing artifact changed during semantic evaluation")
+    require(
+        all(semantic_digest_reader(skill) == snapshot["semantic_digests"][skill] for skill in names),
+        "semantic source changed during full live evaluation",
+    )
+    for failure in failures:
+        print(f"FAIL: {failure}")
+    if failures:
+        raise SystemExit(1)
+    (certify_runner or certify)(artifact_root, None)
+
+
+def full_live(artifact_dir: Path, routing_artifact: Path, jobs: int, resume: bool, refresh: bool) -> None:
     require(1 <= jobs <= 8, "semantic jobs must remain between 1 and 8")
     report = offline_report()
     require(not report["failures"], "offline quality gate must pass before full live evaluation")
     names = sorted(skill_paths())
+    artifact_root, routing_path, _ = validate_full_live_paths(artifact_dir, routing_artifact)
     for skill in names:
-        load_routing_artifact(routing_artifact, skill)
-    artifact_dir.mkdir(parents=True, exist_ok=True)
-    manifest_path = artifact_dir / "semantic-run-manifest.json"
+        load_routing_artifact(routing_path, skill)
     snapshot = {
         "schema_version": 1,
         "model": EVALUATOR_MODEL,
         "reasoning_effort": EVALUATOR_REASONING_EFFORT,
         "codex_version": codex_version(),
-        "routing_artifact_sha256": sha256_file(routing_artifact),
+        "routing_artifact_sha256": sha256_file(routing_path),
         "semantic_digests": {skill: semantic_digest(skill) for skill in names},
     }
-    if manifest_path.exists():
-        require(resume, f"semantic run manifest already exists without --resume: {manifest_path}")
-        require(json.loads(manifest_path.read_text()) == snapshot, "semantic run manifest does not match the current immutable source snapshot")
-    else:
-        require(not resume, f"semantic run manifest is missing for --resume: {manifest_path}")
-        manifest_path.write_text(json.dumps(snapshot, indent=2, sort_keys=True) + "\n")
-    pending: list[str] = []
-    for skill in names:
-        target = artifact_dir / f"quality-{skill}.json"
-        if not target.exists():
-            pending.append(skill)
-            continue
-        require(resume, f"semantic artifact already exists without --resume: {target}")
-        validate_semantic_artifact(skill, artifact_dir)
-        print(f"semantic quality {skill}: resume accepted digest-valid artifact")
+    artifact_root, routing_path, manifest_path, pending = prepare_semantic_run(
+        artifact_root, routing_path, snapshot, names, resume, refresh
+    )
 
     def run_skill(skill: str) -> tuple[str, int, str]:
         command = [
             sys.executable, str(Path(__file__).resolve()), "semantic-live", "--skill", skill,
-            "--artifact-dir", str(artifact_dir), "--routing-artifact", str(routing_artifact),
+            "--artifact-dir", str(artifact_root), "--routing-artifact", str(routing_path),
             "--expected-semantic-digest", snapshot["semantic_digests"][skill],
         ]
         completed = managed_run(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
@@ -1366,16 +1506,7 @@ def full_live(artifact_dir: Path, routing_artifact: Path, jobs: int, resume: boo
                 print(output)
             if returncode:
                 failures.append(f"semantic evaluator failed for {skill} with exit {returncode}")
-    require(json.loads(manifest_path.read_text()) == snapshot, "semantic run manifest changed during evaluation")
-    require(
-        all(semantic_digest(skill) == snapshot["semantic_digests"][skill] for skill in names),
-        "semantic source changed during full live evaluation",
-    )
-    for failure in failures:
-        print(f"FAIL: {failure}")
-    if failures:
-        raise SystemExit(1)
-    certify(artifact_dir, None)
+    finalize_semantic_run(artifact_root, routing_path, manifest_path, snapshot, names, failures)
 
 
 def self_test() -> None:
@@ -1475,6 +1606,210 @@ def self_test() -> None:
             pass
         else:
             raise AssertionError("semantic receipt accepted mutated raw output")
+    with tempfile.TemporaryDirectory(prefix="semantic-cache-self-test-") as directory:
+        artifact_root = Path(directory)
+        raw_dir = artifact_root / "semantic-raw" / "sample"
+        output = raw_dir / "answer.md"
+        stderr = raw_dir / "answer.stderr"
+        raw_dir.mkdir(parents=True)
+        calls: list[str] = []
+
+        def fake_runner(prompt: str, schema: Path | None, target: Path, error_path: Path) -> None:
+            calls.append(prompt)
+            target.write_text(json.dumps({"prompt": prompt}) if schema else prompt)
+            error_path.write_text("")
+            write_invocation_receipt(prompt, schema, target)
+
+        require(run_codex_cached("prompt-a", None, output, stderr, artifact_root, raw_dir, fake_runner) == "refreshed", "missing semantic evidence must refresh")
+        require(run_codex_cached("prompt-a", None, output, stderr, artifact_root, raw_dir, fake_runner) == "reused", "digest-valid semantic evidence must be reused")
+        require(run_codex_cached("prompt-b", None, output, stderr, artifact_root, raw_dir, fake_runner) == "refreshed", "prompt drift must refresh semantic evidence")
+        schema = artifact_root / "judge.schema.json"
+        schema.write_text("{}")
+        require(run_codex_cached("prompt-b", schema, output, stderr, artifact_root, raw_dir, fake_runner) == "refreshed", "schema drift must refresh semantic evidence")
+        require(run_codex_cached("prompt-b", schema, output, stderr, artifact_root, raw_dir, fake_runner) == "reused", "unchanged schema-bound evidence must be reused")
+
+        output.write_bytes(b"\xff")
+        write_invocation_receipt("prompt-b", schema, output)
+        require(run_codex_cached("prompt-b", schema, output, stderr, artifact_root, raw_dir, fake_runner) == "refreshed", "non-UTF8 cached evidence must refresh")
+        receipt_path(output).unlink()
+        require(run_codex_cached("prompt-b", schema, output, stderr, artifact_root, raw_dir, fake_runner) == "refreshed", "missing receipt must refresh")
+        receipt_path(output).write_text("{")
+        require(run_codex_cached("prompt-b", schema, output, stderr, artifact_root, raw_dir, fake_runner) == "refreshed", "malformed receipt must refresh")
+        for identity_field in ("model", "reasoning_effort", "codex_version"):
+            receipt = json.loads(receipt_path(output).read_text())
+            receipt[identity_field] = "mismatch"
+            receipt_path(output).write_text(json.dumps(receipt))
+            require(run_codex_cached("prompt-b", schema, output, stderr, artifact_root, raw_dir, fake_runner) == "refreshed", f"{identity_field} drift must refresh")
+
+        extra_receipt = raw_dir / "extra.md.receipt.json"
+        extra_receipt.write_text("{}")
+        prune_stale_semantic_receipts(raw_dir, artifact_root, {receipt_path(output).resolve()})
+        require(receipt_path(output).is_file() and not extra_receipt.exists(), "stale receipt pruning must stay inside the exact skill subtree")
+
+        other_raw = artifact_root / "semantic-raw" / "other"
+        other_raw.mkdir()
+        other_output = other_raw / "answer.md"
+        other_stderr = other_raw / "answer.stderr"
+        try:
+            run_codex_cached("escape", None, other_output, other_stderr, artifact_root, raw_dir, fake_runner)
+        except ContractError:
+            pass
+        else:
+            raise AssertionError("semantic cache accepted a cross-skill output path")
+
+        alias_raw = artifact_root / "semantic-raw" / "alias"
+        alias_raw.symlink_to(raw_dir, target_is_directory=True)
+        try:
+            run_codex_cached("alias", None, alias_raw / "alias.md", alias_raw / "alias.stderr", artifact_root, alias_raw, fake_runner)
+        except ContractError:
+            pass
+        else:
+            raise AssertionError("semantic cache accepted a symlinked skill raw directory")
+        require(receipt_path(output).is_file(), "cross-skill alias handling modified valid evidence")
+
+        dependent_calls_before = len(calls)
+        dependent_outputs = [raw_dir / f"dependent-{index}.md" for index in range(3)]
+        for index, dependent_output in enumerate(dependent_outputs):
+            run_codex_cached(f"dependent-{index}", None, dependent_output, raw_dir / f"dependent-{index}.stderr", artifact_root, raw_dir, fake_runner)
+        for index, dependent_output in enumerate(dependent_outputs):
+            prompt = "dependent-changed" if index == 1 else f"dependent-{index}"
+            run_codex_cached(prompt, None, dependent_output, raw_dir / f"dependent-{index}.stderr", artifact_root, raw_dir, fake_runner)
+        require(len(calls) == dependent_calls_before + 4, "selective semantic refresh did not reuse unchanged dependent calls")
+        failure_output = raw_dir / "failure.judge.json"
+        failure_payload = {
+            "case_id": "failure-case",
+            "assertions": [{"id": "failure", "status": "fail", "evidence": "counterexample"}],
+            "verdict": "fail",
+        }
+        failure_output.write_text(json.dumps(failure_payload))
+        write_invocation_receipt("failure-prompt", JUDGE_SCHEMA, failure_output)
+        calls_before_failure_reuse = len(calls)
+        require(
+            run_codex_cached("failure-prompt", JUDGE_SCHEMA, failure_output, raw_dir / "failure.stderr", artifact_root, raw_dir, fake_runner) == "reused"
+            and len(calls) == calls_before_failure_reuse,
+            "receipt-valid semantic failure was rerun instead of preserved",
+        )
+        require(calls[:2] == ["prompt-a", "prompt-b"], "semantic evidence cache reran an unchanged prompt or reused a stale prompt")
+    semantic_digest_source = inspect.getsource(semantic_evaluator_digest)
+    require(
+        all(name in semantic_digest_source for name in (
+            "artifact_relative", "receipt_path", "write_invocation_receipt", "validate_invocation_receipt",
+            "validate_semantic_raw_dir", "run_codex_cached", "prune_stale_semantic_receipts", "codex_version",
+        )),
+        "semantic evaluator digest omits an evidence acceptance or identity helper",
+    )
+    with tempfile.TemporaryDirectory(prefix="semantic-refresh-self-test-") as directory:
+        artifact_root = Path(directory)
+        routing_path = artifact_root / "routing-all.json"
+        routing_path.write_text('{"routing":"stable"}\n')
+        manifest_path = artifact_root / "semantic-run-manifest.json"
+        write_json_atomic(manifest_path, {"old": True})
+        names = ["skill-a", "skill-b"]
+        snapshot = {
+            "schema_version": 1,
+            "model": EVALUATOR_MODEL,
+            "reasoning_effort": EVALUATOR_REASONING_EFFORT,
+            "codex_version": codex_version(),
+            "routing_artifact_sha256": sha256_file(routing_path),
+            "semantic_digests": {name: f"digest-{name}" for name in names},
+        }
+        for name in names:
+            (artifact_root / f"quality-{name}.json").write_text('{"stale":true}\n')
+        _, _, prepared_manifest, pending = prepare_semantic_run(
+            artifact_root, routing_path, snapshot, names, resume=False, refresh=True
+        )
+        require(pending == names and json.loads(prepared_manifest.read_text()) == snapshot, "refresh did not schedule every skill under the new snapshot")
+        require(prepared_manifest.is_file() and not prepared_manifest.is_symlink(), "refresh manifest is not a regular local file")
+        try:
+            prepare_semantic_run(artifact_root, routing_path, snapshot, names, resume=True, refresh=True)
+        except ContractError:
+            pass
+        else:
+            raise AssertionError("semantic refresh accepted simultaneous --resume")
+
+        missing_root = artifact_root / "missing"
+        missing_root.mkdir()
+        missing_routing = missing_root / "routing-all.json"
+        missing_routing.write_text("{}")
+        try:
+            prepare_semantic_run(missing_root, missing_routing, snapshot, names, resume=False, refresh=True)
+        except ContractError:
+            pass
+        else:
+            raise AssertionError("semantic refresh accepted a missing manifest")
+
+        malformed_root = artifact_root / "malformed"
+        malformed_root.mkdir()
+        malformed_routing = malformed_root / "routing-all.json"
+        malformed_routing.write_text("{}")
+        (malformed_root / "semantic-run-manifest.json").write_text("{")
+        try:
+            prepare_semantic_run(malformed_root, malformed_routing, snapshot, names, resume=False, refresh=True)
+        except json.JSONDecodeError:
+            pass
+        else:
+            raise AssertionError("semantic refresh accepted a malformed manifest")
+
+        symlink_root = artifact_root / "symlink"
+        symlink_root.mkdir()
+        symlink_routing = symlink_root / "routing-all.json"
+        symlink_routing.write_text("{}")
+        external_manifest = artifact_root / "external-manifest.json"
+        external_manifest.write_text('{"external":true}\n')
+        symlink_manifest = symlink_root / "semantic-run-manifest.json"
+        symlink_manifest.symlink_to(external_manifest)
+        try:
+            prepare_semantic_run(symlink_root, symlink_routing, snapshot, names, resume=False, refresh=True)
+        except ContractError:
+            pass
+        else:
+            raise AssertionError("semantic refresh accepted a symlinked manifest")
+        require(json.loads(external_manifest.read_text()) == {"external": True}, "semantic refresh modified an external manifest target")
+
+        certificate_calls: list[Path] = []
+        digest_reader = lambda name: snapshot["semantic_digests"][name]
+        try:
+            finalize_semantic_run(
+                artifact_root, routing_path, prepared_manifest, snapshot, names, ["child failed"],
+                semantic_digest_reader=digest_reader,
+                certify_runner=lambda root, selected: certificate_calls.append(root),
+            )
+        except SystemExit:
+            pass
+        else:
+            raise AssertionError("semantic refresh certified after a child failure")
+        require(not certificate_calls, "semantic refresh invoked certification after a child failure")
+
+        routing_path.write_text('{"routing":"drifted"}\n')
+        try:
+            finalize_semantic_run(
+                artifact_root, routing_path, prepared_manifest, snapshot, names, [],
+                semantic_digest_reader=digest_reader,
+                certify_runner=lambda root, selected: certificate_calls.append(root),
+            )
+        except ContractError:
+            pass
+        else:
+            raise AssertionError("semantic refresh accepted routing drift")
+        routing_path.write_text('{"routing":"stable"}\n')
+        write_json_atomic(prepared_manifest, {"changed": True})
+        try:
+            finalize_semantic_run(
+                artifact_root, routing_path, prepared_manifest, snapshot, names, [],
+                semantic_digest_reader=digest_reader,
+                certify_runner=lambda root, selected: certificate_calls.append(root),
+            )
+        except ContractError:
+            pass
+        else:
+            raise AssertionError("semantic refresh accepted manifest drift")
+        write_json_atomic(prepared_manifest, snapshot)
+        finalize_semantic_run(
+            artifact_root, routing_path, prepared_manifest, snapshot, names, [],
+            semantic_digest_reader=digest_reader,
+            certify_runner=lambda root, selected: certificate_calls.append(root),
+        )
+        require(certificate_calls == [artifact_root.resolve()], "semantic refresh did not certify exactly once after all final checks")
     require(GENERIC_DESCRIPTION.search("Use when the task explicitly requires widgets; do not load it for adjacent work.") is not None, "generic description detector")
     require(routing_digest() == routing_digest(), "full routing digest must be deterministic")
     require(
@@ -1497,6 +1832,21 @@ def self_test() -> None:
             raise AssertionError("semantic evaluator accepted a mismatched immutable snapshot")
     reference_prompt = reference_solver_prompt("sample", "[guide](references/guide.md)", "use the guide")
     require("skills/sample/references/example.md" in reference_prompt and "repository-relative" in reference_prompt, "reference prompt must require canonical repository-relative paths")
+    reference_criterion = {
+        "case_id": "reference-counterexample",
+        "assertions": [{"id": "reference-selection", "criterion": "Expected=['skills/sample/references/guide.md']; forbidden=[]"}],
+    }
+    reference_counterexample = reference_judge_prompt(
+        reference_criterion,
+        "skills/sample/references/guide.md\nskills/sample/references/invented.md",
+    )
+    require(
+        all(fragment in reference_counterexample for fragment in (
+            "only for the contract-listed expected and forbidden", "outside the expected set", "unrelated or invented path",
+            "skills/sample/references/guide.md", "skills/sample/references/invented.md",
+        )),
+        "reference judge must reject expected-plus-extra-path counterexamples without inferring workspace state",
+    )
     judge_prompt = scenario_judge_prompt("TASK_SENTINEL", "SKILL_SENTINEL", "\n\nOptional task fixture:\nFIXTURE_SENTINEL", "CRITERIA_SENTINEL", "ANSWER_SENTINEL")
     require(all(value in judge_prompt for value in ("TASK_SENTINEL", "SKILL_SENTINEL", "FIXTURE_SENTINEL", "CRITERIA_SENTINEL", "ANSWER_SENTINEL")), "semantic judge must receive task, skill, fixture, criteria, and answer")
     batch_cases = [{"case_id": "CASE_SENTINEL", "task": "TASK_SENTINEL", "fixture": "FIXTURE_SENTINEL", "assertions": [{"id": "ASSERTION_SENTINEL"}], "answer": "ANSWER_SENTINEL"}]
@@ -1596,7 +1946,7 @@ def main() -> None:
     check = sub.add_parser("check"); check.add_argument("--skill"); check.add_argument("--json", action="store_true"); check.add_argument("--allow-incomplete", action="store_true")
     routing = sub.add_parser("routing-live"); routing.add_argument("--skill"); routing.add_argument("--artifact-dir", type=Path, required=True); routing.add_argument("--trials", type=int, default=3); routing.add_argument("--jobs", type=int, default=4)
     semantic = sub.add_parser("semantic-live"); semantic.add_argument("--skill", required=True); semantic.add_argument("--artifact-dir", type=Path, required=True); semantic.add_argument("--routing-artifact", type=Path, required=True); semantic.add_argument("--expected-semantic-digest")
-    full = sub.add_parser("full-live"); full.add_argument("--artifact-dir", type=Path, required=True); full.add_argument("--routing-artifact", type=Path, required=True); full.add_argument("--jobs", type=int, default=4); full.add_argument("--resume", action="store_true")
+    full = sub.add_parser("full-live"); full.add_argument("--artifact-dir", type=Path, required=True); full.add_argument("--routing-artifact", type=Path, required=True); full.add_argument("--jobs", type=int, default=4); full.add_argument("--resume", action="store_true"); full.add_argument("--refresh", action="store_true")
     certification = sub.add_parser("certify"); certification.add_argument("--skill"); certification.add_argument("--artifact-dir", type=Path, required=True)
     sub.add_parser("self-test")
     sub.add_parser("signal-self-test-child", help=argparse.SUPPRESS)
@@ -1610,7 +1960,7 @@ def main() -> None:
     if args.command == "semantic-live":
         semantic_live(args.skill, args.artifact_dir, args.routing_artifact, args.expected_semantic_digest); return
     if args.command == "full-live":
-        full_live(args.artifact_dir, args.routing_artifact, args.jobs, args.resume); return
+        full_live(args.artifact_dir, args.routing_artifact, args.jobs, args.resume, args.refresh); return
     if args.command == "certify":
         certify(args.artifact_dir, args.skill); return
     report = offline_report(args.skill)

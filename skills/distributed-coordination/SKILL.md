@@ -3,8 +3,8 @@ name: distributed-coordination
 description: Implement distributed ownership for locks, leases, leader election, singleton scheduling, and deduplicated critical sections with fencing and recovery. Use when multiple processes can concurrently mutate one protected resource; do not use for local mutexes, queue consumption alone, or transactions confined to one database.
 metadata:
   owner: codex-framework
-  reviewed: "2026-07-26"
-  version: 2.0
+  reviewed: "2026-09-19"
+  version: 2.1
   argument-hint: "protected resource, contenders, coordination store, lease/fencing support, side effects, failover"
 ---
 
@@ -33,7 +33,7 @@ Implement `$ARGUMENTS` from the protected invariant and failure model, not from 
 
 ## Output
 
-Report the protected invariant and resource key, store/capability evidence, acquire/renew/release linearization, fencing enforcement point, failure and failover policy, side-effect idempotency/reconciliation, shutdown behavior, and remaining availability or provider risk. Enumerate executable fault-injection evidence separately for pause beyond TTL, renewal loss, network partition, store failover/ambiguity, stale write, concurrent acquire, release-after-reacquire, process death, shutdown, and recovery; do not collapse network partition into a residual-risk note.
+Report the protected invariant and resource key, installed store/capability evidence, and the selected quorum/consistency mode derived from that installed capability plus the stated failure model. Also report acquire/renew/release linearization, fencing enforcement point, failure and failover policy, side-effect idempotency/reconciliation, shutdown behavior, and remaining availability or provider risk. Enumerate executable fault-injection evidence separately for pause beyond TTL, renewal loss, network partition, store failover/ambiguity, stale write, concurrent acquire, release-after-reacquire, process death, shutdown, and recovery; do not collapse network partition into a residual-risk note.
 
 ## Provenance
 
