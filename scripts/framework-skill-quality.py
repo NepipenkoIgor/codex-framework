@@ -1374,37 +1374,63 @@ def validate_compact_attestation(rows: Any) -> None:
         require(row["caseCount"] == expected_cases and row["verdict"] == "pass", f"compact skill attestation verdict mismatch: {skill}")
 
 
-def full_live(artifact_dir: Path, routing_artifact: Path, jobs: int, resume: bool, refresh: bool) -> None:
-    require(1 <= jobs <= 8, "semantic jobs must remain between 1 and 8")
+def validate_full_live_paths(artifact_dir: Path, routing_artifact: Path) -> tuple[Path, Path, Path]:
+    require(artifact_dir.is_dir() and not artifact_dir.is_symlink(), f"semantic artifact directory is missing or symlinked: {artifact_dir}")
+    artifact_root = artifact_dir.resolve()
+    require(routing_artifact.is_file() and not routing_artifact.is_symlink(), f"routing artifact is missing or symlinked: {routing_artifact}")
+    routing_path = routing_artifact.resolve()
+    require(routing_path.parent == artifact_root, f"routing artifact must be a direct child of the semantic artifact directory: {routing_artifact}")
+    manifest_path = artifact_root / "semantic-run-manifest.json"
+    require(not manifest_path.is_symlink(), f"semantic run manifest is symlinked: {manifest_path}")
+    return artifact_root, routing_path, manifest_path
+
+
+def write_json_atomic(path: Path, payload: Any) -> None:
+    require(path.parent.is_dir() and not path.parent.is_symlink(), f"atomic JSON parent is missing or symlinked: {path.parent}")
+    require(not path.is_symlink(), f"atomic JSON target is symlinked: {path}")
+    temporary_path: Path | None = None
+    try:
+        with tempfile.NamedTemporaryFile("w", dir=path.parent, prefix=f".{path.name}.", suffix=".tmp", delete=False) as handle:
+            temporary_path = Path(handle.name)
+            json.dump(payload, handle, indent=2, sort_keys=True)
+            handle.write("\n")
+            handle.flush()
+            os.fsync(handle.fileno())
+        os.replace(temporary_path, path)
+        temporary_path = None
+        directory_fd = os.open(path.parent, os.O_RDONLY)
+        try:
+            os.fsync(directory_fd)
+        finally:
+            os.close(directory_fd)
+    finally:
+        if temporary_path is not None and temporary_path.exists() and not temporary_path.is_symlink():
+            temporary_path.unlink()
+
+
+def prepare_semantic_run(
+    artifact_dir: Path,
+    routing_artifact: Path,
+    snapshot: dict[str, Any],
+    names: list[str],
+    resume: bool,
+    refresh: bool,
+) -> tuple[Path, Path, Path, list[str]]:
     require(not (resume and refresh), "--resume and --refresh are mutually exclusive")
-    report = offline_report()
-    require(not report["failures"], "offline quality gate must pass before full live evaluation")
-    names = sorted(skill_paths())
-    for skill in names:
-        load_routing_artifact(routing_artifact, skill)
-    artifact_dir.mkdir(parents=True, exist_ok=True)
-    manifest_path = artifact_dir / "semantic-run-manifest.json"
-    snapshot = {
-        "schema_version": 1,
-        "model": EVALUATOR_MODEL,
-        "reasoning_effort": EVALUATOR_REASONING_EFFORT,
-        "codex_version": codex_version(),
-        "routing_artifact_sha256": sha256_file(routing_artifact),
-        "semantic_digests": {skill: semantic_digest(skill) for skill in names},
-    }
+    artifact_root, routing_path, manifest_path = validate_full_live_paths(artifact_dir, routing_artifact)
     if refresh:
         require(manifest_path.is_file(), f"semantic run manifest is missing for --refresh: {manifest_path}")
         json.loads(manifest_path.read_text())
-        manifest_path.write_text(json.dumps(snapshot, indent=2, sort_keys=True) + "\n")
+        write_json_atomic(manifest_path, snapshot)
     elif manifest_path.exists():
         require(resume, f"semantic run manifest already exists without --resume: {manifest_path}")
         require(json.loads(manifest_path.read_text()) == snapshot, "semantic run manifest does not match the current immutable source snapshot")
     else:
         require(not resume, f"semantic run manifest is missing for --resume: {manifest_path}")
-        manifest_path.write_text(json.dumps(snapshot, indent=2, sort_keys=True) + "\n")
+        write_json_atomic(manifest_path, snapshot)
     pending: list[str] = []
     for skill in names:
-        target = artifact_dir / f"quality-{skill}.json"
+        target = artifact_root / f"quality-{skill}.json"
         if refresh:
             pending.append(skill)
             continue
@@ -1412,13 +1438,60 @@ def full_live(artifact_dir: Path, routing_artifact: Path, jobs: int, resume: boo
             pending.append(skill)
             continue
         require(resume, f"semantic artifact already exists without --resume: {target}")
-        validate_semantic_artifact(skill, artifact_dir)
+        validate_semantic_artifact(skill, artifact_root)
         print(f"semantic quality {skill}: resume accepted digest-valid artifact")
+    return artifact_root, routing_path, manifest_path, pending
+
+
+def finalize_semantic_run(
+    artifact_dir: Path,
+    routing_artifact: Path,
+    manifest_path: Path,
+    snapshot: dict[str, Any],
+    names: list[str],
+    failures: list[str],
+    semantic_digest_reader: Any = semantic_digest,
+    certify_runner: Any = None,
+) -> None:
+    artifact_root, routing_path, expected_manifest = validate_full_live_paths(artifact_dir, routing_artifact)
+    require(manifest_path.resolve() == expected_manifest and not manifest_path.is_symlink(), "semantic run manifest path changed during evaluation")
+    require(json.loads(manifest_path.read_text()) == snapshot, "semantic run manifest changed during evaluation")
+    require(sha256_file(routing_path) == snapshot["routing_artifact_sha256"], "routing artifact changed during semantic evaluation")
+    require(
+        all(semantic_digest_reader(skill) == snapshot["semantic_digests"][skill] for skill in names),
+        "semantic source changed during full live evaluation",
+    )
+    for failure in failures:
+        print(f"FAIL: {failure}")
+    if failures:
+        raise SystemExit(1)
+    (certify_runner or certify)(artifact_root, None)
+
+
+def full_live(artifact_dir: Path, routing_artifact: Path, jobs: int, resume: bool, refresh: bool) -> None:
+    require(1 <= jobs <= 8, "semantic jobs must remain between 1 and 8")
+    report = offline_report()
+    require(not report["failures"], "offline quality gate must pass before full live evaluation")
+    names = sorted(skill_paths())
+    artifact_root, routing_path, _ = validate_full_live_paths(artifact_dir, routing_artifact)
+    for skill in names:
+        load_routing_artifact(routing_path, skill)
+    snapshot = {
+        "schema_version": 1,
+        "model": EVALUATOR_MODEL,
+        "reasoning_effort": EVALUATOR_REASONING_EFFORT,
+        "codex_version": codex_version(),
+        "routing_artifact_sha256": sha256_file(routing_path),
+        "semantic_digests": {skill: semantic_digest(skill) for skill in names},
+    }
+    artifact_root, routing_path, manifest_path, pending = prepare_semantic_run(
+        artifact_root, routing_path, snapshot, names, resume, refresh
+    )
 
     def run_skill(skill: str) -> tuple[str, int, str]:
         command = [
             sys.executable, str(Path(__file__).resolve()), "semantic-live", "--skill", skill,
-            "--artifact-dir", str(artifact_dir), "--routing-artifact", str(routing_artifact),
+            "--artifact-dir", str(artifact_root), "--routing-artifact", str(routing_path),
             "--expected-semantic-digest", snapshot["semantic_digests"][skill],
         ]
         completed = managed_run(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
@@ -1433,16 +1506,7 @@ def full_live(artifact_dir: Path, routing_artifact: Path, jobs: int, resume: boo
                 print(output)
             if returncode:
                 failures.append(f"semantic evaluator failed for {skill} with exit {returncode}")
-    require(json.loads(manifest_path.read_text()) == snapshot, "semantic run manifest changed during evaluation")
-    require(
-        all(semantic_digest(skill) == snapshot["semantic_digests"][skill] for skill in names),
-        "semantic source changed during full live evaluation",
-    )
-    for failure in failures:
-        print(f"FAIL: {failure}")
-    if failures:
-        raise SystemExit(1)
-    certify(artifact_dir, None)
+    finalize_semantic_run(artifact_root, routing_path, manifest_path, snapshot, names, failures)
 
 
 def self_test() -> None:
@@ -1611,6 +1675,20 @@ def self_test() -> None:
             prompt = "dependent-changed" if index == 1 else f"dependent-{index}"
             run_codex_cached(prompt, None, dependent_output, raw_dir / f"dependent-{index}.stderr", artifact_root, raw_dir, fake_runner)
         require(len(calls) == dependent_calls_before + 4, "selective semantic refresh did not reuse unchanged dependent calls")
+        failure_output = raw_dir / "failure.judge.json"
+        failure_payload = {
+            "case_id": "failure-case",
+            "assertions": [{"id": "failure", "status": "fail", "evidence": "counterexample"}],
+            "verdict": "fail",
+        }
+        failure_output.write_text(json.dumps(failure_payload))
+        write_invocation_receipt("failure-prompt", JUDGE_SCHEMA, failure_output)
+        calls_before_failure_reuse = len(calls)
+        require(
+            run_codex_cached("failure-prompt", JUDGE_SCHEMA, failure_output, raw_dir / "failure.stderr", artifact_root, raw_dir, fake_runner) == "reused"
+            and len(calls) == calls_before_failure_reuse,
+            "receipt-valid semantic failure was rerun instead of preserved",
+        )
         require(calls[:2] == ["prompt-a", "prompt-b"], "semantic evidence cache reran an unchanged prompt or reused a stale prompt")
     semantic_digest_source = inspect.getsource(semantic_evaluator_digest)
     require(
@@ -1620,6 +1698,118 @@ def self_test() -> None:
         )),
         "semantic evaluator digest omits an evidence acceptance or identity helper",
     )
+    with tempfile.TemporaryDirectory(prefix="semantic-refresh-self-test-") as directory:
+        artifact_root = Path(directory)
+        routing_path = artifact_root / "routing-all.json"
+        routing_path.write_text('{"routing":"stable"}\n')
+        manifest_path = artifact_root / "semantic-run-manifest.json"
+        write_json_atomic(manifest_path, {"old": True})
+        names = ["skill-a", "skill-b"]
+        snapshot = {
+            "schema_version": 1,
+            "model": EVALUATOR_MODEL,
+            "reasoning_effort": EVALUATOR_REASONING_EFFORT,
+            "codex_version": codex_version(),
+            "routing_artifact_sha256": sha256_file(routing_path),
+            "semantic_digests": {name: f"digest-{name}" for name in names},
+        }
+        for name in names:
+            (artifact_root / f"quality-{name}.json").write_text('{"stale":true}\n')
+        _, _, prepared_manifest, pending = prepare_semantic_run(
+            artifact_root, routing_path, snapshot, names, resume=False, refresh=True
+        )
+        require(pending == names and json.loads(prepared_manifest.read_text()) == snapshot, "refresh did not schedule every skill under the new snapshot")
+        require(prepared_manifest.is_file() and not prepared_manifest.is_symlink(), "refresh manifest is not a regular local file")
+        try:
+            prepare_semantic_run(artifact_root, routing_path, snapshot, names, resume=True, refresh=True)
+        except ContractError:
+            pass
+        else:
+            raise AssertionError("semantic refresh accepted simultaneous --resume")
+
+        missing_root = artifact_root / "missing"
+        missing_root.mkdir()
+        missing_routing = missing_root / "routing-all.json"
+        missing_routing.write_text("{}")
+        try:
+            prepare_semantic_run(missing_root, missing_routing, snapshot, names, resume=False, refresh=True)
+        except ContractError:
+            pass
+        else:
+            raise AssertionError("semantic refresh accepted a missing manifest")
+
+        malformed_root = artifact_root / "malformed"
+        malformed_root.mkdir()
+        malformed_routing = malformed_root / "routing-all.json"
+        malformed_routing.write_text("{}")
+        (malformed_root / "semantic-run-manifest.json").write_text("{")
+        try:
+            prepare_semantic_run(malformed_root, malformed_routing, snapshot, names, resume=False, refresh=True)
+        except json.JSONDecodeError:
+            pass
+        else:
+            raise AssertionError("semantic refresh accepted a malformed manifest")
+
+        symlink_root = artifact_root / "symlink"
+        symlink_root.mkdir()
+        symlink_routing = symlink_root / "routing-all.json"
+        symlink_routing.write_text("{}")
+        external_manifest = artifact_root / "external-manifest.json"
+        external_manifest.write_text('{"external":true}\n')
+        symlink_manifest = symlink_root / "semantic-run-manifest.json"
+        symlink_manifest.symlink_to(external_manifest)
+        try:
+            prepare_semantic_run(symlink_root, symlink_routing, snapshot, names, resume=False, refresh=True)
+        except ContractError:
+            pass
+        else:
+            raise AssertionError("semantic refresh accepted a symlinked manifest")
+        require(json.loads(external_manifest.read_text()) == {"external": True}, "semantic refresh modified an external manifest target")
+
+        certificate_calls: list[Path] = []
+        digest_reader = lambda name: snapshot["semantic_digests"][name]
+        try:
+            finalize_semantic_run(
+                artifact_root, routing_path, prepared_manifest, snapshot, names, ["child failed"],
+                semantic_digest_reader=digest_reader,
+                certify_runner=lambda root, selected: certificate_calls.append(root),
+            )
+        except SystemExit:
+            pass
+        else:
+            raise AssertionError("semantic refresh certified after a child failure")
+        require(not certificate_calls, "semantic refresh invoked certification after a child failure")
+
+        routing_path.write_text('{"routing":"drifted"}\n')
+        try:
+            finalize_semantic_run(
+                artifact_root, routing_path, prepared_manifest, snapshot, names, [],
+                semantic_digest_reader=digest_reader,
+                certify_runner=lambda root, selected: certificate_calls.append(root),
+            )
+        except ContractError:
+            pass
+        else:
+            raise AssertionError("semantic refresh accepted routing drift")
+        routing_path.write_text('{"routing":"stable"}\n')
+        write_json_atomic(prepared_manifest, {"changed": True})
+        try:
+            finalize_semantic_run(
+                artifact_root, routing_path, prepared_manifest, snapshot, names, [],
+                semantic_digest_reader=digest_reader,
+                certify_runner=lambda root, selected: certificate_calls.append(root),
+            )
+        except ContractError:
+            pass
+        else:
+            raise AssertionError("semantic refresh accepted manifest drift")
+        write_json_atomic(prepared_manifest, snapshot)
+        finalize_semantic_run(
+            artifact_root, routing_path, prepared_manifest, snapshot, names, [],
+            semantic_digest_reader=digest_reader,
+            certify_runner=lambda root, selected: certificate_calls.append(root),
+        )
+        require(certificate_calls == [artifact_root.resolve()], "semantic refresh did not certify exactly once after all final checks")
     require(GENERIC_DESCRIPTION.search("Use when the task explicitly requires widgets; do not load it for adjacent work.") is not None, "generic description detector")
     require(routing_digest() == routing_digest(), "full routing digest must be deterministic")
     require(
