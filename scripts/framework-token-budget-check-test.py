@@ -22,6 +22,10 @@ def record(n=1, response_id="r1"):
         "turn_id": f"t{n}", "usage": usage(), "turn_token_usage": usage(), "thread_token_usage": usage(n)}}
 
 
+def context(model="gpt-5.6-sol", effort="medium"):
+    return {"type": "turn_context", "payload": {"model": model, "effort": effort}}
+
+
 class Diagnostics(unittest.TestCase):
     def analyze(self, entries, **kwargs):
         with tempfile.TemporaryDirectory() as directory:
@@ -128,22 +132,56 @@ class Diagnostics(unittest.TestCase):
         root_response["timestamp"] = "2026-09-18T20:00:00Z"
         child_response = record(response_id="child-response")
         child_response["timestamp"] = "2026-09-18T20:01:00Z"
-        root = [{"type": "session_meta", "payload": {"id": "root-id", "source": "cli"}},
+        root = [{"type": "session_meta", "payload": {"id": "root-id", "source": "cli"}}, context(),
                 root_response]
         child = [{"type": "session_meta", "payload": {"id": "child-id", "source": {
             "subagent": {"thread_spawn": {"parent_thread_id": "root-id", "agent_type": "worker"}}}}},
-                 child_response]
+                 context("gpt-5.6-luna", "low"), child_response]
         report, errors = self.analyze_family([root, child], profile="certification")
         self.assertFalse(errors)
         self.assertTrue(report["provenanceValid"])
         self.assertEqual(report["sessionsByProfile"], {"root": 1, "worker": 1})
         self.assertEqual(report["providerUsage"]["input_tokens"], 20)
         self.assertEqual(report["responses"], 2)
+        self.assertEqual(report["sessionsByModelEffort"], {
+            "gpt-5.6-luna/low": 1, "gpt-5.6-sol/medium": 1})
 
         child[-1] = record(response_id="root-response")
         report, errors = self.analyze_family([root, child])
         self.assertFalse(report["provenanceValid"])
         self.assertTrue(any("double counting" in error for error in errors))
+
+    def test_model_effort_family_is_measured_and_missing_metadata_blocks_certification(self):
+        models = [
+            ("gpt-6-astra", "high", "root", None),
+            ("gpt-5.6-luna", "low", "worker", "root"),
+            ("gpt-5.6-terra", "medium", "tester", "root"),
+            ("gpt-5.6-sol", "high", "reviewer", "root"),
+        ]
+        family = []
+        for index, (model, effort, profile, parent) in enumerate(models):
+            session_id = "root" if parent is None else f"child-{index}"
+            source = "cli" if parent is None else {"subagent": {"thread_spawn": {
+                "parent_thread_id": parent, "agent_type": profile}}}
+            response = record(index + 1, f"response-{index}")
+            response["timestamp"] = f"2026-09-18T20:0{index}:00Z"
+            family.append([
+                {"type": "session_meta", "payload": {"id": session_id, "source": source}},
+                context(model, effort), response])
+        report, errors = self.analyze_family(family, profile="certification")
+        self.assertFalse(errors)
+        self.assertTrue(report["modelEffortTelemetryComplete"])
+        self.assertEqual(report["sessionsByModelEffort"], {
+            "gpt-5.6-luna/low": 1,
+            "gpt-5.6-sol/high": 1,
+            "gpt-5.6-terra/medium": 1,
+            "gpt-6-astra/high": 1,
+        })
+
+        family[1].pop(1)
+        report, errors = self.analyze_family(family, profile="certification")
+        self.assertFalse(report["modelEffortTelemetryComplete"])
+        self.assertTrue(any("model and effort metadata" in error for error in errors))
 
     def test_certification_rejects_unavailable_response_rate(self):
         report = {name: 0 for name in budget.CERTIFICATION_LIMITS}

@@ -3,8 +3,8 @@ name: e2e-test
 description: Implement browser end-to-end tests for critical user-visible web flows using the repository's installed runner, authentication, data, and server lifecycle conventions. Use when executable browser coverage is requested.
 metadata:
   owner: codex-framework
-  reviewed: "2026-09-09"
-  version: 2.1
+  reviewed: "2026-09-21"
+  version: 2.2
   argument-hint: "critical flows, browsers/viewports, auth roles, test environment/data APIs, CI runner"
 ---
 
@@ -33,6 +33,6 @@ Use controlled fakes for error/latency cases and approved isolated real services
 
 ## Verification and output
 
-Run focused tests, then the repository's affected browser/shard matrix and relevant type/lint/build checks. Prove parallel isolation, auth-state separation, setup/cleanup recovery and task-owned server/process/tab cleanup. Headless execution proves regression automation but does not replace the visible in-app Browser acceptance loop; retain screenshots only when they prove a visual result.
+Before implementation, build a coverage matrix for every affected ticket: requested behavior → role/tenant → journey → automated scenario → visible Browser scene → failure path → cleanup. Run focused tests, then the repository's affected browser/shard matrix and relevant type/lint/build checks. Prove parallel isolation, auth-state separation, setup/cleanup recovery and task-owned server/process/tab cleanup. Headless execution proves regression automation but does not replace one visible in-app Browser acceptance row for every affected journey; a route-level smoke test cannot stand in for unexercised controls. Retain screenshots only when they prove a visual result.
 
 Report flows, environments/browsers actually run, credential/data isolation, readiness and cleanup model, commands/results/artifacts, flakes, and untested provider or production boundaries. Do not claim completion from configuration or a retried green run alone.

@@ -356,7 +356,7 @@ falsification_review_contract() {
     && grep -q 'report the independence contract as invalid instead of certifying' "$ROOT/.codex/agents/reviewer.toml" \
     && grep -q 'Every actionable finding must include severity, concrete evidence' "$ROOT/.codex/agents/reviewer.toml" \
     && grep -q 'no inherited conversation turns or prior-agent history' "$ROOT/templates/global/AGENTS.md" \
-    && grep -q 'do not create recurring debate rounds' "$ROOT/docs/runtime-efficiency.md" \
+    && grep -q 'no exchange repeats without new evidence' "$ROOT/docs/runtime-efficiency.md" \
     && python3 "$ROOT/scripts/framework-review-context-check.py"
 }
 
@@ -377,8 +377,8 @@ interactive_development_contract() {
 
 native_feature_adoption_contract() {
   local instructions="$ROOT/templates/global/AGENTS.md"
-  grep -Eqi 'Scheduled tasks/automations' "$instructions" \
-    && grep -Eqi 'recurring execution.*,? monitoring|monitoring.*,? reminders' "$instructions" \
+  grep -Eqi 'native automations for recurring work' "$instructions" \
+    && grep -Eqi 'heartbeats notify only on actionable change' "$instructions" \
     && grep -Eqi 'task names.*,? pins.*,? sections.*,? handoff.*,? forks' "$instructions" \
     && python3 "$ROOT/scripts/framework-task-topology-check.py" "$instructions" \
     && grep -Eqi 'GitHub integration.*codex review|codex review.*GitHub integration' "$instructions" \
@@ -389,8 +389,8 @@ native_feature_adoption_contract() {
 runtime_efficiency_contract() {
   local instructions="$ROOT/templates/global/AGENTS.md"
   grep -Fq '## Mandatory delivery pipeline' "$instructions" \
-    && grep -Fq 'continue waiting on the same live handle' "$instructions" \
-    && grep -Fq 'Reuse a check while its code SHA, command/config, environment' "$instructions" \
+    && grep -Fq 'attached waits across timeouts' "$instructions" \
+    && grep -Fq 'Reuse checks while code SHA, command/config, environment' "$instructions" \
     && grep -Fq 'never authorized fixes for later CI failures' "$instructions" \
     && test -s "$ROOT/docs/runtime-efficiency.md" \
     && python3 -m json.tool "$ROOT/evals/runtime-efficiency-output.schema.json" >/dev/null
@@ -399,12 +399,12 @@ runtime_efficiency_contract() {
 mandatory_delivery_pipeline_contract() {
   local instructions="$ROOT/templates/global/AGENTS.md"
   grep -q '^## Mandatory delivery pipeline$' "$instructions" \
-    && grep -Eqi 'before planning or coding.*,? prove.*CLI/API/connector' "$instructions" \
-    && grep -Eqi 'before mutation.*,? spawn a native tester' "$instructions" \
-    && grep -Fqi 'prior findings and root checks never substitute' "$instructions" \
+    && grep -Eqi 'Preflight.*prove.*CLI/API/connector' "$instructions" \
+    && grep -Eqi 'Before mutation.*,? use a native tester' "$instructions" \
+    && grep -Fqi 'prior findings/root checks do not substitute' "$instructions" \
     && grep -q 'visible in-app Browser' "$instructions" \
-    && grep -q 'delivery stops before PR' "$instructions" \
-    && grep -q 'create or update a PR only when every gate is green' "$instructions" \
+    && grep -q 'stops before PR' "$instructions" \
+    && grep -q 'reach local-ready before push' "$instructions" \
     && grep -q 'Provider control planes use the opposite route' "$ROOT/docs/interactive-development.md" \
     && grep -q '^## Ordered delivery gates$' "$ROOT/docs/runtime-efficiency.md"
 }
@@ -412,11 +412,11 @@ mandatory_delivery_pipeline_contract() {
 project_environment_authority_contract() {
   local contract_root="${1:-$ROOT}"
   local instructions="$contract_root/templates/global/AGENTS.md"
-  grep -Eqi 'compact project contract.*repository shape.*manifest/lockfile-owned stack.*authoritative commands.*environment map.*release or mutation boundaries' "$instructions" \
-      && grep -Eqi 'exact target environment.*,? account or project.*,? authority source.*,? actor or credential class.*,? mutation boundary.*,? verification path.*repository and provider-visible evidence' "$instructions" \
-      && grep -Fqi 'A failed local readiness or status check proves only that the local path is unavailable' "$instructions" \
-      && grep -Eqi 'does not authorize substitute infrastructure.*,? a different environment.*,? or a weaker verification path' "$instructions" \
-      && grep -Eqi 'target authority remains ambiguous.*,? stop before mutation or substitute creation' "$instructions" \
+  grep -Eqi 'compact contract.*repo shape.*stack manifests/locks.*,? commands.*,? environment map.*release/mutation boundaries' "$instructions" \
+      && grep -Eqi 'target environment/account/project.*,? authority.*,? actor/credential class.*,? boundary.*provider-visible verification' "$instructions" \
+      && grep -Fqi 'A failed local check does not authorize substitute infrastructure' "$instructions" \
+      && grep -Eqi 'substitute infrastructure.*,? environment or weaker proof' "$instructions" \
+      && grep -Eqi 'ambiguity blocks mutation' "$instructions" \
       || return 1
   if grep -Erqi 'failed local (readiness|status)( check| command)?.*(authorizes|allows|permits).*(substitute infrastructure|different environment|weaker verification)' "$contract_root/AGENTS.md" "$contract_root/templates"; then return 1; fi
   grep -Fqi 'A failed local readiness or status command is scoped evidence about that local path only' "$contract_root/README.md" \
@@ -447,12 +447,12 @@ project_environment_authority_omission_counterexamples() {
   cp "$ROOT/templates/global/AGENTS.md" "$fixture_root/templates/global/AGENTS.md"
   cp "$ROOT/templates/project/AGENTS.md" "$fixture_root/templates/project/AGENTS.md"
   for required in \
-    'repository shape' \
-    'release or mutation boundaries' \
-    'actor or credential class' \
-    'mutation boundary' \
-    'verification path' \
-    'repository and provider-visible evidence'; do
+    'repo shape' \
+    'release/mutation boundaries' \
+    'actor/credential class' \
+    'target environment/account/project' \
+    'provider-visible verification' \
+    'ambiguity blocks mutation'; do
     cp "$ROOT/AGENTS.md" "$fixture_root/AGENTS.md"
     sed "s|$required||g" "$fixture_root/templates/global/AGENTS.md" > "$fixture_root/templates/global/AGENTS.next"
     mv "$fixture_root/templates/global/AGENTS.next" "$fixture_root/templates/global/AGENTS.md"
@@ -656,7 +656,7 @@ native_capability_currency_contract() {
 token_hygiene_contract() {
   # Byte budgets have one owner: framework-token-budget-check.py.
   grep -q 'Generic cross-repository behavior.*owned once by the global working agreement' "$ROOT/AGENTS.md" \
-    && grep -q 'global working agreement installed by the Codex framework owns generic' "$ROOT/templates/project/AGENTS.md" \
+    && grep -q 'global agreement owns generic behavior' "$ROOT/templates/project/AGENTS.md" \
     && ! grep -Eq '^## (Project and environment context|Failure visibility and fallback policy|Capability discovery and tool selection|Native task ergonomics and automation|Interactive development)$' "$ROOT/AGENTS.md" "$ROOT/templates/project/AGENTS.md"
 }
 
@@ -676,12 +676,12 @@ check 'behavioral fallback policy rejects required-field omissions' fallback_pol
 check 'capability discovery uses an existing local CLI before a plugin gate' capability_discovery_contract
 check 'capability discovery rejects premature plugin-install counterexamples' capability_discovery_counterexamples
 check 'capability discovery rejects required-field omissions' capability_discovery_omission_counterexamples
-check 'service-operation live cases cover CLI truth, target conflicts, API escalation, and visual Browser use' bash -c "python3 -m json.tool '$ROOT/evals/service-operation-output.schema.json' >/dev/null && [ \"\$(wc -l < '$ROOT/evals/service-operation-cases.tsv' | tr -d ' ')\" -eq 4 ] && rg -q '^sentry_empty_conflict[[:space:]]+connector_or_api[[:space:]]+false[[:space:]]+false' '$ROOT/evals/service-operation-cases.tsv' && rg -q '^supabase_link_conflict[[:space:]]+stop[[:space:]]+false[[:space:]]+false' '$ROOT/evals/service-operation-cases.tsv' && rg -q '^exact_cli_json[[:space:]]+cli[[:space:]]+false[[:space:]]+false' '$ROOT/evals/service-operation-cases.tsv' && rg -q '^provider_visual_ui[[:space:]]+browser[[:space:]]+false[[:space:]]+true' '$ROOT/evals/service-operation-cases.tsv'"
+check 'service-operation live cases cover CLI truth, target conflicts, API escalation, and visual Browser use' bash -c "python3 -m json.tool '$ROOT/evals/service-operation-output.schema.json' >/dev/null && [ \"\$(wc -l < '$ROOT/evals/service-operation-cases.tsv' | tr -d ' ')\" -eq 5 ] && rg -q '^sentry_empty_conflict[[:space:]]+connector_or_api[[:space:]]+false[[:space:]]+false' '$ROOT/evals/service-operation-cases.tsv' && rg -q '^sentry_truncated_warning[[:space:]]+connector_or_api[[:space:]]+false[[:space:]]+false' '$ROOT/evals/service-operation-cases.tsv' && rg -q '^supabase_link_conflict[[:space:]]+stop[[:space:]]+false[[:space:]]+false' '$ROOT/evals/service-operation-cases.tsv' && rg -q '^exact_cli_json[[:space:]]+cli[[:space:]]+false[[:space:]]+false' '$ROOT/evals/service-operation-cases.tsv' && rg -q '^provider_visual_ui[[:space:]]+browser[[:space:]]+false[[:space:]]+true' '$ROOT/evals/service-operation-cases.tsv'"
 check 'framework maintenance automatically checks current native capability deltas' native_capability_currency_contract
 check 'generic policy is single-owned without duplicate startup payloads' token_hygiene_contract
 check 'token budgets preserve native optimization defaults' python3 "$ROOT/scripts/framework-token-budget-check.py" --self-test
 check 'global guidance template exists' test -s "$ROOT/templates/global/AGENTS.md"
-check 'global guidance prefers native capabilities' grep -q 'Prefer native Codex capabilities' "$ROOT/templates/global/AGENTS.md"
+check 'global guidance prefers native capabilities' grep -q 'Prefer native Codex' "$ROOT/templates/global/AGENTS.md"
 check 'native config parses strictly' bash -c "codex app-server --strict-config --stdio </dev/null >/dev/null 2>&1"
 check 'strict native config rejects an unknown agent key' bash -c "! codex app-server --strict-config -c agents.definitely_not_real=1 --stdio </dev/null >/dev/null 2>&1"
 check 'project config is present and not ignored from source control' project_config_is_source_owned

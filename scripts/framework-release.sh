@@ -107,6 +107,10 @@ if [ -z "$DELIVERY_DIR" ]; then
     --case pending-evidence --case merge-cleanup --case false-positive --case ci-repair \
     --artifact-dir "$DELIVERY_DIR" --source-root "$ROOT" --timeout 600 > "$DELIVERY_DIR/live.log"
 fi
+# Keep the minimum raw synthetic traces needed for clean-checkout verification.
+# The retained directory is source-digest-excluded but receipt-digest-bound.
+python3 "$ROOT/scripts/framework-release-evidence.py" retain-delivery --source "$DELIVERY_DIR" >/dev/null
+DELIVERY_DIR="$ROOT/docs/framework-release-delivery-evidence"
 run_gate nativeDeliveryBehavior python3 scripts/framework-release-evidence.py validate-delivery \
   --summary "$DELIVERY_DIR/summary.json" --emit-summary
 

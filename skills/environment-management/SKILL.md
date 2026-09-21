@@ -3,8 +3,8 @@ name: environment-management
 description: Implement environment configuration, secrets, previews, promotion, parity, isolation, and owned cleanup across local and hosted environments. Use when environment-management repository or explicitly authorized external changes are requested.
 metadata:
   owner: codex-framework
-  reviewed: "2026-09-09"
-  version: 2.2
+  reviewed: "2026-09-21"
+  version: 2.3
   argument-hint: "exact environments/accounts, config and secret systems, preview ownership, promotion/cleanup requirements"
 ---
 
@@ -19,6 +19,7 @@ Preserve installed tools and verify capabilities from local CLI/schema or matchi
 ## Configuration, secrets and previews
 
 - Keep one typed configuration contract with environment-specific values and validation; do not commit secrets or silently default security-critical values.
+- For worktrees, keep a metadata-only manifest of named required ignored files. For each, declare an authorized locator, `copy|symlink|regenerate`, permissions, identity/presence check and cleanup owner. Never bulk-copy a checkout, infer missing credentials, expose values through model/tool output, or treat a symlink as universally safe.
 - Scope identity, secrets, data, quotas and external endpoints per environment. Production-derived data requires approved minimization/transformation/retention.
 - Secret rotation must follow the actual provider/consumer capability. Dual-version acceptance is safe only while both credentials are valid and intended; never fall back to a revoked or compromised credential. Coordinate issuance, consumer rollout, verification, revocation and recovery with concurrency and audit evidence.
 - Preview resources need an unforgeable run/PR owner, exact inventory and bounded cost/lifetime derived from policy. Cleanup deletes only recorded owned resources and handles forks, renamed/closed PRs, partial provisioning and retry. Never delete by broad name prefix alone.
@@ -28,4 +29,4 @@ Design rollback across code, config, secret, database/data, queue/event and exte
 
 ## Verification and output
 
-Validate schemas and secret references without exposing values. Add executable compatibility cases that bind an immutable artifact identity to the exact configuration/schema version, accept a supported pairing, and reject an incompatible or stale pairing. These compatibility tests remain required even when promotion itself is out of scope. Prove secret non-exposure with repository, generated-config, build-artifact, log/diagnostic, and retained-output scanning/redaction checks that use safe test markers rather than authentic secrets. Also test isolation, revoked-secret behavior, rotation partial failure, preview collision/cleanup, permission denial, restore and rollback. Where external actions are authorized, read back exact resource state. Report targets/ownership, configuration and secret provenance, changes, approvals, cleanup inventory, checks/results and residual provider/data risks.
+Validate schemas and secret references without exposing values. Add executable compatibility cases that bind an immutable artifact identity to the exact configuration/schema version, accept a supported pairing, and reject an incompatible or stale pairing. These compatibility tests remain required even when promotion itself is out of scope. Prove secret non-exposure with repository, generated-config, build-artifact, log/diagnostic, and retained-output scanning/redaction checks that use safe test markers rather than authentic secrets. Also test isolation, revoked-secret behavior, rotation partial failure, worktree materialization, preview collision/cleanup, permission denial, restore and rollback. After merge, remove only clean task-owned worktrees and branches; preserve dirty, unmerged or foreign writers and report them. Where external actions are authorized, read back exact resource state. Report targets/ownership, configuration and secret provenance, changes, approvals, cleanup inventory, checks/results and residual provider/data risks.

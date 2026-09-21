@@ -3,14 +3,16 @@ name: devops-ci
 description: Design and implement repository CI/CD, containers, build artifacts, credentials, caches, concurrency, deployment gates, and cancellation recovery. Use when CI/CD repository changes are requested.
 metadata:
   owner: codex-framework
-  reviewed: "2026-07-27"
-  version: 2.0
+  reviewed: "2026-09-21"
+  version: 2.2
   argument-hint: "CI provider, repository pins, events/trust model, build/deploy targets, artifacts, approvals and rollback"
 ---
 
 Implement CI/CD for $ARGUMENTS.
 
 Read instructions, manifests/lockfiles/runtime pins, existing workflows/actions/images, branch rules, artifact/deploy model, environments/secrets, runner trust, caches and authoritative commands. Preserve repository commands and supported runtime matrix. Resolve action/image/tool versions dynamically from installed policy and official sources; pin by immutable revision/digest where supply-chain policy requires it.
+
+Derive required hosted checks from workflows and branch/merge-queue policy, and map each to its local equivalent. Contract, code, fixtures, environment declarations and tests change together. Reach local-ready before push, while honestly leaving PR-triggered or hosted-only checks pending. Immediately before merge, fetch the target and apply the project's declared rebase/merge/queue strategy; rerun every invalidated local gate. Bind local and hosted checks to one tested candidate SHA, then require provider-verified candidate-to-final-commit or artifact mapping, preserved content identity, and ancestry/readback; rebase, squash and merge queues may legitimately produce a different final SHA. Never treat auto-merge configuration or a successful request as check completion.
 
 Model each trigger's trust: internal push, trusted PR, fork PR, scheduled/manual and reusable workflow. Untrusted code must not receive write tokens, OIDC cloud roles, environment/registry secrets, privileged runners, trusted cache write or artifact promotion. OIDC still requires exact subject/audience/repository/environment claims and least-privilege cloud policy.
 

@@ -63,3 +63,11 @@ The capability checker accepts the official `rust-v*` and `python-v*` stable rel
 ## 2026-09-19 source refresh
 
 The official changelog's normalized main content changed while its latest dated entry remained `2026-09-18`; the manual and `rust-v0.155.1` stable release remained unchanged. The refreshed fingerprint records that reviewed source change without inventing a new capability or runtime upgrade. GitHub's first 100 release records no longer reached the `rust-v0.149.0` baseline because of subsequent preview volume, so the live checker now paginates until both interval boundaries are present and self-tests that preview-heavy histories cannot truncate stable coverage.
+
+## 2026-09-21 framework audit delta
+
+The installed and latest stable CLI remain `0.155.1`, and the official subagent contract supports per-spawn model and reasoning overrides while full-history spawns inherit their parent. The framework keeps those native controls: Luna/Terra/Sol/Astra routing is an evaluation candidate, not an installed router, profile pin or fallback ladder. Promotion requires the paired quality-and-usage protocol in `docs/model-routing-evaluation.md` and a separately challenged change.
+
+Debate evidence now uses a versioned per-finding native-family receipt. Delivery receipt versions 1 and 2 are intentionally stale; release certification requires new raw root/child traces and receipt version 3 with source, contract, config and environment bindings. Ticket journeys, CI parity, target-branch freshness, ignored runtime-file handling, Sentry API escalation, board readback and clean worktree cleanup are explicit delivery boundaries rather than browser or shell wrappers.
+
+Documentation hygiene found no `CLAUDE.md` in the framework and no generator for one; `AGENTS.md` remains the shared native instruction surface. The dated framework/skill audit files are retained as provenance because the native capability ledger still cites their unique historical evidence. Deleting them without migrating those citations would weaken the ledger, so no cosmetic bulk deletion was performed. No custom task queue, model router, Browser wrapper, cache, compaction layer, credential copier or retry daemon was added.

@@ -1,6 +1,6 @@
 {
   "schemaVersion": 3,
-  "reviewedAt": "2026-09-19T05:31:32+00:00",
+  "reviewedAt": "2026-09-21T07:42:01+00:00",
   "codexVersion": "codex-cli 0.155.1",
   "baselineReleaseTag": "rust-v0.149.0",
   "latestReleaseTag": "rust-v0.155.1",
@@ -14,7 +14,7 @@
     {
       "kind": "changelog",
       "url": "https://learn.chatgpt.com/docs/changelog",
-      "sha256": "9d6079651263648de9bf010ae10a0cd7dbc7543d99b2c0572fec252ac92c7040"
+      "sha256": "8ab2ee4e439ea3dbd856a4f2e840c3e0fb264bc82ea8a05e2e3938809a04940d"
     },
     {
       "kind": "release",
@@ -328,8 +328,8 @@
       "id": "native-agent-lifecycle",
       "nativeFeature": "Native subagent lifecycle, model catalog, concurrency, and steering",
       "decision": "removed",
-      "localOverlap": "Custom depth routing, forced routine model effort, and lifecycle hooks overrode native ownership.",
-      "action": "Remove the undocumented depth override and routine tester effort pin; retain only narrow architect/reviewer judgment profiles.",
+      "localOverlap": "Custom lifecycle routing, forced routine model effort, or an automatic fallback ladder would override native ownership; evaluation of explicit native spawn choices is not lifecycle orchestration.",
+      "action": "Keep lifecycle native and ordinary profiles model-unpinned. Evaluate requested versus effective per-spawn model and effort in disposable fixtures before enabling any global routing guidance.",
       "evidence": [
         ".codex/config.toml",
         ".codex/agents/tester.toml",
@@ -453,8 +453,8 @@
       "id": "native-model-defaults",
       "nativeFeature": "Native model catalog and default-model updates including Astra visibility",
       "decision": "adopted",
-      "localOverlap": "A project model pin or framework model router would prevent automatic native default adoption and become stale.",
-      "action": "Keep repository and ordinary profiles unpinned. Treat any user-owned global model pin as an explicit external choice and report that it overrides new native defaults without rewriting it. Retain the 0.155.1 native reasoning-summary default fix; do not recreate provider-compatibility routing locally.",
+      "localOverlap": "A project model pin, framework model router, or permanent tier ladder would prevent automatic native default adoption and become stale.",
+      "action": "Keep repository and ordinary profiles unpinned. Treat user-owned model selection as authoritative. Test bounded explicit spawn candidates against effective native metadata and paired quality/usage evidence; enable guidance only after the experiment passes. Retain the 0.155.1 native reasoning-summary default fix and never recreate provider-compatibility routing locally.",
       "evidence": [
         ".codex/config.toml",
         "templates/global/AGENTS.md",

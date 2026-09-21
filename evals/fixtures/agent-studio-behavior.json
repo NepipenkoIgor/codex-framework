@@ -1,35 +1,42 @@
 {
+  "schemaVersion": 3,
+  "cases": {
   "debate-resolution": {
     "pass": [
-      {"event":"challenge","phase":"pre","taskClass":"material","findingId":"F1","actor":"tester","evidence":"pre counterexample"},
-      {"event":"developer_response","phase":"pre","findingId":"F1","decision":"accept","evidence":"criteria repaired"},
-      {"event":"challenger_disposition","phase":"pre","findingId":"F1","actor":"tester","outcome":"resolved"},
-      {"event":"parent_adjudication","phase":"pre","findingId":"F1","actor":"parent","decision":"accept"},
-      {"event":"verification","phase":"pre","findingId":"F1","status":"passed","evidence":"criteria check"},
+      {"event":"challenge","exchangeId":"E1","phase":"pre","taskClass":"material","findingId":"F1","actor":"tester","evidenceRequest":"pre counterexample"},
+      {"event":"developer_response","exchangeId":"E1","phase":"pre","findingId":"F1","decision":"accept","evidence":{"source":"file","pointer":"criteria.json#F1"}},
+      {"event":"verification","exchangeId":"E1","phase":"pre","findingId":"F1","status":"passed","evidence":{"source":"command","pointer":"check:criteria#F1"}},
+      {"event":"challenger_disposition","exchangeId":"E1","phase":"pre","findingId":"F1","actor":"tester","outcome":"resolved"},
+      {"event":"parent_adjudication","exchangeId":"E1","phase":"pre","findingId":"F1","actor":"parent","decision":"accept"},
       {"event":"mutation_started"},
-      {"event":"challenge","phase":"post","taskClass":"material","findingId":"F2","actor":"tester","evidence":"failure-path attack"},
-      {"event":"developer_response","phase":"post","findingId":"F2","decision":"rebut","evidence":"executable reproduction"},
-      {"event":"challenger_disposition","phase":"post","findingId":"F2","actor":"tester","outcome":"withdrawn"},
-      {"event":"parent_adjudication","phase":"post","findingId":"F2","actor":"parent","decision":"accept"},
-      {"event":"verification","phase":"post","findingId":"F2","status":"passed","evidence":"affected check"},
+      {"event":"challenge","exchangeId":"E2","phase":"post","taskClass":"material","findingId":"F2","actor":"tester","evidenceRequest":"failure-path attack"},
+      {"event":"developer_response","exchangeId":"E2","phase":"post","findingId":"F2","decision":"rebut","evidence":{"source":"trace","pointer":"reproduction.jsonl#F2"}},
+      {"event":"verification","exchangeId":"E2","phase":"post","findingId":"F2","status":"passed","evidence":{"source":"command","pointer":"test:affected#F2"}},
+      {"event":"challenger_disposition","exchangeId":"E2","phase":"post","findingId":"F2","actor":"tester","outcome":"withdrawn"},
+      {"event":"parent_adjudication","exchangeId":"E2","phase":"post","findingId":"F2","actor":"parent","decision":"accept"},
+      {"event":"challenge","exchangeId":"E2","phase":"post","taskClass":"material","findingId":"F3","actor":"tester","evidenceRequest":"second consumer"},
+      {"event":"developer_response","exchangeId":"E2","phase":"post","findingId":"F3","decision":"accept","evidence":{"source":"file","pointer":"consumer.py:42"}},
+      {"event":"verification","exchangeId":"E2","phase":"post","findingId":"F3","status":"passed","evidence":{"source":"command","pointer":"test:consumer#F3"}},
+      {"event":"challenger_disposition","exchangeId":"E2","phase":"post","findingId":"F3","actor":"tester","outcome":"resolved"},
+      {"event":"parent_adjudication","exchangeId":"E2","phase":"post","findingId":"F3","actor":"parent","decision":"accept"},
       {"event":"fresh_risk_review","actor":"reviewer","freshContext":true,"readOnly":true,"neutralBundle":true}
     ],
     "fail": [
-      {"event":"challenge","phase":"pre","taskClass":"material","findingId":"F1","actor":"tester","evidence":"counterexample"},
-      {"event":"developer_response","phase":"pre","findingId":"F1","decision":"accept","evidence":"repair"},
-      {"event":"challenger_disposition","phase":"pre","findingId":"F1","actor":"tester","outcome":"unresolved"},
-      {"event":"parent_adjudication","phase":"pre","findingId":"F1","actor":"parent","decision":"accept"},
-      {"event":"verification","phase":"pre","findingId":"F1","status":"passed","evidence":"self-check"},
+      {"event":"challenge","exchangeId":"E1","phase":"pre","taskClass":"material","findingId":"F1","actor":"tester","evidenceRequest":"counterexample"},
+      {"event":"developer_response","exchangeId":"E1","phase":"pre","findingId":"F1","decision":"accept","evidence":"unverified assertion"},
+      {"event":"verification","exchangeId":"E1","phase":"pre","findingId":"F1","status":"passed","evidence":"self-check"},
+      {"event":"challenger_disposition","exchangeId":"E1","phase":"pre","findingId":"F1","actor":"tester","outcome":"unresolved"},
+      {"event":"parent_adjudication","exchangeId":"E1","phase":"pre","findingId":"F1","actor":"parent","decision":"accept"},
       {"event":"mutation_started"}
     ]
   },
   "trivial-debate": {
     "pass": [
-      {"event":"challenge","phase":"single","findingId":"T1","actor":"tester","taskClass":"trivial","evidence":"exact source counterexample"},
-      {"event":"developer_response","phase":"single","findingId":"T1","decision":"rebut","evidence":"focused source check"},
-      {"event":"challenger_disposition","phase":"single","findingId":"T1","actor":"tester","outcome":"withdrawn"},
-      {"event":"parent_adjudication","phase":"single","findingId":"T1","actor":"parent","decision":"accept"},
-      {"event":"verification","phase":"single","findingId":"T1","status":"passed","evidence":"focused source check"}
+      {"event":"challenge","exchangeId":"ET1","phase":"single","findingId":"T1","actor":"tester","taskClass":"trivial","evidenceRequest":"exact source counterexample"},
+      {"event":"developer_response","exchangeId":"ET1","phase":"single","findingId":"T1","decision":"rebut","evidence":{"source":"file","pointer":"source.md:12"}},
+      {"event":"verification","exchangeId":"ET1","phase":"single","findingId":"T1","status":"passed","evidence":{"source":"command","pointer":"check:source#T1"}},
+      {"event":"challenger_disposition","exchangeId":"ET1","phase":"single","findingId":"T1","actor":"tester","outcome":"withdrawn"},
+      {"event":"parent_adjudication","exchangeId":"ET1","phase":"single","findingId":"T1","actor":"parent","decision":"accept"}
     ],
     "fail": [
       {"event":"verification","findingId":"T1","status":"passed","evidence":"parent self-check only"}
@@ -37,18 +44,18 @@
   },
   "false-positive-withdrawal": {
     "pass": [
-      {"event":"challenge","phase":"single","taskClass":"trivial","findingId":"F2","actor":"tester","evidence":"claimed mismatch"},
-      {"event":"developer_response","phase":"single","findingId":"F2","decision":"rebut","evidence":"contract plus executable reproduction"},
-      {"event":"challenger_disposition","phase":"single","findingId":"F2","actor":"tester","outcome":"withdrawn"},
-      {"event":"parent_adjudication","phase":"single","findingId":"F2","actor":"parent","decision":"accept"},
-      {"event":"verification","phase":"single","findingId":"F2","status":"passed","evidence":"rebuttal check"}
+      {"event":"challenge","exchangeId":"EF2","phase":"single","taskClass":"trivial","findingId":"F2","actor":"tester","evidenceRequest":"claimed mismatch"},
+      {"event":"developer_response","exchangeId":"EF2","phase":"single","findingId":"F2","decision":"rebut","evidence":{"source":"file","pointer":"contract.md:20"}},
+      {"event":"verification","exchangeId":"EF2","phase":"single","findingId":"F2","status":"passed","evidence":{"source":"command","pointer":"reproduce:false-positive"}},
+      {"event":"challenger_disposition","exchangeId":"EF2","phase":"single","findingId":"F2","actor":"tester","outcome":"withdrawn"},
+      {"event":"parent_adjudication","exchangeId":"EF2","phase":"single","findingId":"F2","actor":"parent","decision":"accept"}
     ],
     "fail": [
-      {"event":"challenge","phase":"single","taskClass":"trivial","findingId":"F2","actor":"tester"},
-      {"event":"developer_response","phase":"single","findingId":"F2","decision":"rebut"},
-      {"event":"challenger_disposition","phase":"single","findingId":"F2","actor":"tester","outcome":"resolved"},
-      {"event":"parent_adjudication","phase":"single","findingId":"F2","actor":"parent","decision":"accept"},
-      {"event":"verification","phase":"single","findingId":"F2","status":"passed","evidence":"check"}
+      {"event":"challenge","exchangeId":"EF2","phase":"single","taskClass":"trivial","findingId":"F2","actor":"tester"},
+      {"event":"developer_response","exchangeId":"EF2","phase":"single","findingId":"F2","decision":"rebut","evidence":{"source":"file","pointer":"contract.md:20"}},
+      {"event":"verification","exchangeId":"EF2","phase":"single","findingId":"F2","status":"passed","evidence":{"source":"command","pointer":"reproduce:false-positive"}},
+      {"event":"challenger_disposition","exchangeId":"EF2","phase":"single","findingId":"F2","actor":"tester","outcome":"resolved"},
+      {"event":"parent_adjudication","exchangeId":"EF2","phase":"single","findingId":"F2","actor":"parent","decision":"accept"}
     ]
   },
   "lane-blocker": {
@@ -151,6 +158,79 @@
       {"event":"readback","objectId":"O2","verified":false}
     ]
   },
+  "model-effort-routing": {
+    "pass": [
+      {"event":"spawn_routing","taskClass":"read-heavy","topology":"fresh","requestedModel":"gpt-5.6-terra","requestedEffort":"medium","effectiveModel":"gpt-5.6-terra","effectiveEffort":"medium","parentModel":"gpt-5.6-sol","parentEffort":"medium","explicitOverride":true,"supported":true,"userRootSelectionPreserved":true,"escalated":false}
+    ],
+    "fail": [
+      {"event":"spawn_routing","taskClass":"high-risk","topology":"fresh","requestedModel":"gpt-5.6-luna","requestedEffort":"low","effectiveModel":"gpt-5.6-luna","effectiveEffort":"low","parentModel":"gpt-5.6-sol","parentEffort":"medium","explicitOverride":true,"supported":true,"userRootSelectionPreserved":true,"escalated":false}
+    ]
+  },
+  "batch-delivery-matrix": {
+    "pass": [
+      {"event":"batch_matrix","tickets":[{"ticket":"T1","behavior":"save setting","sourceConfigEnv":"src/settings","personas":"admin","automatedRegression":{"status":"passed","evidence":"command:test-settings"},"visibleBrowserJourney":{"status":"passed","evidence":"browser:journey-1"},"failurePath":"403","providerEffect":"none","ciDeployIdentity":"sha1","evidenceComment":{"status":"passed","evidence":"provider:comment-1"},"targetBoardState":{"status":"passed","evidence":"provider:item-1:In Review"},"cleanup":"fixture removed","completed":true}]}
+    ],
+    "fail": [
+      {"event":"batch_matrix","tickets":[{"ticket":"T1","behavior":"save setting","automatedRegression":true,"visibleBrowserJourney":false,"completed":true}]},
+      {"event":"batch_matrix","tickets":[{"ticket":"T2","behavior":"save setting","sourceConfigEnv":"src/settings","personas":"admin","automatedRegression":"SKIPPED","visibleBrowserJourney":"BLOCKED","failurePath":"403","providerEffect":"none","ciDeployIdentity":"PENDING","evidenceComment":true,"targetBoardState":true,"cleanup":"fixture removed","completed":true}]}
+    ]
+  },
+  "base-freshness": {
+    "pass": [
+      {"event":"fetch_target"},{"event":"integrate_target","strategy":"merge-queue"},{"event":"local_checks","sha":"abc"},{"event":"candidate_identity","sha":"abc"},{"event":"hosted_checks","sha":"abc"},{"event":"merge","sha":"def","candidateSha":"abc","providerVerified":true,"contentPreserved":true},{"event":"ancestry_readback","verified":true,"candidateSha":"abc","mergedSha":"def"}
+    ],
+    "fail": [
+      {"event":"fetch_target"},{"event":"integrate_target","strategy":"rebase"},{"event":"local_checks","sha":"old"},{"event":"merge","sha":"new"},{"event":"ancestry_readback","verified":false}
+    ]
+  },
+  "ci-parity": {
+    "pass": [
+      {"event":"ci_contract","requiredChecks":["test","build","deploy"],"localEquivalents":{"test":"run test","build":"run build"},"hostedOnly":["deploy"],"behaviorChanged":true,"testsChangedTogether":true},
+      {"event":"local_ready","passed":true},{"event":"hosted_checks","passed":true,"checks":["test","build","deploy"]}
+    ],
+    "fail": [
+      {"event":"ci_contract","requiredChecks":["test","build"],"localEquivalents":{"test":"run test"},"hostedOnly":[],"behaviorChanged":true,"testsChangedTogether":false},{"event":"local_ready","passed":false}
+    ]
+  },
+  "board-batch-closeout": {
+    "pass": [
+      {"event":"batch_expected","tickets":{"T1":"In Review","T2":"In Review"}},
+      {"event":"ticket_item_mapping","tickets":{"T1":"B1","T2":"B2"}},
+      {"event":"board_read","ticket":"T1","itemId":"B1"},{"event":"comments_read","ticket":"T1","itemId":"B1"},{"event":"compare_expected","ticket":"T1","itemId":"B1","matched":true,"currentState":"Todo"},{"event":"preview","ticket":"T1","itemId":"B1"},{"event":"mutate_exact_item","ticket":"T1","itemId":"B1"},{"event":"readback","ticket":"T1","itemId":"B1","verified":true,"state":"In Review"},
+      {"event":"board_read","ticket":"T2","itemId":"B2"},{"event":"comments_read","ticket":"T2","itemId":"B2"},{"event":"compare_expected","ticket":"T2","itemId":"B2","matched":true,"currentState":"In Review"},{"event":"no_op","ticket":"T2","itemId":"B2"},{"event":"readback","ticket":"T2","itemId":"B2","verified":true,"state":"In Review"},
+      {"event":"batch_readback","tickets":{"T1":"In Review","T2":"In Review"}}
+    ],
+    "fail": [
+      {"event":"batch_expected","tickets":{"T1":"In Review","T2":"In Review"}},{"event":"ticket_item_mapping","tickets":{"T1":"B1","T2":"B2"}},{"event":"board_read","ticket":"T1","itemId":"B1"},{"event":"mutate_exact_item","ticket":"T1","itemId":"B2"},{"event":"batch_readback","tickets":{"T1":"In Review"}}
+    ]
+  },
+  "worktree-runtime-config": {
+    "pass": [
+      {"event":"runtime_config_manifest","bulkCopy":false,"modelReadSecrets":false,"files":[{"path":".env.local","method":"symlink","locator":"approved project source","permissions":"0600","verified":true}]},
+      {"event":"worktree_cleanup","owned":true,"clean":true,"merged":true,"readback":true}
+    ],
+    "fail": [
+      {"event":"runtime_config_manifest","bulkCopy":true,"modelReadSecrets":true,"files":[{"path":".env.local","method":"copy","locator":"","permissions":"0644","verified":false,"secretValue":"plaintext"}]},
+      {"event":"worktree_cleanup","owned":false,"clean":false,"merged":false,"readback":false},
+      {"event":"runtime_config_manifest","bulkCopy":false,"modelReadSecrets":false,"files":[{"method":"copy","locator":"approved project source","permissions":"world-writable","verified":true}]}
+    ]
+  },
+  "blocker-resolution": {
+    "pass": [
+      {"event":"lane_blocked","lane":"provider","reason":"provider outage"},{"event":"route_attempt","scope":"provider","route":"api","cause":"503"},{"event":"attached_wait","handle":"run-1"},{"event":"attached_wait","handle":"run-1"},{"event":"lane_ready","lane":"docs"},{"event":"worker_assigned","lane":"docs","worker":"W1"},{"event":"lane_completed","lane":"docs"},{"event":"goal_status","status":"active"}
+    ],
+    "fail": [
+      {"event":"lane_blocked","lane":"provider"},{"event":"route_attempt","scope":"provider","route":"api","cause":"503"},{"event":"route_attempt","scope":"provider","route":"api","cause":"503"},{"event":"attached_wait","handle":"run-1"},{"event":"attached_wait","handle":"run-2"},{"event":"goal_status","status":"blocked"}
+    ]
+  },
+  "sentry-route": {
+    "pass": [
+      {"event":"provider_identity","organization":"org","project":"app","environment":"staging","timeScope":"1h","filterScope":"release=abc"},{"event":"cli_result","conclusive":false,"reason":"empty"},{"event":"api_result","authenticated":true,"sameScope":true,"parseable":true}
+    ],
+    "fail": [
+      {"event":"provider_identity","organization":"org","project":"app"},{"event":"cli_result","conclusive":false},{"event":"provider_browser","uiOnly":false,"apiGapProved":false}
+    ]
+  },
   "family-efficiency": {
     "pass": [
       {"event":"family_report","provenanceValid":true,"responseCountExact":true,"workerCount":1,"limits":{"responses":500,"uncachedInputTokens":1500000,"outputTokens":200000,"emptyPolls":3},"metrics":{"responses":25,"uncachedInputTokens":25000,"outputTokens":5000,"emptyPolls":1}}
@@ -158,5 +238,6 @@
     "fail": [
       {"event":"family_report","provenanceValid":false,"responseCountExact":false,"workerCount":0,"limits":{"responses":500,"emptyPolls":3},"metrics":{"responses":501,"emptyPolls":10}}
     ]
+  }
   }
 }

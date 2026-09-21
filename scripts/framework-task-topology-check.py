@@ -8,13 +8,13 @@ from pathlib import Path
 
 
 REQUIRED = (
-    "Fork only for a requested history-backed alternative",
+    "Fork requested history-backed alternatives",
     "use a new task for independent context",
-    "a subagent for bounded current-request work",
-    "Create/fork user-visible tasks only when requested",
-    "A running turn is not forked history",
-    "parallel writers require separate worktrees",
-    "never local queues/status files/handoff machinery",
+    "a subagent for bounded work",
+    "Create/fork visible tasks only when requested",
+    "Running turns are not forked history",
+    "parallel writers need separate worktrees",
+    "never local queues/status/handoffs",
     "verify the effective working directory and permission profile before consequential work",
     "a mismatch is an explicit stop-and-resolve boundary",
     "Export or share task history only on explicit user request",
@@ -43,12 +43,12 @@ def validate(text: str) -> list[str]:
 def self_test(valid: str) -> None:
     assert not validate(valid), "authoritative task-topology contract failed its own validator"
     counterexamples = (
-        ("requested history-backed alternative", "history-free alternative"),
+        ("requested history-backed alternatives", "history-free alternatives"),
         ("new task for independent context", "new task to inherit history"),
-        ("subagent for bounded current-request work", "subagent for unrelated work"),
+        ("subagent for bounded work", "subagent for unrelated work"),
         ("only when requested", "automatically"),
-        ("A running turn is not forked history", "A running turn is forked history"),
-        ("parallel writers require separate worktrees", "parallel writers may share a worktree"),
+        ("Running turns are not forked history", "Running turns are forked history"),
+        ("parallel writers need separate worktrees", "parallel writers may share a worktree"),
         ("before consequential work", "after consequential work"),
         ("only on explicit user request", "automatically"),
     )

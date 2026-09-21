@@ -3,14 +3,16 @@ name: error-tracking
 description: Implement privacy-safe error capture, release/source-map correlation, grouping, sampling, alerting and ownership using the repository's installed provider SDK. Use when error-tracking repository changes are requested.
 metadata:
   owner: codex-framework
-  reviewed: "2026-07-27"
-  version: 2.0
+  reviewed: "2026-09-21"
+  version: 2.1
   argument-hint: "stack and installed SDK, environments/releases, privacy policy, expected error classes/volume, on-call ownership"
 ---
 
 Implement error tracking for $ARGUMENTS.
 
 Read instructions, manifests/lockfiles, installed SDK/provider configuration, app entry/error boundaries, release build/source maps or debug symbols, auth/logout, privacy/retention policy, observability and on-call routing. Verify SDK APIs and integrations from installed types/config or matching official docs; do not copy remembered Sentry APIs or upgrade incidentally. Before material SDK/configuration/code mutation, resolve exact targets, owner and write authority/permissions, configuration/code rollback and provider-event reconciliation. Derive any automated retry/wait attempts and elapsed time from provider/build evidence; otherwise leave them unresolved.
+
+For provider reads, first prove authenticated connector or CLI identity plus exact organization/project/environment/time/filter scope and parseable completeness. Empty, truncated, mixed-warning or unsupported CLI output is inconclusive; use a same-scope authenticated API next. Open the provider Browser only for genuinely visual/UI-only evidence after that path is exhausted. Never substitute a different account, project or environment after authentication failure.
 
 For authorized greenfield version selection, resolve stable frameworks and production LTS runtimes from exact official distribution/support sources, verify cross-stack compatibility, and generate the manifest plus lockfile. Once generated, those files become the continuing version and compatibility authority; future work reads their pins rather than re-resolving `latest`, and upgrades are separate migrations.
 
