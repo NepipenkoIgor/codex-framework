@@ -18,7 +18,7 @@ ROOT = Path(__file__).resolve().parent.parent
 EVIDENCE = ROOT / "docs" / "framework-release-evidence.json"
 RETAINED_DELIVERY = ROOT / "docs" / "framework-release-delivery-evidence"
 MAX_AGE = dt.timedelta(days=7)
-ARTIFACT_POLICY = "compact-validator-attestation-v1"
+ARTIFACT_POLICY = "incremental-commit-bound-attestation-v2"
 DELIVERY_CASES = ("pending-evidence", "merge-cleanup", "false-positive", "ci-repair")
 DELIVERY_SCOPE = "disposable native delivery fixtures; no external delivery acceptance"
 DELIVERY_RECEIPT_VERSION = 3
@@ -32,7 +32,7 @@ GATE_COMMANDS = {
     "nativeCapabilityCurrency": ["python3", "scripts/framework-native-capability-check.py", "--live"],
     "nativeDeliveryBehavior": ["python3", "scripts/framework-release-evidence.py", "validate-delivery",
                                "--summary", "<delivery-artifact-dir>/summary.json", "--emit-summary"],
-    "skillCorpusCertification": ["python3", "scripts/framework-skill-quality.py", "certify", "--artifact-dir", "<quality-artifact-dir>"],
+    "skillCorpusCertification": ["python3", "scripts/framework-skill-quality.py", "certify-incremental", "--artifact-dir", "<quality-artifact-dir>", "--baseline-evidence", "docs/framework-release-evidence.json"],
 }
 INCLUDED = (
     "AGENTS.md", "README.md", ".gitignore", ".github", ".codex/config.toml", ".codex/agents",
@@ -144,12 +144,83 @@ def quality_module():
     return module
 
 
-def skill_attestation(artifact_dir: Path) -> list[dict[str, Any]]:
-    return quality_module().compact_attestation(artifact_dir)
+def baseline_snapshot() -> tuple[dict[str, Any], dict[str, Any]]:
+    raw = EVIDENCE.read_bytes()
+    evidence_commit = command_text("git", "log", "-1", "--format=%H", "--", EVIDENCE.relative_to(ROOT).as_posix())
+    if not git_commit_exists(evidence_commit):
+        raise ValueError("baseline release evidence commit is unavailable")
+    committed = subprocess.run(
+        ["git", "show", f"{evidence_commit}:{EVIDENCE.relative_to(ROOT).as_posix()}"],
+        cwd=ROOT, capture_output=True, check=True,
+    ).stdout
+    if committed != raw:
+        raise ValueError("baseline release evidence differs from its last committed version")
+    data = json.loads(raw)
+    source_commit = data.get("gitHeadAtGeneration")
+    if not isinstance(source_commit, str) or data.get("sourceDigest") != git_digest(source_commit):
+        raise ValueError("baseline release evidence is not bound to its source commit")
+    return data, {
+        "baselineEvidenceCommit": evidence_commit,
+        "baselineEvidenceSha256": hashlib.sha256(raw).hexdigest(),
+        "baselineSourceCommit": source_commit,
+    }
+
+
+def skill_attestation(artifact_dir: Path) -> tuple[list[dict[str, Any]], dict[str, Any]]:
+    baseline, provenance = baseline_snapshot()
+    rows, fresh, reused = quality_module().certify_incremental(
+        artifact_dir, baseline.get("skillCorpusAttestation")
+    )
+    provenance.update({"freshSkills": fresh, "reusedSkills": reused})
+    return rows, provenance
 
 
 def validate_skill_attestation(rows: Any) -> None:
     quality_module().validate_compact_attestation(rows)
+
+
+def validate_skill_provenance(provenance: Any, rows: Any, current_commit: Any) -> list[str]:
+    expected = {"baselineEvidenceCommit", "baselineEvidenceSha256", "baselineSourceCommit", "freshSkills", "reusedSkills"}
+    if not isinstance(provenance, dict) or set(provenance) != expected:
+        return ["skill corpus provenance is malformed"]
+    failures: list[str] = []
+    evidence_commit = provenance.get("baselineEvidenceCommit")
+    source_commit = provenance.get("baselineSourceCommit")
+    if not git_commit_exists(str(evidence_commit)) or not git_commit_exists(str(source_commit)):
+        return ["skill corpus baseline commit is unavailable"]
+    if command("git", "merge-base", "--is-ancestor", str(evidence_commit), str(current_commit)).returncode:
+        failures.append("skill corpus baseline evidence is not an ancestor of the release")
+    try:
+        raw = subprocess.run(
+            ["git", "show", f"{evidence_commit}:{EVIDENCE.relative_to(ROOT).as_posix()}"],
+            cwd=ROOT, capture_output=True, check=True,
+        ).stdout
+        baseline = json.loads(raw)
+    except (subprocess.CalledProcessError, json.JSONDecodeError):
+        return failures + ["skill corpus baseline evidence cannot be read"]
+    if provenance.get("baselineEvidenceSha256") != hashlib.sha256(raw).hexdigest():
+        failures.append("skill corpus baseline evidence digest mismatch")
+    if baseline.get("gitHeadAtGeneration") != source_commit or baseline.get("sourceDigest") != git_digest(str(source_commit)):
+        failures.append("skill corpus baseline source binding mismatch")
+    names = sorted(quality_module().skill_paths())
+    fresh = provenance.get("freshSkills")
+    reused = provenance.get("reusedSkills")
+    if not isinstance(fresh, list) or not isinstance(reused, list) or sorted(fresh + reused) != names or set(fresh) & set(reused):
+        return failures + ["skill corpus fresh/reused partition mismatch"]
+    current_by_skill = {row.get("skill"): row for row in rows} if isinstance(rows, list) else {}
+    baseline_by_skill = {row.get("skill"): row for row in baseline.get("skillCorpusAttestation", []) if isinstance(row, dict)}
+    for skill in reused:
+        if current_by_skill.get(skill) != baseline_by_skill.get(skill):
+            failures.append(f"reused skill attestation differs from committed baseline: {skill}")
+    quality = quality_module()
+    for skill in fresh:
+        old = baseline_by_skill.get(skill)
+        try:
+            quality.validate_compact_attestation([old], skill)
+        except (KeyError, ValueError):
+            continue
+        failures.append(f"fresh skill did not require recertification: {skill}")
+    return failures
 
 
 def delivery_source_digest() -> str:
@@ -407,15 +478,17 @@ def payload(args: argparse.Namespace) -> dict[str, Any]:
     binding_failures = validate_git_binding(head, source_digest)
     if binding_failures:
         raise ValueError("; ".join(binding_failures) + "; commit all included framework source before generating release evidence")
+    attestation, provenance = skill_attestation(Path(args.artifact_dir))
     return {
-        "schemaVersion": 3,
+        "schemaVersion": 4,
         "generatedAt": dt.datetime.now(dt.timezone.utc).replace(microsecond=0).isoformat(),
         "sourceDigest": source_digest,
         "gitHeadAtGeneration": head,
         "codexVersion": command_text("codex", "--version") or None,
         "corpus": corpus_metrics(),
         "gateEvidence": gate_records(Path(args.gate_dir)),
-        "skillCorpusAttestation": skill_attestation(Path(args.artifact_dir)),
+        "skillCorpusAttestation": attestation,
+        "skillCorpusProvenance": provenance,
         "artifactPolicy": ARTIFACT_POLICY,
     }
 
@@ -428,10 +501,10 @@ def check(evidence: Path = EVIDENCE) -> int:
     except (OSError, json.JSONDecodeError) as error:
         print(f"invalid release evidence: {error}"); return 1
     failures = []
-    expected_top = {"schemaVersion", "generatedAt", "sourceDigest", "gitHeadAtGeneration", "codexVersion", "corpus", "gateEvidence", "skillCorpusAttestation", "artifactPolicy"}
+    expected_top = {"schemaVersion", "generatedAt", "sourceDigest", "gitHeadAtGeneration", "codexVersion", "corpus", "gateEvidence", "skillCorpusAttestation", "skillCorpusProvenance", "artifactPolicy"}
     if not isinstance(current, dict) or set(current) != expected_top:
         failures.append("top-level schema fields are missing or unexpected")
-    if current.get("schemaVersion") != 3:
+    if current.get("schemaVersion") != 4:
         failures.append("unsupported schemaVersion")
     try:
         generated_at = dt.datetime.fromisoformat(current["generatedAt"])
@@ -453,6 +526,9 @@ def check(evidence: Path = EVIDENCE) -> int:
         validate_skill_attestation(current.get("skillCorpusAttestation"))
     except (OSError, json.JSONDecodeError, KeyError, ValueError) as error:
         failures.append(f"skill corpus attestation is invalid: {error}")
+    failures.extend(validate_skill_provenance(
+        current.get("skillCorpusProvenance"), current.get("skillCorpusAttestation"), current.get("gitHeadAtGeneration")
+    ))
     if current.get("artifactPolicy") != ARTIFACT_POLICY:
         failures.append("artifactPolicy is unsupported")
     if failures:
