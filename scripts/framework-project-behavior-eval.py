@@ -245,7 +245,7 @@ def provider_evidence(command: str, exit_code: int, path: Path) -> list[tuple[st
         else:
             segment.append(token)
     evidence = []
-    read_only_inspection = {"cat", "file", "head", "ls", "nl", "sed", "stat", "tail"}
+    read_only_inspection = {"cat", "file", "head", "ls", "nl", "sed", "shasum", "sha256sum", "stat", "tail"}
     for index, (group_segments, group_operators) in enumerate(groups):
         definite = {0}
         if index == len(groups) - 1 and exit_code == 0 \
@@ -583,7 +583,7 @@ class GraderTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as directory:
             path = Path(directory)
             _, grader = write_fixture(path, "provider-cli-routing")
-            commands = ("ls -l ./bin/providerctl && ./bin/providerctl --help",
+            commands = ("shasum -a 256 ./bin/providerctl && ./bin/providerctl --help",
                         "./bin/providerctl identity --json",
                         "./bin/providerctl issue ISS-42 --json")
             events = []
