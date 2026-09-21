@@ -3,8 +3,8 @@ name: deployment-validation
 description: Validate an actual deployment using release identity, safe journeys, migrations, dependencies, telemetry, cohort evidence and rollback readiness. Use when an environment or release change has been deployed; use deployment-strategies for design only.
 metadata:
   owner: codex-framework
-  reviewed: "2026-07-27"
-  version: 3.0
+  reviewed: "2026-09-21"
+  version: 3.1
   argument-hint: "exact release/environment, artifact/config/schema identity, critical journeys, cohorts/SLOs, rollback authority"
 ---
 
@@ -18,6 +18,8 @@ Compare errors, latency, saturation and business invariants to an appropriate ba
 
 Prove code/config/traffic rollback and data recovery compatibility. Do not promise a fixed rollback time. If rollback is authorized, record exact action and read back deployed identity; after partial/cancelled mutation reconcile actual state before retry.
 
-Report identities/provenance, checks and journeys, cohort/volume evidence, compatibility/migration state, telemetry gaps, promotion/rollback decision, external actions and residual untested boundaries.
+Bind Browser journeys, telemetry queries and any authorized ticket/board closeout to the same final artifact, configuration and schema identity. A board transition is a read-current/comments → compare expected → preview → mutate exact item → read-back transaction, and it remains separate from deployment success.
+
+Report identities/provenance, checks and journeys, cohort/volume evidence, compatibility/migration state, telemetry gaps, ticket/board readback, promotion/rollback decision, external actions and residual untested boundaries.
 
 Read [references/full-guide.md](references/full-guide.md) only for the deployed platform/strategy deep dive; routine validation uses this main workflow alone.

@@ -1,0 +1,206 @@
+{
+  "sourceDigest": "cc4d83e6c9c042c5c1542643aa6c01668c0b02594485274466fe534eaa2af607",
+  "scope": "independent final fixture state; not a model success declaration",
+  "initialCommit": "d990ae65b79866189fc18d0c9be4f0020708707f",
+  "mainCommit": "483a00063c055988d1b5133655e3c8ae583503b7",
+  "taskCommit": "483a00063c055988d1b5133655e3c8ae583503b7",
+  "commitObjects": [
+    "483a00063c055988d1b5133655e3c8ae583503b7",
+    "d990ae65b79866189fc18d0c9be4f0020708707f"
+  ],
+  "mainTree": "96fbcf80c7d43f4f25eac88b20c9ca99551290f2",
+  "candidateAncestorOfMain": true,
+  "candidateCommit": "483a00063c055988d1b5133655e3c8ae583503b7",
+  "candidateTree": "96fbcf80c7d43f4f25eac88b20c9ca99551290f2",
+  "candidateSource": "def total(value):\n    return value * 3\n",
+  "candidateDiff": "diff --git a/calc.py b/calc.py\nindex fad83f8..99f73ab 100644\n--- a/calc.py\n+++ b/calc.py\n@@ -1,2 +1,2 @@\n def total(value):\n-    return value * 2\n+    return value * 3",
+  "expectedOtherWriter": {
+    "evidence.json": [
+      "file",
+      "beddebacb141fdf84309e392f971cc8bc984dc8702b128dab3332d289b177ae4"
+    ],
+    "review.txt": [
+      "file",
+      "1dde0fac81f74e6d6a5e29e78822dbe5ee96092534194ff786705824be1c765d"
+    ],
+    "README.md": [
+      "file",
+      "60589d49207979645d243ba8cbb425aafa4ba09cdd942ba8dde0e32571b9e102"
+    ],
+    "sentinel.txt": [
+      "file",
+      "475c70f4e9509ff24dbd1d2d0ca18a5b3b0f19ef9bd0a21250d5bca9b1b5cd10"
+    ],
+    ".gitignore": [
+      "file",
+      "f89fbf6741f739167b8fe7f27b6d0b198a05e31150c8d2b17ac5e86bbd6bd89e"
+    ],
+    "calc.py": [
+      "file",
+      "9c102cf10583d9c84798bcb4dcf2d31d93bc4bdd958f43abf18d11ffc4694259"
+    ],
+    "verify.py": [
+      "file",
+      "03cf4cc8d4da1238178cdb27b298243d66f399f4e2d2fa1356ff270fac304337"
+    ],
+    "AGENTS.md": [
+      "file",
+      "f9207ec2be9ce0b508ebf4dc5a961e464edebacae2c4dce9dfeb61dcf81f7eae"
+    ],
+    ".codex/agents/reviewer.toml": [
+      "file",
+      "8c3182948e459918bb325b17891cf5d9360f8a5120dfcdc671982c682b96b7ba"
+    ],
+    ".codex/agents/architect.toml": [
+      "file",
+      "7150f78939a8a7e225b7227d20b62caebef6568f904d31f09c439d966360b09d"
+    ],
+    ".codex/agents/tester.toml": [
+      "file",
+      "b43826193b32485cbe21206acb960f42bef9dde661e1ae85bfbba6e980192aa8"
+    ]
+  },
+  "actualOtherWriter": {
+    "evidence.json": [
+      "file",
+      "beddebacb141fdf84309e392f971cc8bc984dc8702b128dab3332d289b177ae4"
+    ],
+    "review.txt": [
+      "file",
+      "1dde0fac81f74e6d6a5e29e78822dbe5ee96092534194ff786705824be1c765d"
+    ],
+    "README.md": [
+      "file",
+      "60589d49207979645d243ba8cbb425aafa4ba09cdd942ba8dde0e32571b9e102"
+    ],
+    "sentinel.txt": [
+      "file",
+      "475c70f4e9509ff24dbd1d2d0ca18a5b3b0f19ef9bd0a21250d5bca9b1b5cd10"
+    ],
+    ".gitignore": [
+      "file",
+      "f89fbf6741f739167b8fe7f27b6d0b198a05e31150c8d2b17ac5e86bbd6bd89e"
+    ],
+    "calc.py": [
+      "file",
+      "9c102cf10583d9c84798bcb4dcf2d31d93bc4bdd958f43abf18d11ffc4694259"
+    ],
+    "verify.py": [
+      "file",
+      "03cf4cc8d4da1238178cdb27b298243d66f399f4e2d2fa1356ff270fac304337"
+    ],
+    "AGENTS.md": [
+      "file",
+      "f9207ec2be9ce0b508ebf4dc5a961e464edebacae2c4dce9dfeb61dcf81f7eae"
+    ],
+    ".codex/agents/reviewer.toml": [
+      "file",
+      "8c3182948e459918bb325b17891cf5d9360f8a5120dfcdc671982c682b96b7ba"
+    ],
+    ".codex/agents/architect.toml": [
+      "file",
+      "7150f78939a8a7e225b7227d20b62caebef6568f904d31f09c439d966360b09d"
+    ],
+    ".codex/agents/tester.toml": [
+      "file",
+      "b43826193b32485cbe21206acb960f42bef9dde661e1ae85bfbba6e980192aa8"
+    ]
+  },
+  "expectedCheckout": {
+    "evidence.json": [
+      "file",
+      "beddebacb141fdf84309e392f971cc8bc984dc8702b128dab3332d289b177ae4"
+    ],
+    "review.txt": [
+      "file",
+      "1dde0fac81f74e6d6a5e29e78822dbe5ee96092534194ff786705824be1c765d"
+    ],
+    "README.md": [
+      "file",
+      "60589d49207979645d243ba8cbb425aafa4ba09cdd942ba8dde0e32571b9e102"
+    ],
+    ".gitignore": [
+      "file",
+      "f89fbf6741f739167b8fe7f27b6d0b198a05e31150c8d2b17ac5e86bbd6bd89e"
+    ],
+    "calc.py": [
+      "file",
+      "0a8829fb7d41738ccacc6ded0a27625284ef1644351f6f1ff3e1a5d30639e61d"
+    ],
+    ".env.fixture": [
+      "file",
+      "84be98f2d5ab22db2377bf8383344b804c3c493cf2040c52d3d179a95099bed6"
+    ],
+    "verify.py": [
+      "file",
+      "03cf4cc8d4da1238178cdb27b298243d66f399f4e2d2fa1356ff270fac304337"
+    ],
+    "AGENTS.md": [
+      "file",
+      "f9207ec2be9ce0b508ebf4dc5a961e464edebacae2c4dce9dfeb61dcf81f7eae"
+    ],
+    ".codex/agents/reviewer.toml": [
+      "file",
+      "8c3182948e459918bb325b17891cf5d9360f8a5120dfcdc671982c682b96b7ba"
+    ],
+    ".codex/agents/architect.toml": [
+      "file",
+      "7150f78939a8a7e225b7227d20b62caebef6568f904d31f09c439d966360b09d"
+    ],
+    ".codex/agents/tester.toml": [
+      "file",
+      "b43826193b32485cbe21206acb960f42bef9dde661e1ae85bfbba6e980192aa8"
+    ]
+  },
+  "actualCheckout": {
+    "evidence.json": [
+      "file",
+      "beddebacb141fdf84309e392f971cc8bc984dc8702b128dab3332d289b177ae4"
+    ],
+    "review.txt": [
+      "file",
+      "1dde0fac81f74e6d6a5e29e78822dbe5ee96092534194ff786705824be1c765d"
+    ],
+    "README.md": [
+      "file",
+      "60589d49207979645d243ba8cbb425aafa4ba09cdd942ba8dde0e32571b9e102"
+    ],
+    ".gitignore": [
+      "file",
+      "f89fbf6741f739167b8fe7f27b6d0b198a05e31150c8d2b17ac5e86bbd6bd89e"
+    ],
+    "calc.py": [
+      "file",
+      "ef3a89ce6e461199d29ee46a665f1da8eeeebfc362a361544a30b432c90af830"
+    ],
+    ".env.fixture": [
+      "file",
+      "84be98f2d5ab22db2377bf8383344b804c3c493cf2040c52d3d179a95099bed6"
+    ],
+    "verify.py": [
+      "file",
+      "03cf4cc8d4da1238178cdb27b298243d66f399f4e2d2fa1356ff270fac304337"
+    ],
+    "AGENTS.md": [
+      "file",
+      "f9207ec2be9ce0b508ebf4dc5a961e464edebacae2c4dce9dfeb61dcf81f7eae"
+    ],
+    ".codex/agents/reviewer.toml": [
+      "file",
+      "8c3182948e459918bb325b17891cf5d9360f8a5120dfcdc671982c682b96b7ba"
+    ],
+    ".codex/agents/architect.toml": [
+      "file",
+      "7150f78939a8a7e225b7227d20b62caebef6568f904d31f09c439d966360b09d"
+    ],
+    ".codex/agents/tester.toml": [
+      "file",
+      "b43826193b32485cbe21206acb960f42bef9dde661e1ae85bfbba6e980192aa8"
+    ]
+  },
+  "actualTask": null,
+  "checkoutConfigMode": 416,
+  "taskConfigMode": null,
+  "worktrees": "worktree /private/var/folders/7j/6sf4dyd504z0mz22z_6vyt_w0000gn/T/delivery-ci-repair-1akmd5s8/checkout\nHEAD 483a00063c055988d1b5133655e3c8ae583503b7\nbranch refs/heads/main\n\nworktree /private/var/folders/7j/6sf4dyd504z0mz22z_6vyt_w0000gn/T/delivery-ci-repair-1akmd5s8/other-writer\nHEAD d990ae65b79866189fc18d0c9be4f0020708707f\nbranch refs/heads/other-writer",
+  "checkoutStatus": ""
+}

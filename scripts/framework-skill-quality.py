@@ -1328,30 +1328,34 @@ def certify(artifact_dir: Path, selected: str | None) -> None:
         raise SystemExit(1)
 
 
+def compact_row(artifact_dir: Path, skill: str) -> dict[str, Any]:
+    validate_semantic_artifact(skill, artifact_dir)
+    quality = json.loads((artifact_dir / f"quality-{skill}.json").read_text())
+    run = quality["run"]
+    return {
+        "skill": skill,
+        "skillSha256": run["skill_sha256"],
+        "contractSha256": run["contract_sha256"],
+        "routingDigest": run["routing_digest"],
+        "semanticDigest": run["semantic_digest"],
+        "rawEvidenceDigest": run["raw_evidence_digest"],
+        "model": run["model"],
+        "reasoningEffort": run["reasoning_effort"],
+        "codexVersion": run["codex_version"],
+        "caseCount": len(quality["cases"]),
+        "verdict": quality["verdict"],
+    }
+
+
 def compact_attestation(artifact_dir: Path) -> list[dict[str, Any]]:
     rows = []
     for skill in sorted(skill_paths()):
-        validate_semantic_artifact(skill, artifact_dir)
-        quality = json.loads((artifact_dir / f"quality-{skill}.json").read_text())
-        run = quality["run"]
-        rows.append({
-            "skill": skill,
-            "skillSha256": run["skill_sha256"],
-            "contractSha256": run["contract_sha256"],
-            "routingDigest": run["routing_digest"],
-            "semanticDigest": run["semantic_digest"],
-            "rawEvidenceDigest": run["raw_evidence_digest"],
-            "model": run["model"],
-            "reasoningEffort": run["reasoning_effort"],
-            "codexVersion": run["codex_version"],
-            "caseCount": len(quality["cases"]),
-            "verdict": quality["verdict"],
-        })
+        rows.append(compact_row(artifact_dir, skill))
     return rows
 
 
-def validate_compact_attestation(rows: Any) -> None:
-    names = sorted(skill_paths())
+def validate_compact_attestation(rows: Any, selected: str | None = None) -> None:
+    names = [selected] if selected else sorted(skill_paths())
     require(isinstance(rows, list) and len(rows) == len(names), "compact skill attestation coverage mismatch")
     require(all(isinstance(row, dict) for row in rows), "compact skill attestation row is malformed")
     by_skill = {row.get("skill"): row for row in rows}
@@ -1372,6 +1376,47 @@ def validate_compact_attestation(rows: Any) -> None:
         require(row["model"] == EVALUATOR_MODEL and row["reasoningEffort"] == EVALUATOR_REASONING_EFFORT, f"compact skill attestation evaluator mismatch: {skill}")
         require(row["codexVersion"] == codex_version(), f"compact skill attestation runtime mismatch: {skill}")
         require(row["caseCount"] == expected_cases and row["verdict"] == "pass", f"compact skill attestation verdict mismatch: {skill}")
+
+
+def incremental_attestation(artifact_dir: Path, baseline_rows: Any) -> tuple[list[dict[str, Any]], list[str], list[str]]:
+    require(isinstance(baseline_rows, list), "incremental baseline attestation is malformed")
+    baseline = {row.get("skill"): row for row in baseline_rows if isinstance(row, dict)}
+    require(len(baseline) == len(baseline_rows), "incremental baseline attestation has duplicate or malformed rows")
+    rows: list[dict[str, Any]] = []
+    fresh: list[str] = []
+    reused: list[str] = []
+    for skill in sorted(skill_paths()):
+        quality_path = artifact_dir / f"quality-{skill}.json"
+        if quality_path.is_file():
+            row = compact_row(artifact_dir, skill)
+            fresh.append(skill)
+        else:
+            require(skill in baseline, f"missing fresh or baseline attestation: {skill}")
+            row = baseline[skill]
+            reused.append(skill)
+        validate_compact_attestation([row], skill)
+        rows.append(row)
+    return rows, fresh, reused
+
+
+def incremental_plan(baseline_rows: Any) -> list[str]:
+    require(isinstance(baseline_rows, list), "incremental baseline attestation is malformed")
+    baseline = {row.get("skill"): row for row in baseline_rows if isinstance(row, dict)}
+    stale = []
+    for skill in sorted(skill_paths()):
+        try:
+            validate_compact_attestation([baseline[skill]], skill)
+        except (KeyError, ContractError):
+            stale.append(skill)
+    return stale
+
+
+def certify_incremental(artifact_dir: Path, baseline_rows: Any) -> tuple[list[dict[str, Any]], list[str], list[str]]:
+    report = offline_report()
+    require(not report["failures"], "offline quality gate must pass before incremental certification")
+    rows, fresh, reused = incremental_attestation(artifact_dir, baseline_rows)
+    print(f"skill certification: {len(rows)}/{len(rows)} certified; fresh={len(fresh)} reused={len(reused)}")
+    return rows, fresh, reused
 
 
 def validate_full_live_paths(artifact_dir: Path, routing_artifact: Path) -> tuple[Path, Path, Path]:
@@ -1948,6 +1993,8 @@ def main() -> None:
     semantic = sub.add_parser("semantic-live"); semantic.add_argument("--skill", required=True); semantic.add_argument("--artifact-dir", type=Path, required=True); semantic.add_argument("--routing-artifact", type=Path, required=True); semantic.add_argument("--expected-semantic-digest")
     full = sub.add_parser("full-live"); full.add_argument("--artifact-dir", type=Path, required=True); full.add_argument("--routing-artifact", type=Path, required=True); full.add_argument("--jobs", type=int, default=4); full.add_argument("--resume", action="store_true"); full.add_argument("--refresh", action="store_true")
     certification = sub.add_parser("certify"); certification.add_argument("--skill"); certification.add_argument("--artifact-dir", type=Path, required=True)
+    incremental = sub.add_parser("certify-incremental"); incremental.add_argument("--artifact-dir", type=Path, required=True); incremental.add_argument("--baseline-evidence", type=Path, required=True)
+    plan = sub.add_parser("incremental-plan"); plan.add_argument("--baseline-evidence", type=Path, required=True)
     sub.add_parser("self-test")
     sub.add_parser("signal-self-test-child", help=argparse.SUPPRESS)
     args = parser.parse_args()
@@ -1963,6 +2010,13 @@ def main() -> None:
         full_live(args.artifact_dir, args.routing_artifact, args.jobs, args.resume, args.refresh); return
     if args.command == "certify":
         certify(args.artifact_dir, args.skill); return
+    if args.command in {"certify-incremental", "incremental-plan"}:
+        baseline = json.loads(args.baseline_evidence.read_text()).get("skillCorpusAttestation")
+        if args.command == "incremental-plan":
+            print("\n".join(incremental_plan(baseline)))
+        else:
+            certify_incremental(args.artifact_dir, baseline)
+        return
     report = offline_report(args.skill)
     if args.json:
         print(json.dumps(report, indent=2, sort_keys=True))

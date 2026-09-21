@@ -1,8 +1,8 @@
 # Project Instructions
 
-The global working agreement installed by the Codex framework owns generic planning, project/environment authority, fail-closed errors, capability discovery, task automation, branch naming, resource ownership, and interactive Browser/mobile behavior. This file adds only project facts and closer overrides; do not copy the global policy here or weaken it with hidden fallbacks.
+The global agreement owns generic behavior. Add only project facts and closer overrides here; never copy or weaken global policy.
 
-This optional template is not an onboarding requirement. Discover existing project facts automatically; reuse their authoritative sources and fill only useful project-specific gaps within the task scope.
+This template is optional. Discover facts from authoritative project sources and fill only useful gaps in scope.
 
 ## Project contract
 
@@ -11,12 +11,15 @@ This optional template is not an onboarding requirement. Discover existing proje
 - Commands: reference existing scripts/CI for install, development, checks, migrations and release; do not duplicate values.
 - Environment map: name local, test, staging, production, and preview targets plus their authority source.
 - Mutation boundary: state which environments/accounts/projects may be changed and what requires explicit approval.
-- Verification: name provider-visible, runtime, UI/device and caller-visible evidence, every required CLI/API/connector identity, and where missing access blocks planning, implementation or delivery.
+- Verification: required provider/runtime/UI/caller evidence, CLI/API/connector identities, and where missing access blocks work.
+- Integration/CI: protected branch, project rebase/merge/queue strategy, final-SHA readback, required hosted checks, local equivalents and PR-only checks.
+- Batch lifecycle: ticket source/IDs, allowed transitions, evidence-comment format, and meanings such as `In Review` versus `Done`.
+- Runtime files: each required ignored file's `copy|symlink|regenerate` method, locator, permissions, check and cleanup owner; never secret values.
+- Interactive acceptance: routes, roles, viewports/devices and exact visible Browser/simulator evidence.
 
 ## Project-specific rules
 
-- Preserve existing repository conventions and unrelated work.
-- Record only durable project facts or genuine closer exceptions below. Do not restate global behavior.
+- Preserve repository conventions and unrelated work. Record only durable facts or genuine closer exceptions; do not restate global behavior.
 - If a closer exception authorizes degraded behavior, it must explicitly define trigger, semantics, provenance, user-visible state, observability, tests, and recovery/removal condition.
 
 <!-- Add project-specific architecture, commands, environment identities, release rules, and closer exceptions here. -->

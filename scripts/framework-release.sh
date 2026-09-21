@@ -107,18 +107,30 @@ if [ -z "$DELIVERY_DIR" ]; then
     --case pending-evidence --case merge-cleanup --case false-positive --case ci-repair \
     --artifact-dir "$DELIVERY_DIR" --source-root "$ROOT" --timeout 600 > "$DELIVERY_DIR/live.log"
 fi
+# Keep the minimum raw synthetic traces needed for clean-checkout verification.
+# The retained directory is source-digest-excluded but receipt-digest-bound.
+python3 "$ROOT/scripts/framework-release-evidence.py" retain-delivery --source "$DELIVERY_DIR" >/dev/null
+DELIVERY_DIR="$ROOT/docs/framework-release-delivery-evidence"
 run_gate nativeDeliveryBehavior python3 scripts/framework-release-evidence.py validate-delivery \
   --summary "$DELIVERY_DIR/summary.json" --emit-summary
 
 if [ "$OWN_QUALITY_DIR" -eq 1 ]; then
-  run_stage bash "$ROOT/scripts/framework-skill-routing-live-eval.sh" --artifact-dir "$QUALITY_DIR" --jobs 8
-  run_stage python3 "$ROOT/scripts/framework-skill-quality.py" full-live \
-    --artifact-dir "$QUALITY_DIR" \
-    --routing-artifact "$QUALITY_DIR/routing-all.json" \
-    --jobs 8
+  STALE_SKILLS="$GATE_DIR/stale-skills.txt"
+  python3 "$ROOT/scripts/framework-skill-quality.py" incremental-plan \
+    --baseline-evidence "$ROOT/docs/framework-release-evidence.json" > "$STALE_SKILLS"
+  while IFS= read -r skill; do
+    [ -n "$skill" ] || continue
+    run_stage bash "$ROOT/scripts/framework-skill-routing-live-eval.sh" \
+      --skill "$skill" --artifact-dir "$QUALITY_DIR" --jobs 8
+    run_stage python3 "$ROOT/scripts/framework-skill-quality.py" semantic-live \
+      --skill "$skill" \
+      --artifact-dir "$QUALITY_DIR" \
+      --routing-artifact "$QUALITY_DIR/routing-$skill.json"
+  done < "$STALE_SKILLS"
 fi
 run_gate skillCorpusCertification \
-  python3 scripts/framework-skill-quality.py certify --artifact-dir "$QUALITY_DIR"
+  python3 scripts/framework-skill-quality.py certify-incremental \
+    --artifact-dir "$QUALITY_DIR" --baseline-evidence docs/framework-release-evidence.json
 
 python3 "$ROOT/scripts/framework-release-evidence.py" write --artifact-dir "$QUALITY_DIR" --gate-dir "$GATE_DIR" >/dev/null
 python3 "$ROOT/scripts/framework-release-evidence.py" check

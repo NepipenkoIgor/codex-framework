@@ -1,0 +1,52 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.invalid/codex-framework/debate-conformance.schema.json",
+  "title": "Native debate conformance receipt",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["conformanceVersion", "scope", "familyComplete", "bindings", "results"],
+  "properties": {
+    "conformanceVersion": {"const": 3},
+    "scope": {"enum": ["historical-audit", "release-certification"]},
+    "familyComplete": {"type": "boolean"},
+    "bindings": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["sourceDigest", "contractRevision", "configRevision", "environmentScope", "taskPathDigest"],
+      "properties": {
+        "sourceDigest": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+        "contractRevision": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+        "configRevision": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+        "environmentScope": {"const": "disposable-local-no-network"},
+        "taskPathDigest": {"type": "string", "pattern": "^[a-f0-9]{64}$"}
+      }
+    },
+    "results": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["exchangeId", "findingId", "phase", "status", "reasons", "evidencePointers"],
+        "properties": {
+          "exchangeId": {"type": ["string", "null"]},
+          "findingId": {"type": ["string", "null"]},
+          "phase": {"enum": ["single", "pre", "post"]},
+          "status": {"enum": ["compliant", "violation", "unverifiable"]},
+          "reasons": {"type": "array", "items": {"type": "string"}},
+          "evidencePointers": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["source", "pointer"],
+              "properties": {
+                "source": {"enum": ["command", "file", "provider", "browser", "trace"]},
+                "pointer": {"type": "string", "minLength": 1}
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

@@ -53,7 +53,7 @@ for instructions in "$ROOT/templates/global/AGENTS.md"; do
   grep -Eqi 'headless.*supplement|headless E2E.*supplement' "$instructions" || fail "headless supplementary-only boundary is missing: ${instructions#"$ROOT"/}"
   grep -Eqi 'task-owned.*(tab|process|resource)' "$instructions" || fail "task-owned interactive cleanup is missing: ${instructions#"$ROOT"/}"
   grep -Eqi 'visible repository-configured simulator, emulator, or device' "$instructions" || fail "visible mobile target default is missing: ${instructions#"$ROOT"/}"
-  grep -Eqi 'Scheduled tasks/automations' "$instructions" && grep -Eqi 'recurring execution.*,? monitoring|monitoring.*,? reminders' "$instructions" || fail "native scheduled automation policy is missing: ${instructions#"$ROOT"/}"
+  grep -Eqi 'native automations for recurring work' "$instructions" && grep -Eqi 'heartbeats notify only on actionable change' "$instructions" || fail "native scheduled automation policy is missing: ${instructions#"$ROOT"/}"
   grep -Eqi 'task names.*,? pins.*,? sections.*,? handoff.*,? forks' "$instructions" || fail "native long-task ergonomics policy is missing: ${instructions#"$ROOT"/}"
   python3 "$ROOT/scripts/framework-task-topology-check.py" "$instructions" || fail "native task topology semantics are missing or contradictory: ${instructions#"$ROOT"/}"
   grep -Eqi 'Record & Replay.*user-demonstrated|Record & Replay.*demonstrated.*workflow' "$instructions" || fail "Record and Replay user-gate policy is missing: ${instructions#"$ROOT"/}"
@@ -72,7 +72,7 @@ grep -q '^model_reasoning_effort = "high"$' "$ROOT/.codex/agents/architect.toml"
 grep -q '^model_reasoning_effort = "high"$' "$ROOT/.codex/agents/reviewer.toml" || fail 'reviewer reasoning override is missing'
 grep -q '^model_reasoning_effort = ' "$ROOT/.codex/agents/tester.toml" && fail 'tester should inherit native model effort selection'
 test -s "$ROOT/templates/global/AGENTS.md" || fail 'global guidance template is missing'
-grep -q 'Prefer native Codex capabilities' "$ROOT/templates/global/AGENTS.md" || fail 'global native-capability guidance is missing'
+grep -q 'Prefer native Codex' "$ROOT/templates/global/AGENTS.md" || fail 'global native-capability guidance is missing'
 test ! -e "$ROOT/.codex/agents/explorer.toml" || fail 'custom explorer shadows the built-in agent'
 test ! -e "$ROOT/.codex/agents/builder.toml" || fail 'custom builder duplicates the built-in worker'
 test ! -e "$ROOT/plugins/ai-codex-framework" || fail 'legacy duplicate hooks plugin remains'

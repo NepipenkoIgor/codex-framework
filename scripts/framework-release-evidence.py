@@ -8,16 +8,21 @@ import importlib.util
 import json
 import os
 import re
+import shutil
 import subprocess
+import tempfile
 from pathlib import Path
 from typing import Any
 
 ROOT = Path(__file__).resolve().parent.parent
 EVIDENCE = ROOT / "docs" / "framework-release-evidence.json"
+RETAINED_DELIVERY = ROOT / "docs" / "framework-release-delivery-evidence"
 MAX_AGE = dt.timedelta(days=7)
-ARTIFACT_POLICY = "compact-validator-attestation-v1"
+ARTIFACT_POLICY = "incremental-commit-bound-attestation-v2"
 DELIVERY_CASES = ("pending-evidence", "merge-cleanup", "false-positive", "ci-repair")
 DELIVERY_SCOPE = "disposable native delivery fixtures; no external delivery acceptance"
+DELIVERY_RECEIPT_VERSION = 3
+DEBATE_CONFORMANCE_VERSION = 3
 GATE_COMMANDS = {
     "deterministicHealth": ["bash", "scripts/framework-health.sh"],
     "tokenEfficiency": ["python3", "scripts/framework-token-budget-check.py", "--live"],
@@ -27,7 +32,7 @@ GATE_COMMANDS = {
     "nativeCapabilityCurrency": ["python3", "scripts/framework-native-capability-check.py", "--live"],
     "nativeDeliveryBehavior": ["python3", "scripts/framework-release-evidence.py", "validate-delivery",
                                "--summary", "<delivery-artifact-dir>/summary.json", "--emit-summary"],
-    "skillCorpusCertification": ["python3", "scripts/framework-skill-quality.py", "certify", "--artifact-dir", "<quality-artifact-dir>"],
+    "skillCorpusCertification": ["python3", "scripts/framework-skill-quality.py", "certify-incremental", "--artifact-dir", "<quality-artifact-dir>", "--baseline-evidence", "docs/framework-release-evidence.json"],
 }
 INCLUDED = (
     "AGENTS.md", "README.md", ".gitignore", ".github", ".codex/config.toml", ".codex/agents",
@@ -45,7 +50,10 @@ def command_text(*args: str) -> str:
 
 
 def included_relative(relative: str) -> bool:
-    if relative == EVIDENCE.relative_to(ROOT).as_posix() or "__pycache__" in Path(relative).parts or relative.endswith(".pyc"):
+    retained = RETAINED_DELIVERY.relative_to(ROOT).as_posix()
+    if relative == EVIDENCE.relative_to(ROOT).as_posix() \
+            or relative == retained or relative.startswith(retained + "/") \
+            or "__pycache__" in Path(relative).parts or relative.endswith(".pyc"):
         return False
     return any(relative == prefix or relative.startswith(prefix + "/") for prefix in INCLUDED)
 
@@ -136,12 +144,83 @@ def quality_module():
     return module
 
 
-def skill_attestation(artifact_dir: Path) -> list[dict[str, Any]]:
-    return quality_module().compact_attestation(artifact_dir)
+def baseline_snapshot() -> tuple[dict[str, Any], dict[str, Any]]:
+    raw = EVIDENCE.read_bytes()
+    evidence_commit = command_text("git", "log", "-1", "--format=%H", "--", EVIDENCE.relative_to(ROOT).as_posix())
+    if not git_commit_exists(evidence_commit):
+        raise ValueError("baseline release evidence commit is unavailable")
+    committed = subprocess.run(
+        ["git", "show", f"{evidence_commit}:{EVIDENCE.relative_to(ROOT).as_posix()}"],
+        cwd=ROOT, capture_output=True, check=True,
+    ).stdout
+    if committed != raw:
+        raise ValueError("baseline release evidence differs from its last committed version")
+    data = json.loads(raw)
+    source_commit = data.get("gitHeadAtGeneration")
+    if not isinstance(source_commit, str) or data.get("sourceDigest") != git_digest(source_commit):
+        raise ValueError("baseline release evidence is not bound to its source commit")
+    return data, {
+        "baselineEvidenceCommit": evidence_commit,
+        "baselineEvidenceSha256": hashlib.sha256(raw).hexdigest(),
+        "baselineSourceCommit": source_commit,
+    }
+
+
+def skill_attestation(artifact_dir: Path) -> tuple[list[dict[str, Any]], dict[str, Any]]:
+    baseline, provenance = baseline_snapshot()
+    rows, fresh, reused = quality_module().certify_incremental(
+        artifact_dir, baseline.get("skillCorpusAttestation")
+    )
+    provenance.update({"freshSkills": fresh, "reusedSkills": reused})
+    return rows, provenance
 
 
 def validate_skill_attestation(rows: Any) -> None:
     quality_module().validate_compact_attestation(rows)
+
+
+def validate_skill_provenance(provenance: Any, rows: Any, current_commit: Any) -> list[str]:
+    expected = {"baselineEvidenceCommit", "baselineEvidenceSha256", "baselineSourceCommit", "freshSkills", "reusedSkills"}
+    if not isinstance(provenance, dict) or set(provenance) != expected:
+        return ["skill corpus provenance is malformed"]
+    failures: list[str] = []
+    evidence_commit = provenance.get("baselineEvidenceCommit")
+    source_commit = provenance.get("baselineSourceCommit")
+    if not git_commit_exists(str(evidence_commit)) or not git_commit_exists(str(source_commit)):
+        return ["skill corpus baseline commit is unavailable"]
+    if command("git", "merge-base", "--is-ancestor", str(evidence_commit), str(current_commit)).returncode:
+        failures.append("skill corpus baseline evidence is not an ancestor of the release")
+    try:
+        raw = subprocess.run(
+            ["git", "show", f"{evidence_commit}:{EVIDENCE.relative_to(ROOT).as_posix()}"],
+            cwd=ROOT, capture_output=True, check=True,
+        ).stdout
+        baseline = json.loads(raw)
+    except (subprocess.CalledProcessError, json.JSONDecodeError):
+        return failures + ["skill corpus baseline evidence cannot be read"]
+    if provenance.get("baselineEvidenceSha256") != hashlib.sha256(raw).hexdigest():
+        failures.append("skill corpus baseline evidence digest mismatch")
+    if baseline.get("gitHeadAtGeneration") != source_commit or baseline.get("sourceDigest") != git_digest(str(source_commit)):
+        failures.append("skill corpus baseline source binding mismatch")
+    names = sorted(quality_module().skill_paths())
+    fresh = provenance.get("freshSkills")
+    reused = provenance.get("reusedSkills")
+    if not isinstance(fresh, list) or not isinstance(reused, list) or sorted(fresh + reused) != names or set(fresh) & set(reused):
+        return failures + ["skill corpus fresh/reused partition mismatch"]
+    current_by_skill = {row.get("skill"): row for row in rows} if isinstance(rows, list) else {}
+    baseline_by_skill = {row.get("skill"): row for row in baseline.get("skillCorpusAttestation", []) if isinstance(row, dict)}
+    for skill in reused:
+        if current_by_skill.get(skill) != baseline_by_skill.get(skill):
+            failures.append(f"reused skill attestation differs from committed baseline: {skill}")
+    quality = quality_module()
+    for skill in fresh:
+        old = baseline_by_skill.get(skill)
+        try:
+            quality.validate_compact_attestation([old], skill)
+        except (KeyError, ValueError):
+            continue
+        failures.append(f"fresh skill did not require recertification: {skill}")
+    return failures
 
 
 def delivery_source_digest() -> str:
@@ -167,7 +246,8 @@ def delivery_module():
     return module
 
 
-def validate_delivery_summary(summary: Any, artifact_dir: Path | None = None) -> list[str]:
+def validate_delivery_summary(summary: Any, artifact_dir: Path | None = None,
+                              require_session_store: bool = True) -> list[str]:
     if not isinstance(summary, dict) or set(summary) != {"sourceDigest", "scope", "results"}:
         return ["native delivery summary is malformed"]
     failures = []
@@ -190,38 +270,126 @@ def validate_delivery_summary(summary: Any, artifact_dir: Path | None = None) ->
         runtime = delivery_runtime()
         module = delivery_module()
         for case in DELIVERY_CASES:
-            module.validate_case_artifacts(artifact_dir / case, case, ROOT, runtime)
+            module.validate_case_artifacts(artifact_dir / case, case, ROOT, runtime,
+                                           require_session_store=require_session_store)
     except (OSError, ValueError, TypeError, KeyError, subprocess.SubprocessError) as error:
         failures.append("native delivery artifact validation failed: " + str(error))
     return failures
 
 
-def delivery_receipt(summary: dict, artifact_dir: Path) -> dict:
-    failures = validate_delivery_summary(summary, artifact_dir)
+def artifact_reference(artifact_dir: Path) -> str:
+    resolved = artifact_dir.resolve()
+    try:
+        return resolved.relative_to(ROOT).as_posix()
+    except ValueError:
+        return str(resolved)
+
+
+def delivery_receipt(summary: dict, artifact_dir: Path,
+                     require_session_store: bool = True) -> dict:
+    failures = validate_delivery_summary(summary, artifact_dir, require_session_store)
     if failures:
         raise ValueError("; ".join(failures))
     runtime = delivery_runtime()
     module = delivery_module()
-    return {"receiptVersion": 1, "sourceDigest": summary["sourceDigest"], "cliVersion": runtime,
-            "artifactDirectory": str(artifact_dir.resolve()),
-            "cases": [module.validate_case_artifacts(artifact_dir / case, case, ROOT, runtime) for case in DELIVERY_CASES]}
+    return {"receiptVersion": DELIVERY_RECEIPT_VERSION,
+            "conformanceVersion": DEBATE_CONFORMANCE_VERSION,
+            "sourceDigest": summary["sourceDigest"], "cliVersion": runtime,
+            "artifactDirectory": artifact_reference(artifact_dir),
+            "cases": [module.validate_case_artifacts(
+                artifact_dir / case, case, ROOT, runtime,
+                require_session_store=require_session_store) for case in DELIVERY_CASES]}
+
+
+def retain_delivery(source: Path, destination: Path = RETAINED_DELIVERY) -> None:
+    source = source.resolve()
+    destination = destination.resolve()
+    if destination != RETAINED_DELIVERY.resolve():
+        raise ValueError("retained delivery destination is not repository-owned")
+    summary = json.loads((source / "summary.json").read_text())
+    failures = validate_delivery_summary(summary, source, require_session_store=True)
+    if failures:
+        raise ValueError("; ".join(failures))
+    destination.parent.mkdir(parents=True, exist_ok=True)
+    stage = Path(tempfile.mkdtemp(prefix=".framework-release-delivery-evidence.",
+                                  dir=destination.parent))
+    try:
+        shutil.copy2(source / "summary.json", stage / "summary.json")
+        for case in DELIVERY_CASES:
+            source_case, target_case = source / case, stage / case
+            target_case.mkdir()
+            for name in ("events.jsonl", "state-attestation.json", "grade.json"):
+                shutil.copy2(source_case / name, target_case / name)
+            shutil.copytree(source_case / "native-rollouts", target_case / "native-rollouts")
+        retained_summary = json.loads((stage / "summary.json").read_text())
+        failures = validate_delivery_summary(retained_summary, stage, require_session_store=False)
+        if failures:
+            raise ValueError("retained delivery validation failed: " + "; ".join(failures))
+        if destination.exists():
+            shutil.rmtree(destination)
+        stage.rename(destination)
+    finally:
+        if stage.exists():
+            shutil.rmtree(stage)
+
+
+def validate_debate_conformance(receipt: Any) -> list[str]:
+    if not isinstance(receipt, dict) or set(receipt) != {
+            "conformanceVersion", "scope", "familyComplete", "bindings", "results"}:
+        return ["debate conformance receipt is malformed"]
+    if receipt.get("conformanceVersion") != DEBATE_CONFORMANCE_VERSION \
+            or receipt.get("scope") != "release-certification" \
+            or receipt.get("familyComplete") is not True:
+        return ["debate conformance receipt is stale or incomplete"]
+    bindings = receipt.get("bindings")
+    expected_bindings = delivery_module().debate_bindings(Path("/binding-placeholder"))
+    if not isinstance(bindings, dict) or set(bindings) != set(expected_bindings) \
+            or any(bindings.get(key) != expected_bindings[key] for key in
+                   ("sourceDigest", "contractRevision", "configRevision", "environmentScope")) \
+            or not is_nonzero_sha256(bindings.get("taskPathDigest")):
+        return ["debate conformance source, contract, config or environment binding is invalid"]
+    results = receipt.get("results")
+    if not isinstance(results, list) or len(results) != 2:
+        return ["debate conformance finding coverage is incomplete"]
+    expected = {("PLAN-1", "pre"), ("RESULT-1", "post")}
+    observed = set()
+    for result in results:
+        if not isinstance(result, dict) or set(result) != {
+                "exchangeId", "findingId", "phase", "status", "reasons", "evidencePointers"}:
+            return ["debate conformance finding is malformed"]
+        observed.add((result.get("findingId"), result.get("phase")))
+        if result.get("status") != "compliant" or result.get("reasons") != []:
+            return ["debate conformance contains a non-compliant finding"]
+        pointers = result.get("evidencePointers")
+        if not isinstance(pointers, list) or not pointers or any(
+                not isinstance(pointer, dict) or set(pointer) != {"source", "pointer"}
+                or pointer.get("source") not in {"command", "file", "provider", "browser", "trace"}
+                or not isinstance(pointer.get("pointer"), str) or not pointer["pointer"]
+                for pointer in pointers):
+            return ["debate conformance evidence pointer is invalid"]
+    return [] if observed == expected else ["debate conformance findings are missing or unexpected"]
 
 
 def validate_delivery_receipt(receipt: Any, require_artifacts: bool = False) -> list[str]:
-    if not isinstance(receipt, dict) or set(receipt) != {"receiptVersion", "sourceDigest", "cliVersion", "artifactDirectory", "cases"}:
+    if not isinstance(receipt, dict) or set(receipt) != {"receiptVersion", "conformanceVersion", "sourceDigest", "cliVersion", "artifactDirectory", "cases"}:
         return ["native delivery requires a validated artifact receipt"]
     try:
         runtime = delivery_runtime()
     except (OSError, ValueError) as error:
         return [str(error)]
-    if receipt.get("receiptVersion") != 1 or receipt.get("sourceDigest") != delivery_source_digest() or receipt.get("cliVersion") != runtime:
+    if receipt.get("receiptVersion") != DELIVERY_RECEIPT_VERSION \
+            or receipt.get("conformanceVersion") != DEBATE_CONFORMANCE_VERSION \
+            or receipt.get("sourceDigest") != delivery_source_digest() or receipt.get("cliVersion") != runtime:
         return ["native delivery receipt source/runtime binding is stale"]
     cases = receipt.get("cases")
     if not isinstance(cases, list) or len(cases) != len(DELIVERY_CASES) or not all(isinstance(row, dict) for row in cases) or sorted(str(row.get('case')) for row in cases) != sorted(DELIVERY_CASES):
         return ["native delivery receipt coverage is invalid"]
     for row in cases:
-        if set(row) != {"case", "verdict", "rootThreadId", "cliVersion", "artifacts"} or row.get("verdict") != "passed" or row.get("cliVersion") != receipt["cliVersion"] or not re.fullmatch(r"[a-f0-9-]{36}", str(row.get("rootThreadId"))):
+        if set(row) != {"case", "verdict", "rootThreadId", "cliVersion", "debateConformance", "artifacts"} or row.get("verdict") != "passed" or row.get("cliVersion") != receipt["cliVersion"] or not re.fullmatch(r"[a-f0-9-]{36}", str(row.get("rootThreadId"))):
             return ["native delivery receipt case is invalid"]
+        failures = validate_debate_conformance(row.get("debateConformance"))
+        if failures:
+            return failures
         files = row.get("artifacts")
         if not isinstance(files, list) or not files or not all(isinstance(file, dict) for file in files):
             return ["native delivery artifact digests missing"]
@@ -234,9 +402,17 @@ def validate_delivery_receipt(receipt: Any, require_artifacts: bool = False) -> 
             return ["native delivery artifact digest record malformed"]
     if require_artifacts:
         try:
-            root = Path(receipt['artifactDirectory'])
+            reference = Path(receipt['artifactDirectory'])
+            if reference.is_absolute():
+                root = reference
+                require_session_store = True
+            else:
+                root = (ROOT / reference).resolve()
+                if root != RETAINED_DELIVERY.resolve():
+                    raise ValueError("relative artifact directory is not the retained release bundle")
+                require_session_store = False
             summary = json.loads((root / 'summary.json').read_text())
-            if delivery_receipt(summary, root) != receipt:
+            if delivery_receipt(summary, root, require_session_store=require_session_store) != receipt:
                 return ["native delivery receipt differs from validated raw evidence"]
         except (OSError, ValueError, TypeError, KeyError, subprocess.SubprocessError) as error:
             return ["native delivery receipt raw validation failed: " + str(error)]
@@ -302,15 +478,17 @@ def payload(args: argparse.Namespace) -> dict[str, Any]:
     binding_failures = validate_git_binding(head, source_digest)
     if binding_failures:
         raise ValueError("; ".join(binding_failures) + "; commit all included framework source before generating release evidence")
+    attestation, provenance = skill_attestation(Path(args.artifact_dir))
     return {
-        "schemaVersion": 3,
+        "schemaVersion": 4,
         "generatedAt": dt.datetime.now(dt.timezone.utc).replace(microsecond=0).isoformat(),
         "sourceDigest": source_digest,
         "gitHeadAtGeneration": head,
         "codexVersion": command_text("codex", "--version") or None,
         "corpus": corpus_metrics(),
         "gateEvidence": gate_records(Path(args.gate_dir)),
-        "skillCorpusAttestation": skill_attestation(Path(args.artifact_dir)),
+        "skillCorpusAttestation": attestation,
+        "skillCorpusProvenance": provenance,
         "artifactPolicy": ARTIFACT_POLICY,
     }
 
@@ -323,10 +501,10 @@ def check(evidence: Path = EVIDENCE) -> int:
     except (OSError, json.JSONDecodeError) as error:
         print(f"invalid release evidence: {error}"); return 1
     failures = []
-    expected_top = {"schemaVersion", "generatedAt", "sourceDigest", "gitHeadAtGeneration", "codexVersion", "corpus", "gateEvidence", "skillCorpusAttestation", "artifactPolicy"}
+    expected_top = {"schemaVersion", "generatedAt", "sourceDigest", "gitHeadAtGeneration", "codexVersion", "corpus", "gateEvidence", "skillCorpusAttestation", "skillCorpusProvenance", "artifactPolicy"}
     if not isinstance(current, dict) or set(current) != expected_top:
         failures.append("top-level schema fields are missing or unexpected")
-    if current.get("schemaVersion") != 3:
+    if current.get("schemaVersion") != 4:
         failures.append("unsupported schemaVersion")
     try:
         generated_at = dt.datetime.fromisoformat(current["generatedAt"])
@@ -343,11 +521,14 @@ def check(evidence: Path = EVIDENCE) -> int:
     runtime = command_text("codex", "--version")
     if not runtime or current.get("codexVersion") != runtime:
         failures.append("codexVersion does not match the current runtime")
-    failures.extend(validate_gate_records(current.get("gateEvidence")))
+    failures.extend(validate_gate_records(current.get("gateEvidence"), require_artifacts=True))
     try:
         validate_skill_attestation(current.get("skillCorpusAttestation"))
     except (OSError, json.JSONDecodeError, KeyError, ValueError) as error:
         failures.append(f"skill corpus attestation is invalid: {error}")
+    failures.extend(validate_skill_provenance(
+        current.get("skillCorpusProvenance"), current.get("skillCorpusAttestation"), current.get("gitHeadAtGeneration")
+    ))
     if current.get("artifactPolicy") != ARTIFACT_POLICY:
         failures.append("artifactPolicy is unsupported")
     if failures:
@@ -370,9 +551,22 @@ def self_test() -> None:
         raise AssertionError("fabricated summary with absent artifact files was accepted")
     if not validate_delivery_summary(delivery):
         raise AssertionError("fabricated four-row summary was accepted without raw evidence")
-    receipt = {"receiptVersion": 1, "sourceDigest": delivery_source_digest(), "cliVersion": delivery_runtime(),
+    conformance = {"conformanceVersion": 3, "scope": "release-certification", "familyComplete": True,
+                   "bindings": delivery_module().debate_bindings(Path("/fixture/task")),
+                   "results": [
+                       {"exchangeId": "delivery-plan-1", "findingId": "PLAN-1", "phase": "pre",
+                        "status": "compliant", "reasons": [],
+                        "evidencePointers": [{"source": "file", "pointer": "README.md"}]},
+                       {"exchangeId": "delivery-result-1", "findingId": "RESULT-1", "phase": "post",
+                        "status": "compliant", "reasons": [],
+                        "evidencePointers": [{"source": "command", "pointer": "python3 verify.py --challenge"}]},
+                   ]}
+    receipt = {"receiptVersion": DELIVERY_RECEIPT_VERSION,
+               "conformanceVersion": DEBATE_CONFORMANCE_VERSION,
+               "sourceDigest": delivery_source_digest(), "cliVersion": delivery_runtime(),
                "artifactDirectory": "/nonexistent/self-test-evidence", "cases": [
                    {"case": case, "verdict": "passed", "rootThreadId": "12345678-1234-1234-1234-123456789abc", "cliVersion": delivery_runtime(),
+                    "debateConformance": conformance,
                     "artifacts": [{"path": path, "sha256": "1" * 64, "bytes": 10} for path in ("events.jsonl", "state-attestation.json", "grade.json", "native-rollouts/root.jsonl", "native-rollouts/child.jsonl")]}
                    for case in DELIVERY_CASES]}
     if not validate_delivery_receipt(receipt, require_artifacts=True):
@@ -380,6 +574,12 @@ def self_test() -> None:
     stale = json.loads(json.dumps(receipt)); stale['cliVersion'] = '0.0.1'
     if not validate_delivery_receipt(stale):
         raise AssertionError('old native runtime receipt accepted')
+    stale = json.loads(json.dumps(receipt)); stale['receiptVersion'] = 2
+    if not validate_delivery_receipt(stale):
+        raise AssertionError('old debate receipt accepted')
+    unresolved = json.loads(json.dumps(receipt)); unresolved['cases'][0]['debateConformance']['results'][0]['status'] = 'unverifiable'
+    if not validate_delivery_receipt(unresolved):
+        raise AssertionError('unverifiable debate receipt accepted')
     for row in records:
         if row["name"] == "nativeDeliveryBehavior":
             row["output"] = json.dumps(receipt)
@@ -452,6 +652,8 @@ def main() -> int:
     delivery_parser = sub.add_parser("validate-delivery")
     delivery_parser.add_argument("--summary", type=Path, required=True)
     delivery_parser.add_argument("--emit-summary", action="store_true")
+    retain_parser = sub.add_parser("retain-delivery")
+    retain_parser.add_argument("--source", type=Path, required=True)
     sub.add_parser("self-test")
     args = parser.parse_args()
     if args.command == "validate-delivery":
@@ -467,6 +669,14 @@ def main() -> int:
         return 1 if failures else 0
     if args.command == "check":
         return check(args.evidence)
+    if args.command == "retain-delivery":
+        try:
+            retain_delivery(args.source)
+        except (OSError, ValueError, json.JSONDecodeError, subprocess.SubprocessError) as error:
+            print(f"retained delivery failed: {error}")
+            return 1
+        print(RETAINED_DELIVERY)
+        return 0
     if args.command == "self-test":
         self_test(); return 0
     EVIDENCE.parent.mkdir(parents=True, exist_ok=True)

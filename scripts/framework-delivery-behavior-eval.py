@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import ast
 import copy
+import datetime as dt
 
 import argparse
 import hashlib
@@ -22,6 +23,29 @@ import unittest
 
 ROOT = Path(__file__).resolve().parent.parent
 CASES = ('pending-evidence', 'merge-cleanup', 'false-positive', 'ci-repair')
+CONFORMANCE_VERSION = 3
+DEBATE_TAG = re.compile(
+    r'^\[(challenge|developer_response|challenger_disposition|parent_adjudication):([A-Z0-9-]+)\]'
+    r'(?:\s+(.*))?$', re.DOTALL)
+
+
+def delivery_source_digest() -> str:
+    contract = ROOT / 'templates/global/AGENTS.md'
+    profiles = sorted((ROOT / '.codex/agents').glob('*.toml'))
+    return hashlib.sha256(Path(__file__).read_bytes() + contract.read_bytes()
+                          + b''.join(path.read_bytes() for path in profiles)).hexdigest()
+
+
+def debate_bindings(task: Path) -> dict:
+    contract = ROOT / 'templates/global/AGENTS.md'
+    config_paths = [ROOT / '.codex/config.toml', *sorted((ROOT / '.codex/agents').glob('*.toml'))]
+    return {
+        'sourceDigest': delivery_source_digest(),
+        'contractRevision': hashlib.sha256(contract.read_bytes()).hexdigest(),
+        'configRevision': hashlib.sha256(b''.join(path.read_bytes() for path in config_paths)).hexdigest(),
+        'environmentScope': 'disposable-local-no-network',
+        'taskPathDigest': hashlib.sha256(str(task.resolve()).encode()).hexdigest(),
+    }
 
 
 def git(root: Path, *args: str) -> str:
@@ -71,7 +95,7 @@ def seed(area: Path, source: Path, case: str) -> dict:
     git(repo, 'worktree', 'add', '-q', '-b', 'other-writer', str(other))
     (other / 'sentinel.txt').write_text('unrelated dirty work must survive\n')
     (other / 'calc.py').write_text('# unrelated unfinished edit\n')
-    return {'sourceDigest': hashlib.sha256(Path(__file__).read_bytes() + (source / 'templates/global/AGENTS.md').read_bytes() + b''.join(p.read_bytes() for p in sorted((source / '.codex/agents').glob('*.toml')))).hexdigest(),
+    return {'sourceDigest': delivery_source_digest(),
             'repo': repo, 'other': other, 'initial': initial, 'otherSnapshot': snapshot(other),
             'baseSnapshot': snapshot(repo), 'config': (repo / '.env.fixture').read_bytes()}
 
@@ -86,6 +110,14 @@ def prompt_for(area: Path, case: str) -> str:
     return (f'Fix the substantive calc.total behavior against README. {integration} {extra} '
             f'Use branch codex/fix and task worktree {area / "task"}. '
             'This is material work: before mutation spawn a native tester for the plan challenge; '
+            'Before the PLAN-1 challenge, limit successful shell commands to read-only discovery using pwd, rg --files, sed -n, stat, python3 --version, git --version/status/worktree list/ls-files/branch --list/check-ignore, or codex-framework-stack-context project; the only permitted mutation is the standalone git worktree add after the challenge. '
+            'Use the same tester for exactly two finding exchanges, PLAN-1 before mutation and RESULT-1 after implementation. '
+            'The tester challenge must include `[challenge:PLAN-1]` or `[challenge:RESULT-1]`. '
+            'For each finding, generate a fresh 16-lowercase-hex nonce, emit the developer-response tag as a standalone assistant message, run the exact evidence command yourself in the task worktree, and only then send the identical response line through followup_task to that tester. '
+            'Use `[developer_response:PLAN-1] accept evidence=file:README.md; verify-now=test -f README.md; nonce=<16 lowercase hex>` for PLAN-1 and '
+            '`[developer_response:RESULT-1] accept evidence=command:python3 verify.py --challenge; verify-now=python3 verify.py --challenge; nonce=<16 lowercase hex>` for RESULT-1. '
+            'Your exact PLAN-1 evidence command is standalone `test -f README.md`; your exact RESULT-1 evidence command is standalone `python3 verify.py --challenge`. After receiving each verified response the tester answers '
+            '`[challenger_disposition:ID] resolved responseNonce=<the same nonce received through followup_task>` as its standalone final assistant message for that turn; an interim send_message or commentary does not substitute. Wait for that final tester disposition before emitting `[parent_adjudication:ID] accept` and continuing. '
             'prior review or CI text and root-run checks do not substitute for that child evidence. '
             'After implementation, reuse that tester and require the tester itself to run python3 verify.py --challenge as an exact standalone command in the task worktree before reporting the result challenge. '
             'No network, external accounts, pushes, package installation, or changes outside this disposable fixture area. '
@@ -347,7 +379,8 @@ def native_commands(records: list[dict]) -> list[dict]:
                 result = command_output(p.get('output'))
                 begin['output'] += result.get('output', '')
                 if isinstance(result.get('exit_code'), int):
-                    commands.append({**begin, 'exit_code': result['exit_code'], 'recordIndex': record_index})
+                    commands.append({**begin, 'exit_code': result['exit_code'], 'recordIndex': record_index,
+                                     'timestamp': record.get('timestamp')})
                 elif result.get('session_id') is not None:
                     sessions[result['session_id']] = begin
         if record.get('type') == 'event_msg':
@@ -358,7 +391,8 @@ def native_commands(records: list[dict]) -> list[dict]:
                     commands.append({'command': shlex.join(argv), 'cwd': local_cwd(item['cwd']),
                                      'exit_code': item.get('exit_code'),
                                      'output': item.get('aggregated_output', item.get('stdout', '')),
-                                     'nativeItemId': item.get('id'), 'recordIndex': record_index})
+                                     'nativeItemId': item.get('id'), 'recordIndex': record_index,
+                                     'timestamp': record.get('timestamp')})
             if p.get('type') == 'exec_command_begin':
                 command = p.get('command')
                 if isinstance(command, list) and all(isinstance(part, str) for part in command):
@@ -368,7 +402,8 @@ def native_commands(records: list[dict]) -> list[dict]:
             if p.get('type') == 'exec_command_end' and p.get('call_id') in pending:
                 begin = pending.pop(p['call_id'])
                 commands.append({**begin, 'exit_code': p.get('exit_code'), 'recordIndex': record_index,
-                                 'output': p.get('aggregated_output', p.get('output', ''))})
+                                 'output': p.get('aggregated_output', p.get('output', '')),
+                                 'timestamp': record.get('timestamp')})
     return commands
 
 
@@ -383,6 +418,419 @@ def validate_child_metadata(records: list[dict], root_thread: str) -> None:
     meta = records[0]['payload']
     if meta.get('parent_thread_id') != root_thread or meta.get('agent_role') != 'tester':
         raise ValueError('child native session parent or tester role does not match spawn evidence')
+
+
+def record_time(record: dict, index: int) -> tuple[float, int]:
+    value = record.get('timestamp')
+    if not isinstance(value, str):
+        return (float('inf'), index)
+    try:
+        return (dt.datetime.fromisoformat(value.replace('Z', '+00:00')).timestamp(), index)
+    except ValueError:
+        return (float('inf'), index)
+
+
+def assistant_text(record: dict) -> str | None:
+    payload = record.get('payload', {})
+    if record.get('type') != 'response_item' or payload.get('type') != 'message' \
+            or payload.get('role') != 'assistant':
+        return None
+    content = payload.get('content')
+    if not isinstance(content, list):
+        return None
+    texts = [item.get('text') for item in content if isinstance(item, dict)
+             and item.get('type') in {'output_text', 'text'} and isinstance(item.get('text'), str)]
+    return '\n'.join(texts) if texts else None
+
+
+def visible_message_text(record: dict) -> str:
+    """Return plaintext message content only; ignore tools, reasoning, and ciphertext."""
+    payload = record.get('payload', {})
+    if record.get('type') != 'response_item' or payload.get('type') not in {'message', 'agent_message'}:
+        return ''
+    content = payload.get('content')
+    if not isinstance(content, list):
+        return ''
+    values = []
+    for item in content:
+        if not isinstance(item, dict) or item.get('type') == 'encrypted_content':
+            continue
+        value = item.get('text')
+        if isinstance(value, str):
+            values.append(value)
+    return '\n'.join(values)
+
+
+def preplan_command_allowed(command: dict, task: Path) -> bool:
+    """Allow only exact worktree setup or a bounded read-only discovery vocabulary."""
+    body = shell_body(command.get('command', ''))
+    cwd = Path(command.get('cwd', '/')).resolve()
+    exact_worktree_setup = bool(worktree_add(body)) \
+        and not any(character in body for character in (';', '&', '|', '\n', '>', '<')) \
+        and cwd != task.resolve()
+    if exact_worktree_setup:
+        return True
+    if cwd == task.resolve() or re.search(r'(?<!2)>|>>(?!/dev/null)|<(?!<)', body):
+        return False
+    normalized = body.replace('2>/dev/null', '')
+    segments = [part.strip() for part in re.split(r'\n|;|&&|\|\|', normalized) if part.strip()]
+    for segment in segments:
+        try:
+            words = shlex.split(segment)
+        except ValueError:
+            return False
+        if not words or words == ['true']:
+            continue
+        executable = Path(words[0]).name
+        if executable in {'pwd', 'rg', 'sed', 'stat'}:
+            if executable == 'rg' and '--files' not in words[1:]:
+                return False
+            if executable == 'sed' and words[1:2] != ['-n']:
+                return False
+            continue
+        if executable in {'python3', 'python3.11'} and words[1:] == ['--version']:
+            continue
+        if executable == 'codex-framework-stack-context' and words[1:2] == ['project'] and len(words) == 3:
+            continue
+        git_words = normalize_git_words(words)
+        if git_words[:1] != ['git']:
+            return False
+        args = git_words[1:]
+        if args == ['--version'] or args[:1] in (['status'], ['ls-files'], ['check-ignore']) \
+                or args[:2] == ['worktree', 'list'] or args[:2] == ['branch', '--list']:
+            continue
+        return False
+    return bool(segments)
+
+
+def tagged_messages(records: list[dict], allowed: set[str]) -> list[dict]:
+    events = []
+    for index, record in enumerate(records):
+        text = assistant_text(record)
+        if not text:
+            continue
+        match = DEBATE_TAG.fullmatch(text.strip())
+        if match:
+            kind, finding, detail = match.groups()
+            if kind in allowed:
+                events.append({'kind': kind, 'findingId': finding, 'detail': (detail or '').strip(),
+                               'when': record_time(record, index), 'recordIndex': index})
+    return events
+
+
+def tester_paths(records: list[dict]) -> set[str]:
+    paths = set()
+    for record in records:
+        payload = record.get('payload', {})
+        if record.get('type') == 'event_msg' and payload.get('type') == 'item_completed':
+            item = payload.get('item', {})
+            if item.get('type') == 'SubAgentActivity' and item.get('kind') == 'started' \
+                    and isinstance(item.get('agent_path'), str):
+                paths.add(item['agent_path'])
+    return paths
+
+
+def followup_events(records: list[dict]) -> list[dict]:
+    events = []
+    for index, record in enumerate(records):
+        payload = record.get('payload', {})
+        if record.get('type') != 'response_item' or payload.get('type') != 'function_call' \
+                or payload.get('name', '').split('.')[-1] != 'followup_task':
+            continue
+        try:
+            arguments = decode_object(payload.get('arguments', '{}'))
+        except (ValueError, TypeError):
+            arguments = {}
+        target = arguments.get('target')
+        if isinstance(target, str):
+            events.append({'target': target, 'when': record_time(record, index),
+                           'recordIndex': index, 'message': arguments.get('message')})
+    return events
+
+
+def inbound_agent_messages(records: list[dict], author: str | None,
+                           recipient: str | None) -> list[dict]:
+    """Return ciphertext receipts recorded by the addressed native session.
+
+    Native collaboration encrypts message bodies at rest, but the same ciphertext
+    is recorded in the root tool call and the addressed child's inbound event.
+    Equality binds delivery without decrypting or retaining model-visible prose.
+    """
+    events = []
+    for index, record in enumerate(records):
+        payload = record.get('payload', {})
+        if record.get('type') != 'response_item' or payload.get('type') != 'agent_message' \
+                or payload.get('author') != author or payload.get('recipient') != recipient:
+            continue
+        content = payload.get('content')
+        ciphertexts = [item.get('encrypted_content') for item in content
+                       if isinstance(item, dict) and item.get('type') == 'encrypted_content'
+                       and isinstance(item.get('encrypted_content'), str)] if isinstance(content, list) else []
+        for ciphertext in ciphertexts:
+            events.append({'message': ciphertext, 'when': record_time(record, index),
+                           'recordIndex': index})
+    return events
+
+
+def outbound_tool_messages(records: list[dict], tool: str, target: str) -> list[dict]:
+    events = []
+    for index, record in enumerate(records):
+        payload = record.get('payload', {})
+        if record.get('type') != 'response_item' or payload.get('type') != 'function_call' \
+                or payload.get('name', '').split('.')[-1] != tool:
+            continue
+        try:
+            arguments = decode_object(payload.get('arguments', '{}'))
+        except (ValueError, TypeError):
+            continue
+        if arguments.get('target') == target and isinstance(arguments.get('message'), str):
+            events.append({'message': arguments['message'], 'when': record_time(record, index),
+                           'recordIndex': index})
+    return events
+
+
+def implementation_mutations(records: list[dict], task: Path) -> list[dict]:
+    """Return native typed FileChange events, independent of tool-call syntax."""
+    mutations = []
+    for index, record in enumerate(records):
+        payload = record.get('payload', {})
+        item = payload.get('item', {})
+        if record.get('type') != 'event_msg' or payload.get('type') != 'item_completed' \
+                or item.get('type') != 'FileChange' or item.get('status') != 'completed':
+            continue
+        changes = item.get('changes')
+        if not isinstance(changes, dict) or not changes:
+            mutations.append({'when': record_time(record, index), 'recordIndex': index,
+                              'paths': [], 'targetVerified': False})
+            continue
+        paths = [Path(path).resolve() for path in changes if isinstance(path, str)]
+        in_task = len(paths) == len(changes) and all(
+            path == task.resolve() or task.resolve() in path.parents for path in paths)
+        mutations.append({'when': record_time(record, index), 'recordIndex': index,
+                          'paths': [str(path) for path in paths], 'targetVerified': in_task})
+    return mutations
+
+
+def evidence_pointer(detail: str) -> dict | None:
+    match = re.search(r'\bevidence=(command|file|provider|browser|trace):(.+?)(?:;\s|$)', detail)
+    if not match or not match[2].strip():
+        return None
+    return {'source': match[1], 'pointer': match[2].strip()}
+
+
+def pointer_verified(pointer: dict, commands: list[dict], task: Path,
+                     after: tuple[float, int], before: tuple[float, int]) -> bool:
+    candidates = [command for command in commands
+                  if after < record_time({'timestamp': command.get('timestamp')}, command.get('recordIndex', -1)) < before
+                  and command.get('exit_code') == 0
+                  and Path(command.get('cwd', '/')).resolve() == task.resolve()]
+    if pointer['source'] == 'command':
+        return any(shell_body(command.get('command', '')) == pointer['pointer'] for command in candidates)
+    if pointer['source'] == 'file':
+        try:
+            relative = Path(pointer['pointer'])
+            if relative.is_absolute() or '..' in relative.parts:
+                return False
+            expected = ['test', '-f', relative.as_posix()]
+            return any(shlex.split(shell_body(command.get('command', ''))) == expected for command in candidates)
+        except ValueError:
+            return False
+    return False
+
+
+def debate_conformance(root_records: list[dict], child_records: dict[str, list[dict]], task: Path,
+                       expected: tuple[str, ...] = ('PLAN-1', 'RESULT-1')) -> dict:
+    """Build a versioned per-finding receipt from recorded native family events.
+
+    Model prose is only lifecycle content. Evidence is compliant only when a
+    typed pointer resolves to a successful native child command in the required
+    order. Unsupported or missing trace shapes are unverifiable, never success.
+    """
+    results = []
+    paths = tester_paths(root_records)
+    family_complete = len(child_records) == 1 and len(paths) == 1
+    tester_path = next(iter(paths), None)
+    followups = followup_events(root_records)
+    root_events = tagged_messages(root_records, {'developer_response', 'parent_adjudication'})
+    child_events = []
+    inbound_messages = []
+    outbound_challenges = []
+    verification_commands = native_commands(root_records)
+    for records in child_records.values():
+        child_events.extend(tagged_messages(records, {'challenge', 'challenger_disposition'}))
+        inbound_messages.extend(inbound_agent_messages(records, '/root', tester_path))
+        outbound_challenges.extend(outbound_tool_messages(records, 'send_message', '/root'))
+        verification_commands.extend(native_commands(records))
+    root_challenge_receipts = inbound_agent_messages(root_records, tester_path, '/root')
+    matched_encrypted_challenges = [outbound for outbound in outbound_challenges
+                                    if any(outbound['message'] == inbound['message']
+                                           and outbound['when'] <= inbound['when']
+                                           for inbound in root_challenge_receipts)]
+    for finding in expected:
+        if any(event['kind'] == 'challenge' and event['findingId'] == finding
+               for event in child_events):
+            continue
+        responses = [event for event in root_events
+                     if event['kind'] == 'developer_response' and event['findingId'] == finding]
+        if len(responses) != 1:
+            continue
+        lower = (float('-inf'), -1)
+        if finding == 'RESULT-1':
+            adjudications = [event for event in root_events
+                             if event['kind'] == 'parent_adjudication'
+                             and event['findingId'] == 'PLAN-1']
+            if len(adjudications) != 1:
+                continue
+            lower = adjudications[0]['when']
+        candidates = [event for event in matched_encrypted_challenges
+                      if lower < event['when'] < responses[0]['when']]
+        if len(candidates) == 1:
+            child_events.append({'kind': 'challenge', 'findingId': finding,
+                                 'detail': 'encrypted native same-tester challenge',
+                                 'when': candidates[0]['when'],
+                                 'recordIndex': candidates[0]['recordIndex']})
+    for finding in expected:
+        dispositions = [event for event in child_events
+                        if event['kind'] == 'challenger_disposition'
+                        and event['findingId'] == finding]
+        responses = [event for event in root_events
+                     if event['kind'] == 'developer_response' and event['findingId'] == finding]
+        adjudications = [event for event in root_events
+                         if event['kind'] == 'parent_adjudication' and event['findingId'] == finding]
+        if len(dispositions) != 1 or len(responses) != 1 or len(adjudications) != 1 \
+                or responses[0]['when'] < dispositions[0]['when'] < adjudications[0]['when']:
+            continue
+        deliveries = [event for event in matched_encrypted_challenges
+                      if responses[0]['when'] < event['when'] < adjudications[0]['when']]
+        if len(deliveries) == 1:
+            dispositions[0]['when'] = deliveries[0]['when']
+            dispositions[0]['recordIndex'] = deliveries[0]['recordIndex']
+    all_events = root_events + child_events
+    observed_findings = {event['findingId'] for event in all_events}
+    findings = [*expected, *sorted(observed_findings - set(expected))]
+    mutations = implementation_mutations(root_records, task)
+    expected_events = {finding: {kind: [event for event in all_events
+                                        if event['findingId'] == finding and event['kind'] == kind]
+                                 for kind in ('challenge', 'developer_response',
+                                              'challenger_disposition', 'parent_adjudication')}
+                       for finding in expected}
+    plan_end = expected_events['PLAN-1']['parent_adjudication']
+    plan_start = expected_events['PLAN-1']['challenge']
+    result_start = expected_events['RESULT-1']['challenge']
+    mutation_boundary = None
+    if len(plan_end) == 1 and len(result_start) == 1 and mutations:
+        mutation_boundary = (plan_end[0]['when'], result_start[0]['when'])
+    for finding in findings:
+        phase = 'pre' if finding == 'PLAN-1' else 'post' if finding == 'RESULT-1' else 'single'
+        by_kind = {kind: [event for event in all_events
+                          if event['findingId'] == finding and event['kind'] == kind]
+                   for kind in ('challenge', 'developer_response', 'challenger_disposition', 'parent_adjudication')}
+        reasons = []
+        pointers = []
+        if finding not in expected:
+            results.append({'exchangeId': f'delivery-{finding.lower()}', 'findingId': finding,
+                            'phase': phase, 'status': 'violation',
+                            'reasons': ['unexpected native finding is not resolved by the certified exchange set'],
+                            'evidencePointers': []})
+            continue
+        missing = [kind for kind, events in by_kind.items() if len(events) == 0]
+        duplicates = [kind for kind, events in by_kind.items() if len(events) > 1]
+        if missing:
+            reasons.append('missing native events: ' + ', '.join(missing))
+        if not family_complete:
+            reasons.append('native task family is incomplete or tester identity is ambiguous')
+        status = 'unverifiable' if missing or not family_complete else 'compliant'
+        if duplicates:
+            status = 'violation'
+            reasons.append('duplicate or contradictory native events: ' + ', '.join(duplicates))
+        if status == 'compliant':
+            challenge = by_kind['challenge'][0]
+            response = by_kind['developer_response'][0]
+            disposition = by_kind['challenger_disposition'][0]
+            adjudication = by_kind['parent_adjudication'][0]
+            if any(event['when'][0] == float('inf') for event in
+                   (challenge, response, disposition, adjudication)):
+                status = 'unverifiable'
+                reasons.append('native debate event timestamp is unavailable')
+            elif not (challenge['when'] < response['when'] < disposition['when'] < adjudication['when']):
+                status = 'violation'
+                reasons.append('native debate event order is invalid')
+            if not re.match(r'^(accept|rebut)\b', response['detail']):
+                status = 'violation'; reasons.append('developer response outcome is invalid')
+            nonce_match = re.search(r'\bnonce=([a-f0-9]{16,64})\b', response['detail'])
+            nonce = nonce_match.group(1) if nonce_match else None
+            if nonce is None:
+                status = 'unverifiable'; reasons.append('fresh developer-response nonce is missing')
+            else:
+                prior_records = [record for records in [root_records, *child_records.values()]
+                                 for index, record in enumerate(records)
+                                 if record_time(record, index) < response['when']]
+                if any(nonce in visible_message_text(record) for record in prior_records):
+                    status = 'violation'; reasons.append('developer-response nonce was present before the response')
+                targeted = [event for event in followups
+                            if event['target'] == tester_path
+                            and response['when'] < event['when'] < disposition['when']]
+                if len(targeted) != 1:
+                    status = 'unverifiable'
+                    reasons.append('exactly one ordered followup to the same tester is required')
+                elif not isinstance(targeted[0].get('message'), str) or not any(
+                        inbound['message'] == targeted[0]['message']
+                        and targeted[0]['when'] <= inbound['when'] < disposition['when']
+                        for inbound in inbound_messages):
+                    status = 'unverifiable'
+                    reasons.append('followup ciphertext is not recorded by the same tester')
+            pointer = evidence_pointer(response['detail'])
+            if pointer is None:
+                status = 'unverifiable'; reasons.append('typed evidence pointer is missing')
+            else:
+                pointers.append(pointer)
+                if not pointer_verified(pointer, verification_commands, task, response['when'], disposition['when']):
+                    status = 'unverifiable'; reasons.append('typed evidence pointer lacks ordered native verification')
+            disposition_match = re.fullmatch(
+                r'(resolved|withdrawn|unresolved)\s+responseNonce=([a-f0-9]{16,64})',
+                disposition['detail'])
+            disposition_outcome = disposition_match.group(1) if disposition_match else None
+            disposition_nonce = disposition_match.group(2) if disposition_match else None
+            if disposition_match is None:
+                status = 'violation'; reasons.append('challenger disposition is invalid')
+            elif nonce is not None and disposition_nonce != nonce:
+                status = 'violation'; reasons.append('challenger disposition nonce does not match the developer response')
+            elif disposition_outcome == 'unresolved':
+                status = 'violation'; reasons.append('finding remains unresolved')
+            if adjudication['detail'] not in {'accept', 'reject'}:
+                status = 'violation'; reasons.append('parent adjudication is invalid')
+            elif adjudication['detail'] != 'accept':
+                status = 'violation'; reasons.append('parent rejected the disposition')
+            if mutation_boundary is None:
+                if status == 'compliant':
+                    status = 'unverifiable'
+                reasons.append('supported implementation mutation boundary is unavailable')
+            elif any(not (mutation_boundary[0] < mutation['when'] < mutation_boundary[1])
+                     for mutation in mutations):
+                status = 'violation'
+                reasons.append('implementation mutation occurred outside plan-adjudication/result-challenge boundary')
+            if any(mutation.get('targetVerified') is not True for mutation in mutations):
+                status = 'violation'
+                reasons.append('native FileChange target escaped or could not be bound to the task worktree')
+            if len(plan_start) == 1:
+                pre_plan_commands = []
+                for command in verification_commands:
+                    if command.get('exit_code') != 0 or record_time(
+                            {'timestamp': command.get('timestamp')},
+                            command.get('recordIndex', -1)) >= plan_start[0]['when']:
+                        continue
+                    if not preplan_command_allowed(command, task):
+                        pre_plan_commands.append(command)
+                if pre_plan_commands:
+                    status = 'violation'
+                    reasons.append('successful command other than exact worktree setup occurred before the plan challenge')
+        results.append({'exchangeId': f'delivery-{finding.lower()}', 'findingId': finding,
+                        'phase': phase, 'status': status, 'reasons': reasons,
+                        'evidencePointers': pointers})
+    if any(result['status'] != 'compliant' for result in results):
+        family_complete = False
+    return {'conformanceVersion': CONFORMANCE_VERSION, 'scope': 'release-certification',
+            'familyComplete': family_complete, 'bindings': debate_bindings(task), 'results': results}
 
 
 def capture_rollouts(raw: str, output: Path, started: float) -> dict:
@@ -406,7 +854,9 @@ def capture_rollouts(raw: str, output: Path, started: float) -> dict:
             child_records[child] = read_records(path)
             validate_child_metadata(child_records[child], roots[0])
             shutil.copy2(path, evidence / path.name)
+        conformance = debate_conformance(root_records, child_records, Path(root_records[0]['payload']['cwd']).parent / 'task')
         return {'available': True, 'rootThreadId': roots[0], 'rootCommands': native_commands(root_records),
+                'debateConformance': conformance,
                 'children': {child: {'commands': native_commands(records),
                                     'completionRecordIndexes': [index for index, record in enumerate(records)
                                                                 if record.get('type') == 'event_msg'
@@ -718,10 +1168,18 @@ def grade(case: str, fixture: dict, raw: str, rollouts: dict | None = None) -> d
                   'immutableChecksPreserved': immutable, 'behaviorPassed': behavior, 'deliveryPassed': delivery,
                   'configTransferProved': transferred, 'requiredCommandObserved': command_ok,
                   'mainClean': clean_main, 'mainSha': main, 'taskSha': tip, 'trace': trace}
-        status = 'passed' if state_ok and trace['testerCommandObserved'] else 'failed'
+        debate = rollouts.get('debateConformance') if rollouts else None
+        debate_ok = rollouts is None or (isinstance(debate, dict) and debate.get('familyComplete') is True
+            and all(result.get('status') == 'compliant' for result in debate.get('results', [])))
+        detail['debateConformance'] = debate
+        status = 'passed' if state_ok and trace['testerCommandObserved'] and debate_ok else 'failed'
         if not trace['testerCommandObserved']:
             status = 'unavailable'
             detail['unavailableReason'] = (rollouts.get('error') if rollouts and not rollouts.get('available') else 'native trace lacks a completed tester challenge command in the task cwd; child prose is insufficient')
+        elif rollouts is not None and not debate_ok:
+            status = 'unavailable' if not debate or any(
+                result.get('status') == 'unverifiable' for result in debate.get('results', [])) else 'failed'
+            detail['unavailableReason'] = 'native debate conformance is incomplete or non-compliant'
         return {'case': case, 'status': status, **detail}
     except (OSError, ValueError, TypeError, KeyError, subprocess.SubprocessError) as error:
         return {'case': case, 'status': 'failed', 'error': str(error)}
@@ -752,7 +1210,8 @@ def save_state_attestation(fixture: dict, output: Path) -> None:
     (output / 'state-attestation.json').write_text(json.dumps(state, indent=2) + '\n')
 
 
-def validate_case_artifacts(directory: Path, case: str, source: Path, runtime: str) -> dict:
+def validate_case_artifacts(directory: Path, case: str, source: Path, runtime: str,
+                            require_session_store: bool = True) -> dict:
     """Validate collector files and native recordings, never summary verdicts.
 
     State files are trusted collector output outside the candidate write root.
@@ -778,10 +1237,11 @@ def validate_case_artifacts(directory: Path, case: str, source: Path, runtime: s
             raise ValueError('native archive identity/runtime mismatch')
         when = dt.datetime.fromisoformat(meta['timestamp'].replace('Z', '+00:00'))
         dates = [(when + dt.timedelta(days=i)).strftime('%Y/%m/%d') for i in (-1, 0, 1)]
-        sessions = Path(os.environ.get('CODEX_HOME', str(Path.home() / '.codex'))) / 'sessions'
-        original = rollout_for(thread, sessions, dates)
-        if not original.read_bytes().startswith(path.read_bytes()):
-            raise ValueError('archive is not an exact recorded native session prefix')
+        if require_session_store:
+            sessions = Path(os.environ.get('CODEX_HOME', str(Path.home() / '.codex'))) / 'sessions'
+            original = rollout_for(thread, sessions, dates)
+            if not original.read_bytes().startswith(path.read_bytes()):
+                raise ValueError('archive is not an exact recorded native session prefix')
         files.append(path)
         return records
 
@@ -791,8 +1251,10 @@ def validate_case_artifacts(directory: Path, case: str, source: Path, runtime: s
     task = repo.parent / 'task'
     commands = native_commands(root)
     child_checks = []
+    child_record_map = {}
     for child in spawned_testers(root):
         records = native_archive(child)
+        child_record_map[child] = records
         validate_child_metadata(records, roots[0])
         observed = native_commands(records)
         proof = {'commands': observed,
@@ -803,6 +1265,11 @@ def validate_case_artifacts(directory: Path, case: str, source: Path, runtime: s
         commands.extend(observed)
     if not any(child_checks):
         raise ValueError('no recorded standalone completed tester challenge')
+    conformance = debate_conformance(root, child_record_map, task)
+    if conformance.get('familyComplete') is not True or any(
+            result.get('status') != 'compliant' for result in conformance.get('results', [])):
+        raise ValueError('native debate conformance is incomplete or non-compliant: '
+                         + json.dumps(conformance, sort_keys=True))
     flag = '--rebuttal' if case == 'false-positive' else '--ci' if case == 'ci-repair' else '--challenge'
     if not any(verified_native_check(c, flag, task) for c in commands):
         raise ValueError('required standalone native verification missing')
@@ -812,6 +1279,8 @@ def validate_case_artifacts(directory: Path, case: str, source: Path, runtime: s
     execution = json.loads((directory / 'grade.json').read_text())
     if type(execution.get('nativeExitCode')) is not int or execution['nativeExitCode'] != 0:
         raise ValueError('native execution did not exit successfully')
+    if execution.get('debateConformance') != conformance:
+        raise ValueError('recorded debate conformance differs from raw native family')
     if state.get('initialCommit') != meta.get('git', {}).get('commit_hash'):
         raise ValueError('state initial commit is not native-session bound')
     for key in ('initialCommit', 'mainCommit', 'candidateCommit', 'candidateTree', 'mainTree'):
@@ -850,6 +1319,7 @@ def validate_case_artifacts(directory: Path, case: str, source: Path, runtime: s
     if not committed_task_observed(commands, task, state['candidateCommit'], objects=objects):
         raise ValueError('candidate commit not bound to native Git execution')
     return {'case': case, 'verdict': 'passed', 'rootThreadId': roots[0], 'cliVersion': runtime,
+            'debateConformance': conformance,
             'artifacts': [{'path': str(p.relative_to(directory)), 'sha256': hashlib.sha256(p.read_bytes()).hexdigest(), 'bytes': p.stat().st_size} for p in sorted(set(files))]}
 
 
@@ -921,6 +1391,171 @@ def parser_trace(flag='--challenge', task=None) -> str:
 
 
 class Tests(unittest.TestCase):
+    def test_versioned_debate_conformance_is_per_finding_and_fail_closed(self):
+        task = Path('/fixture/task')
+        plan_nonce = '0123456789abcdef'
+        result_nonce = 'fedcba9876543210'
+        def assistant(at, text):
+            return {'timestamp': at, 'type': 'response_item', 'payload': {
+                'type': 'message', 'role': 'assistant',
+                'content': [{'type': 'output_text', 'text': text}]}}
+        def response(at, finding, pointer, nonce):
+            return assistant(at, f'[developer_response:{finding}] accept evidence={pointer}; nonce={nonce}')
+        def followup(at, message, target='/root/challenge'):
+            return {'timestamp': at, 'type': 'response_item', 'payload': {
+                'type': 'function_call', 'name': 'followup_task',
+                'arguments': json.dumps({'target': target, 'message': message})}}
+        def inbound(at, message):
+            return {'timestamp': at, 'type': 'response_item', 'payload': {
+                'type': 'agent_message', 'author': '/root', 'recipient': '/root/challenge',
+                'content': [{'type': 'encrypted_content', 'encrypted_content': message}]}}
+        def command(at, command):
+            return [
+                {'timestamp': at, 'type': 'response_item', 'payload': {
+                    'type': 'function_call', 'name': 'exec_command', 'call_id': at,
+                    'arguments': json.dumps({'cmd': command, 'workdir': str(task)})}},
+                {'timestamp': at, 'type': 'response_item', 'payload': {
+                    'type': 'function_call_output', 'call_id': at,
+                    'output': {'exit_code': 0, 'output': 'ok'}}},
+            ]
+        def mutation(at):
+            return {'timestamp': at, 'type': 'event_msg', 'payload': {
+                'type': 'item_completed', 'item': {'type': 'FileChange', 'status': 'completed',
+                    'changes': {'/fixture/task/calc.py': {'type': 'update'}}}}}
+        root = [
+            {'timestamp': '2026-09-21T00:00:00.500Z', 'type': 'event_msg',
+             'payload': {'type': 'item_completed', 'item': {'type': 'SubAgentActivity',
+                'kind': 'started', 'agent_path': '/root/challenge'}}},
+            response('2026-09-21T00:00:02Z', 'PLAN-1', 'file:README.md', plan_nonce),
+            *command('2026-09-21T00:00:03Z', 'test -f README.md'),
+            followup('2026-09-21T00:00:03.250Z', 'cipher-plan'),
+            assistant('2026-09-21T00:00:04Z', '[parent_adjudication:PLAN-1] accept'),
+            mutation('2026-09-21T00:00:04.500Z'),
+            response('2026-09-21T00:00:06Z', 'RESULT-1', 'command:python3 verify.py --challenge', result_nonce),
+            *command('2026-09-21T00:00:07Z', 'python3 verify.py --challenge'),
+            followup('2026-09-21T00:00:07.250Z', 'cipher-result'),
+            assistant('2026-09-21T00:00:08Z', '[parent_adjudication:RESULT-1] accept'),
+        ]
+        child = [
+            assistant('2026-09-21T00:00:01Z', '[challenge:PLAN-1]\n\nmissing behavior\nwith evidence scope'),
+            inbound('2026-09-21T00:00:03.300Z', 'cipher-plan'),
+            assistant('2026-09-21T00:00:03.500Z',
+                      f'[challenger_disposition:PLAN-1] resolved responseNonce={plan_nonce}'),
+            assistant('2026-09-21T00:00:05Z', '[challenge:RESULT-1] failure path'),
+            inbound('2026-09-21T00:00:07.300Z', 'cipher-result'),
+            assistant('2026-09-21T00:00:07.500Z',
+                      f'[challenger_disposition:RESULT-1] resolved responseNonce={result_nonce}'),
+        ]
+        receipt = debate_conformance(root, {'child': child}, task)
+        self.assertEqual(receipt['conformanceVersion'], 3)
+        self.assertTrue(receipt['familyComplete'])
+        self.assertTrue(all(row['status'] == 'compliant' for row in receipt['results']))
+        self.assertEqual(receipt['bindings']['environmentScope'], 'disposable-local-no-network')
+        self.assertEqual(evidence_pointer(
+            'accept evidence=file:README.md; verify-now=test -f README.md'),
+            {'source': 'file', 'pointer': 'README.md'})
+
+        missing = debate_conformance(root, {}, task)
+        self.assertFalse(missing['familyComplete'])
+        self.assertTrue(all(row['status'] == 'unverifiable' for row in missing['results']))
+        duplicate = debate_conformance(root + [root[1]], {'child': child}, task)
+        self.assertEqual(duplicate['results'][0]['status'], 'violation')
+        unordered = copy.deepcopy(child)
+        unordered[-1]['timestamp'] = '2026-09-21T00:00:06.500Z'
+        receipt = debate_conformance(root, {'child': unordered}, task)
+        self.assertNotEqual(receipt['results'][1]['status'], 'compliant')
+        unexpected = child + [assistant('2026-09-21T00:00:04.700Z',
+                                        '[challenge:SECURITY-2] open defect')]
+        receipt = debate_conformance(root, {'child': unexpected}, task)
+        self.assertFalse(receipt['familyComplete'])
+        self.assertEqual(next(row for row in receipt['results']
+                              if row['findingId'] == 'SECURITY-2')['status'], 'violation')
+        quoted_root = copy.deepcopy(root)
+        quoted_root[1] = assistant('2026-09-21T00:00:02Z',
+            '```text\n[developer_response:PLAN-1] accept evidence=file:README.md\n```\nQuoted hypothetical transcript; not my decision')
+        receipt = debate_conformance(quoted_root, {'child': child}, task)
+        self.assertNotEqual(receipt['results'][0]['status'], 'compliant')
+        for moved in ('2026-09-21T00:00:00.500Z', '2026-09-21T00:00:08.500Z'):
+            moved_root = copy.deepcopy(root)
+            next(record for record in moved_root
+                 if record.get('payload', {}).get('item', {}).get('type') == 'FileChange')['timestamp'] = moved
+            receipt = debate_conformance(moved_root, {'child': child}, task)
+            self.assertFalse(receipt['familyComplete'])
+            self.assertTrue(any(row['status'] == 'violation' for row in receipt['results']))
+        no_followup = [record for record in root
+                       if record.get('payload', {}).get('name') != 'followup_task']
+        self.assertNotEqual(debate_conformance(no_followup, {'child': child}, task)['results'][0]['status'],
+                            'compliant')
+        wrong_target = copy.deepcopy(root)
+        next(record for record in wrong_target
+             if record.get('payload', {}).get('name') == 'followup_task')['payload']['arguments'] = \
+            json.dumps({'target': '/root/other', 'message': 'cipher-plan'})
+        self.assertNotEqual(debate_conformance(wrong_target, {'child': child}, task)['results'][0]['status'],
+                            'compliant')
+        wrong_nonce = copy.deepcopy(child)
+        wrong_nonce[2] = assistant('2026-09-21T00:00:03.500Z',
+                                   '[challenger_disposition:PLAN-1] resolved responseNonce=aaaaaaaaaaaaaaaa')
+        self.assertEqual(debate_conformance(root, {'child': wrong_nonce}, task)['results'][0]['status'],
+                         'violation')
+        pre_plan_command = copy.deepcopy(root)
+        pre_plan_command[1:1] = command('2026-09-21T00:00:00.750Z', "git commit -am 'premature'")
+        self.assertEqual(debate_conformance(pre_plan_command, {'child': child}, task)['results'][0]['status'],
+                         'violation')
+        cross_cwd_command = copy.deepcopy(root)
+        cross_cwd_command[1:1] = [{**record, 'payload': {**record['payload'],
+            'arguments': json.dumps({'cmd': "python3 -c \"open('/fixture/task/calc.py','w').write('bad')\"",
+                                     'workdir': '/fixture/checkout'})}}
+            if record.get('payload', {}).get('type') == 'function_call' else record
+            for record in command('2026-09-21T00:00:00.750Z', 'placeholder')]
+        self.assertEqual(debate_conformance(cross_cwd_command, {'child': child}, task)['results'][0]['status'],
+                         'violation')
+        self.assertTrue(preplan_command_allowed({
+            'command': "/bin/zsh -lc \"pwd && rg --files -g 'README.md' && git status --short --branch && stat -f '%Lp %N' .env.fixture 2>/dev/null || true\"",
+            'cwd': '/fixture/checkout'}, task))
+        self.assertFalse(preplan_command_allowed({
+            'command': "python3 -c \"open('/fixture/task/calc.py','w').write('bad')\"",
+            'cwd': '/fixture/checkout'}, task))
+        encrypted_root = copy.deepcopy(root)
+        encrypted_root.extend([
+            {'timestamp': '2026-09-21T00:00:01.200Z', 'type': 'response_item', 'payload': {
+                'type': 'agent_message', 'author': '/root/challenge', 'recipient': '/root',
+                'content': [{'type': 'encrypted_content', 'encrypted_content': 'cipher-challenge-plan'}]}},
+            {'timestamp': '2026-09-21T00:00:05.200Z', 'type': 'response_item', 'payload': {
+                'type': 'agent_message', 'author': '/root/challenge', 'recipient': '/root',
+                'content': [{'type': 'encrypted_content', 'encrypted_content': 'cipher-challenge-result'}]}},
+            {'timestamp': '2026-09-21T00:00:03.450Z', 'type': 'response_item', 'payload': {
+                'type': 'agent_message', 'author': '/root/challenge', 'recipient': '/root',
+                'content': [{'type': 'encrypted_content', 'encrypted_content': 'cipher-disposition-plan'}]}},
+            {'timestamp': '2026-09-21T00:00:07.450Z', 'type': 'response_item', 'payload': {
+                'type': 'agent_message', 'author': '/root/challenge', 'recipient': '/root',
+                'content': [{'type': 'encrypted_content', 'encrypted_content': 'cipher-disposition-result'}]}},
+        ])
+        encrypted_child = [record for record in copy.deepcopy(child)
+                           if '[challenge:' not in (assistant_text(record) or '')]
+        encrypted_child.extend([
+            {'timestamp': '2026-09-21T00:00:01.100Z', 'type': 'response_item', 'payload': {
+                'type': 'function_call', 'name': 'send_message',
+                'arguments': json.dumps({'target': '/root', 'message': 'cipher-challenge-plan'})}},
+            {'timestamp': '2026-09-21T00:00:05.100Z', 'type': 'response_item', 'payload': {
+                'type': 'function_call', 'name': 'send_message',
+                'arguments': json.dumps({'target': '/root', 'message': 'cipher-challenge-result'})}},
+            {'timestamp': '2026-09-21T00:00:03.400Z', 'type': 'response_item', 'payload': {
+                'type': 'function_call', 'name': 'send_message',
+                'arguments': json.dumps({'target': '/root', 'message': 'cipher-disposition-plan'})}},
+            {'timestamp': '2026-09-21T00:00:07.400Z', 'type': 'response_item', 'payload': {
+                'type': 'function_call', 'name': 'send_message',
+                'arguments': json.dumps({'target': '/root', 'message': 'cipher-disposition-result'})}},
+        ])
+        next(record for record in encrypted_child
+             if '[challenger_disposition:PLAN-1]' in (assistant_text(record) or ''))['timestamp'] = \
+            '2026-09-21T00:00:04.200Z'
+        next(record for record in encrypted_child
+             if '[challenger_disposition:RESULT-1]' in (assistant_text(record) or ''))['timestamp'] = \
+            '2026-09-21T00:00:08.200Z'
+        encrypted_receipt = debate_conformance(encrypted_root, {'child': encrypted_child}, task)
+        self.assertTrue(encrypted_receipt['familyComplete'], encrypted_receipt)
+        self.assertTrue(all(row['status'] == 'compliant' for row in encrypted_receipt['results']))
+
     def test_native_v2_spawn_activity_proves_tester_identity_without_tool_output(self):
         records = [
             {'type': 'response_item', 'payload': {
@@ -1179,7 +1814,14 @@ class Tests(unittest.TestCase):
                 {'command': 'git worktree add -b codex/fix ../task', 'cwd': str(repo), 'exit_code': 0},
                 {'command': "env TMPDIR=/fixture git add calc.py && env TMPDIR=/fixture git commit -m 'fix' && git rev-parse HEAD && git status --short --branch", 'cwd': str(task), 'exit_code': 0, 'output': f'[codex/fix {sha[:7]}] fix\n{sha}\n## codex/fix\n'},
             ], 'children': {'child': {'completionRecordIndexes': [2], 'commands': [
-                {'command': 'python3 verify.py --challenge', 'cwd': str(task), 'exit_code': 0, 'recordIndex': 1}]}}}
+                {'command': 'python3 verify.py --challenge', 'cwd': str(task), 'exit_code': 0, 'recordIndex': 1}]}},
+                'debateConformance': {'conformanceVersion': 3, 'scope': 'release-certification',
+                    'familyComplete': True, 'bindings': debate_bindings(task), 'results': [
+                        {'exchangeId': 'delivery-plan-1', 'findingId': 'PLAN-1', 'phase': 'pre',
+                         'status': 'compliant', 'reasons': [], 'evidencePointers': [{'source': 'file', 'pointer': 'README.md'}]},
+                        {'exchangeId': 'delivery-result-1', 'findingId': 'RESULT-1', 'phase': 'post',
+                         'status': 'compliant', 'reasons': [], 'evidencePointers': [{'source': 'command', 'pointer': 'python3 verify.py --challenge'}]},
+                    ]}}
             self.assertEqual(grade('merge-cleanup', f, parser_trace(task=task), native)['status'], 'passed')
             configured_commit = {**native['rootCommands'][1],
                 'command': "git add calc.py && git -c user.name=Codex -c user.email=codex@local commit -m 'fix'",
@@ -1215,17 +1857,46 @@ class Tests(unittest.TestCase):
             sha = git(task, 'rev-parse', 'HEAD')
             evidence = area / 'evidence'; evidence.mkdir()
             save_state_attestation(f, evidence)
-            (evidence / 'grade.json').write_text('{"nativeExitCode":0}')
             root_id, child_id = '11111111-1111-1111-1111-111111111111', '22222222-2222-2222-2222-222222222222'
             (evidence / 'events.jsonl').write_text(json.dumps({'type': 'thread.started', 'thread_id': root_id}))
             def meta(identity, **extra):
                 return {'type':'session_meta','payload':{'id':identity,'cli_version':'0.154.0','timestamp':'2026-09-16T00:00:00+00:00','cwd':str(repo),'git':{'commit_hash':f['initial']},**extra}}
-            def execution(command, cwd, output=''):
-                return {'type':'event_msg','payload':{'type':'item_completed','item':{'type':'CommandExecution','status':'completed','command':['/bin/zsh','-lc',command],'cwd':str(cwd),'exit_code':0,'stdout':output}}}
-            roots = [meta(root_id), execution('git worktree add -b codex/fix ../task',repo), execution("git add calc.py && git commit -m 'fix'",task,f'[codex/fix {sha[:7]}] fix\n'),
+            def execution(at, command, cwd, output=''):
+                return {'timestamp':at,'type':'event_msg','payload':{'type':'item_completed','item':{'type':'CommandExecution','status':'completed','command':['/bin/zsh','-lc',command],'cwd':str(cwd),'exit_code':0,'stdout':output}}}
+            def assistant(at, text):
+                return {'timestamp':at,'type':'response_item','payload':{'type':'message','role':'assistant','content':[{'type':'output_text','text':text}]}}
+            def followup(at, text):
+                return {'timestamp':at,'type':'response_item','payload':{'type':'function_call','name':'followup_task','arguments':json.dumps({'target':'/root/challenge','message':text})}}
+            def inbound(at, text):
+                return {'timestamp':at,'type':'response_item','payload':{'type':'agent_message','author':'/root','recipient':'/root/challenge','content':[{'type':'encrypted_content','encrypted_content':text}]}}
+            def mutation(at):
+                return {'timestamp':at,'type':'event_msg','payload':{'type':'item_completed','item':{
+                    'type':'FileChange','status':'completed','changes':{str(task / 'calc.py'):{'type':'update'}}}}}
+            plan_nonce, result_nonce = '0123456789abcdef', 'fedcba9876543210'
+            roots = [meta(root_id), execution('2026-09-16T00:00:00.500+00:00','git worktree add -b codex/fix ../task',repo),
                      {'type':'response_item','payload':{'type':'function_call','name':'spawn_agent','call_id':'spawn','arguments':'{"agent_type":"tester"}'}},
-                     {'type':'response_item','payload':{'type':'function_call_output','call_id':'spawn','output':json.dumps({'agent_id':child_id})}}]
-            children = [meta(child_id,parent_thread_id=root_id,agent_role='tester'),execution('python3 verify.py --challenge',task),{'type':'event_msg','payload':{'type':'task_complete'}}]
+                     {'type':'response_item','payload':{'type':'function_call_output','call_id':'spawn','output':json.dumps({'agent_id':child_id})}},
+                     {'timestamp':'2026-09-16T00:00:00.750+00:00','type':'event_msg','payload':{'type':'item_completed','item':{'type':'SubAgentActivity','kind':'started','agent_path':'/root/challenge'}}},
+                     assistant('2026-09-16T00:00:02+00:00',f'[developer_response:PLAN-1] accept evidence=file:README.md; nonce={plan_nonce}'),
+                     followup('2026-09-16T00:00:03.250+00:00','cipher-plan'),
+                     assistant('2026-09-16T00:00:04+00:00','[parent_adjudication:PLAN-1] accept'),
+                     mutation('2026-09-16T00:00:04.500+00:00'),
+                     execution('2026-09-16T00:00:04.600+00:00',"git add calc.py && git commit -m 'fix'",task,f'[codex/fix {sha[:7]}] fix\n'),
+                     assistant('2026-09-16T00:00:06+00:00',f'[developer_response:RESULT-1] accept evidence=command:python3 verify.py --challenge; nonce={result_nonce}'),
+                     followup('2026-09-16T00:00:07.250+00:00','cipher-result'),
+                     assistant('2026-09-16T00:00:08+00:00','[parent_adjudication:RESULT-1] accept')]
+            children = [meta(child_id,parent_thread_id=root_id,agent_role='tester'),
+                        assistant('2026-09-16T00:00:01+00:00','[challenge:PLAN-1] contract gap'),
+                        execution('2026-09-16T00:00:03+00:00','test -f README.md',task),
+                        inbound('2026-09-16T00:00:03.300+00:00','cipher-plan'),
+                        assistant('2026-09-16T00:00:03.500+00:00',f'[challenger_disposition:PLAN-1] resolved responseNonce={plan_nonce}'),
+                        assistant('2026-09-16T00:00:05+00:00','[challenge:RESULT-1] verify behavior'),
+                        execution('2026-09-16T00:00:07+00:00','python3 verify.py --challenge',task),
+                        inbound('2026-09-16T00:00:07.300+00:00','cipher-result'),
+                        assistant('2026-09-16T00:00:07.500+00:00',f'[challenger_disposition:RESULT-1] resolved responseNonce={result_nonce}'),
+                        {'type':'event_msg','payload':{'type':'task_complete'}}]
+            conformance = debate_conformance(roots, {child_id: children}, task)
+            (evidence / 'grade.json').write_text(json.dumps({'nativeExitCode':0,'debateConformance':conformance}))
             home = area / 'native-home'; sessions = home / 'sessions/2026/09/16'; sessions.mkdir(parents=True)
             archives = evidence / 'native-rollouts'; archives.mkdir()
             for identity, records in ((root_id,roots),(child_id,children)):

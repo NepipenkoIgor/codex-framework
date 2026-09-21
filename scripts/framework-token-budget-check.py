@@ -445,6 +445,9 @@ def rollout_report(path: pathlib.Path, *, details: bool = False,
     session_id: str | None = None
     parent_thread_id: str | None = None
     agent_profile = "unknown"
+    model_efforts: collections.Counter[tuple[str, str]] = collections.Counter()
+    turn_contexts = 0
+    incomplete_model_contexts = 0
     session_metadata_seen = False
     primary_turn_id = owned_turn_id(path)
     owned_events_started = primary_turn_id is None
@@ -547,6 +550,14 @@ def rollout_report(path: pathlib.Path, *, details: bool = False,
                     owned_events_started = True
                 else:
                     continue
+            if entry_type == "turn_context":
+                turn_contexts += 1
+                model = payload.get("model")
+                effort = payload.get("effort", payload.get("model_reasoning_effort"))
+                if isinstance(model, str) and model and isinstance(effort, str) and effort:
+                    model_efforts[(model, effort)] += 1
+                else:
+                    incomplete_model_contexts += 1
             if (entry_type == "event_msg" and payload_type in {"user_message", "task_started"}) or entry_type == "turn_context":
                 epoch += 1
             if entry_type == "compacted":
@@ -715,6 +726,11 @@ def rollout_report(path: pathlib.Path, *, details: bool = False,
         "sessionId": session_id,
         "parentThreadId": parent_thread_id,
         "agentProfile": agent_profile,
+        "effectiveModelEfforts": {
+            f"{model}/{effort}": count for (model, effort), count in sorted(model_efforts.items())
+        },
+        "effectiveModelEffortComplete": turn_contexts > 0 and incomplete_model_contexts == 0,
+        "turnContexts": turn_contexts,
         "turns": len(root_turns),
         "rootTurns": len(root_turns) if thread_role == "root" else None,
         "childTurns": len(root_turns) if thread_role == "child" else None,
@@ -844,6 +860,8 @@ def certification_failures(report: dict[str, object]) -> list[str]:
         failures.append("certification requires a timestamp for every response in every rollout")
     if report.get("provenanceValid") is not True:
         failures.append("certification requires a complete root/child provenance graph")
+    if report.get("modelEffortTelemetryComplete") is not True:
+        failures.append("certification requires effective model and effort metadata for every session")
     profiles = report.get("sessionsByProfile", {})
     if not isinstance(profiles, dict) or int(profiles.get("worker", 0)) < 1:
         failures.append("certification requires at least one provenance-identified worker")
@@ -932,10 +950,19 @@ def family_report(paths: list[pathlib.Path], *, details: bool = False,
     external_results: collections.Counter[str] = collections.Counter()
     tools_by_profile: dict[str, collections.Counter[str]] = collections.defaultdict(collections.Counter)
     sessions_by_profile: collections.Counter[str] = collections.Counter()
+    sessions_by_model_effort: collections.Counter[str] = collections.Counter()
+    missing_model_effort_sessions = 0
     timestamps: list[dt.datetime] = []
     for session in sessions:
         profile_name = str(session.get("agentProfile") or session.get("threadRole") or "unknown")
         sessions_by_profile[profile_name] += 1
+        observed_model_efforts = session.get("effectiveModelEfforts", {})
+        if session.get("effectiveModelEffortComplete") is True \
+                and isinstance(observed_model_efforts, dict) and observed_model_efforts:
+            for identity in observed_model_efforts:
+                sessions_by_model_effort[str(identity)] += 1
+        else:
+            missing_model_effort_sessions += 1
         tools = session.get("_allToolCalls", {})
         if isinstance(tools, dict):
             tools_by_profile[profile_name].update({str(k): int(v) for k, v in tools.items()})
@@ -958,6 +985,9 @@ def family_report(paths: list[pathlib.Path], *, details: bool = False,
         "rootSessionId": roots[0].get("sessionId") if len(roots) == 1 else None,
         "sessionCount": len(sessions),
         "sessionsByProfile": dict(sorted(sessions_by_profile.items())),
+        "sessionsByModelEffort": dict(sorted(sessions_by_model_effort.items())),
+        "modelEffortTelemetryComplete": missing_model_effort_sessions == 0,
+        "missingModelEffortSessions": missing_model_effort_sessions,
         "responseCountExact": exact,
         "responseTimestampsComplete": all(
             session.get("responseTimestampsComplete") is True for session in sessions
@@ -1004,6 +1034,7 @@ def family_report(paths: list[pathlib.Path], *, details: bool = False,
                 "parentThreadId": session.get("parentThreadId"),
                 "threadRole": session.get("threadRole"),
                 "agentProfile": session.get("agentProfile"),
+                "effectiveModelEfforts": session.get("effectiveModelEfforts"),
                 "responses": session.get("responses"),
             }
             for session in sessions
