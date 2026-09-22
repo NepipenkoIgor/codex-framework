@@ -114,6 +114,7 @@ def prompt_for(area: Path, case: str) -> str:
             'Before the PLAN-1 challenge, limit successful shell commands to read-only discovery using pwd, rg --files, sed -n, stat, python3 --version, git --version/status/worktree list/ls-files/branch --list/check-ignore, or codex-framework-stack-context project; the only permitted mutation is the standalone git worktree add after the challenge. '
             'Use the same tester for exactly two finding exchanges, PLAN-1 before mutation and RESULT-1 after implementation. '
             'The tester challenge must include `[challenge:PLAN-1]` or `[challenge:RESULT-1]`. '
+            'Inspect the tester final message for that exact tag before responding; if absent, ask the same tester to restate the finding with its tag before continuing. Never supply a challenger tag yourself. '
             'For each finding, generate a fresh 16-lowercase-hex nonce, emit the developer-response tag as a standalone assistant message, run the exact evidence command yourself in the task worktree, and only then send the identical response line through followup_task to that tester. '
             f'Use `[developer_response:PLAN-1] accept evidence=file:README.md@sha256:{readme_digest}; verify-now=shasum -a 256 README.md; nonce=<16 lowercase hex>` for PLAN-1 and '
             '`[developer_response:RESULT-1] accept evidence=command:python3 verify.py --challenge; verify-now=python3 verify.py --challenge; nonce=<16 lowercase hex>` for RESULT-1. '
@@ -818,7 +819,7 @@ def debate_conformance(root_records: list[dict], child_records: dict[str, list[d
                 status = 'unverifiable'; reasons.append('typed evidence pointer is missing')
             else:
                 pointers.append(pointer)
-                if not pointer_verified(pointer, verification_commands, task, response['when'], disposition['when']):
+                if not pointer_verified(pointer, verification_commands, task, challenge['when'], disposition['when']):
                     status = 'unverifiable'; reasons.append('typed evidence pointer lacks ordered native verification')
             disposition_match = re.fullmatch(
                 r'(resolved|withdrawn|unresolved)\s+responseNonce=([a-f0-9]{16,64})',
@@ -1482,6 +1483,18 @@ class Tests(unittest.TestCase):
         self.assertEqual(receipt['conformanceVersion'], 3)
         self.assertTrue(receipt['familyComplete'])
         self.assertTrue(all(row['status'] == 'compliant' for row in receipt['results']))
+        before_response = copy.deepcopy(root)
+        del before_response[2:4]
+        before_response[1:1] = command('2026-09-21T00:00:01.500Z',
+                                       'shasum -a 256 README.md', 'a' * 64 + '  README.md\n')
+        self.assertEqual(debate_conformance(before_response, {'child': child}, task)['results'][0]['status'],
+                         'compliant')
+        before_challenge = copy.deepcopy(root)
+        del before_challenge[2:4]
+        before_challenge[1:1] = command('2026-09-21T00:00:00.750Z',
+                                        'shasum -a 256 README.md', 'a' * 64 + '  README.md\n')
+        self.assertNotEqual(debate_conformance(before_challenge, {'child': child}, task)['results'][0]['status'],
+                            'compliant')
         wrong_content = copy.deepcopy(root)
         wrong_content[1] = response('2026-09-21T00:00:02Z', 'PLAN-1',
                                     'file:README.md@sha256:' + 'b' * 64, plan_nonce)
