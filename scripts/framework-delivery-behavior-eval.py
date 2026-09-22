@@ -107,7 +107,7 @@ def prompt_for(area: Path, case: str) -> str:
                    'Commit the verified repair and merge it into local main. Remove only your own merged task worktree afterward.')
     extra = ('Reproduce and rebut the erroneous negative-input finding with python3 verify.py --rebuttal.'
              if case == 'false-positive' else
-             'Run the authorized CI repair check python3 verify.py --ci.' if case == 'ci-repair' else '')
+             'After repair, run python3 verify.py --ci as a standalone native command in the task worktree; a checkout run does not count.' if case == 'ci-repair' else '')
     return (f'Fix the substantive calc.total behavior against README. {integration} {extra} '
             f'Use branch codex/fix and task worktree {area / "task"}. '
             'This is material work: before mutation spawn a native tester for the plan challenge; '
@@ -1185,8 +1185,6 @@ def grade(case: str, fixture: dict, raw: str, rollouts: dict | None = None) -> d
         native = [] if rollouts is None else rollouts.get('rootCommands', []) + [command for child in rollouts.get('children', {}).values() for command in child.get('commands', [])]
         if rollouts is not None:
             command_ok = any(verified_native_check(command, required_flag, task) for command in native)
-            if case != 'pending-evidence':
-                command_ok = command_ok or any(verified_native_check(command, required_flag, repo) for command in native)
         # Main checkout must remain untouched while waiting, and only task changes
         # may reach main after merge. Untracked ignored config remains preserved.
         clean_main = not git(repo, 'status', '--porcelain')
