@@ -64,7 +64,7 @@ while IFS=$'\t' read -r name expected_action expected_poll expected_repeat expec
   output="$TMP_ROOT/runtime-$name.json"
   codex exec --ephemeral -s read-only -C "$ROOT" \
     --output-schema "$RUNTIME_SCHEMA" -o "$output" \
-    "Do not use tools or change files. Classify the next action for this hypothetical long-running task using the repository agreement. This is a policy classification exercise, not proof of tool behavior. Task: $prompt" \
+    "Do not use tools or change files. Classify the next action for this hypothetical long-running task using the repository agreement. shell_poll_allowed means a repeated shell or sleep polling loop, not a one-time command or attached native wait. repeat_full_gate means rerunning every check, not only checks invalidated by new evidence. This is a policy classification exercise, not proof of tool behavior. Task: $prompt" \
     </dev/null >/dev/null 2>"$TMP_ROOT/runtime-$name.stderr"
   actual_action="$(python3 -c 'import json,sys; print(json.load(open(sys.argv[1]))["action"])' "$output")"
   actual_poll="$(python3 -c 'import json,sys; print(str(json.load(open(sys.argv[1]))["shell_poll_allowed"]).lower())' "$output")"

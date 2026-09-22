@@ -4,9 +4,9 @@ Apply these defaults in every repository unless a closer project instruction ove
 
 ## Working defaults
 
-- Read closer rules; preserve unrelated work, intent, and pins; verify behavior and update authoritative API docs/schema for contract changes.
-- Use native plans/goals for multi-step work. Parent owns criteria, dependencies, integration and acceptance. Complete coherent batches while independent work continues; checkpoints neither limit authority nor replace native goal state.
-- Latest user steering overrides stale goals/compaction. Reconcile lanes before consequential action; never replay old confirmation, MFA/clipboard value or instruction after compaction/resume.
+- Read closer rules; preserve unrelated work and pins; verify behavior and update API docs/schema for contract changes.
+- Use native plans/goals for multi-step work. Parent owns criteria and acceptance; continue independent lanes. Report goal status only from a successful native result.
+- Latest user steering overrides stale goals/compaction. Reconcile lanes before action; never replay confirmation, MFA/clipboard value or instruction after resume.
 - Use the user/project branch convention or `codex/`. Before mutation use a task-owned worktree, including single-agent work; verify path, branch, ownership and writers. Read-only work may use the checkout. Never share writers.
 - Prefer native Codex to local orchestration. Copy only tracked config and named required ignored files—never caches, credentials, Git internals or unrelated work; regenerate dependencies/links. After merge sync the named clean base, prove ancestry/equal remote SHA, and remove only clean owned worktrees/branches. Preserve other work/writers/installations; never broad `pkill` or wildcard deletion.
 - New public surfaces, infrastructure, external mutations or broader scope require user or project-contract authority.
@@ -14,9 +14,9 @@ Apply these defaults in every repository unless a closer project instruction ove
 - On first substantive work, derive a compact contract from docs/code/CI: repo shape, stack manifests/locks, commands, environment map and release/mutation boundaries. Missing AGENTS does not block discovery. Update existing docs/tests for durable facts; create no mandatory onboarding, duplicates or memory without authority.
 - Before environment-dependent commands or external mutation, resolve target environment/account/project, authority, actor/credential class, boundary and provider-visible verification. A failed local check does not authorize substitute infrastructure, environment or weaker proof; ambiguity blocks mutation.
 - Credentials are locator metadata only: service/environment, location, account/project, class, owner/recovery, verified date. Use them through provider/OS credential mediation for the authorized operation; never read back, expose, move or store secret values in agent/tool output, docs, memory or transcripts.
-- Use bounded reads. Reuse checks while code SHA, command/config, environment and inputs remain unchanged. Test actual runtime/delivery; distinguish implementation, merge, CI, migration, deployment and acceptance.
-- Keep model/effort native and risk-driven; never lower it to save tokens. Extra agents/overrides need value above context cost; measure child usage.
-- For ticket batches, track per item: behavior, affected surface, personas, automated and visible-Browser journeys, failure/provider paths, CI/deploy identity, evidence comment and target board state. Every applicable row must close.
+- Use bounded reads. Reuse checks while code SHA, command/config, environment and inputs remain unchanged. Test runtime/delivery; distinguish implementation, merge, CI, migration, deployment and acceptance.
+- Keep model/effort risk-driven; never lower to save tokens. Extra agents need value above context cost; measure child usage.
+- For ticket batches, reconcile task/worktree/branch owner, not assignee; track personas, browser/automated paths, failures, CI/deploy SHA and board readback. Close each row. One batch per writer; budget response/tool/time and replan on breach without dropping checks.
 
 ## Mandatory delivery pipeline
 
@@ -42,7 +42,7 @@ After ordinary checks, run exactly one independent read-only falsification pass 
 
 ## Native task ergonomics and automation
 
-- Use native automations for recurring work. Retain external-operation handles and attached waits across timeouts; avoid unchanged reads; heartbeats notify only on actionable change. Goal continuation is not external evidence. No sleep-poll loops, retry daemons or lifecycle hooks. Block only dependent lanes and serialize shared environments.
+- Use native automations for recurring work, never a current status request. Retain handles and attached waits across timeouts; avoid unchanged reads; heartbeats notify only on actionable change. Goal continuation is not external evidence. No sleep-poll loops, retry daemons or lifecycle hooks. Block only dependent lanes; serialize shared environments.
 - Use native task names, pins, sections, handoff, forks and messaging; never local queues/status/handoffs. Create/fork visible tasks only when requested. Fork requested history-backed alternatives; use a new task for independent context and a subagent for bounded work. Running turns are not forked history; parallel writers need separate worktrees.
 - For independent substantive lanes, parent leads criteria/dependencies/integration/acceptance while native workers own bounded leaf work in separate worktrees; shared contracts/environments bound parallelism.
 - After resume/fork, verify the effective working directory and permission profile before consequential work; a mismatch is an explicit stop-and-resolve boundary, and default resolution is not authorization. Export or share task history only on explicit user request after content/audience review; native redaction is incomplete proof.
@@ -56,12 +56,12 @@ After ordinary checks, run exactly one independent read-only falsification pass 
 - For service/API work, use authenticated connector/MCP or CLI/API. CLI success is not provider truth: verify account/org/project/environment/time/filter scope and complete parseable output. Empty or mixed-warning/truncated/unsupported results are inconclusive; use a same-scope authenticated connector/API. Provider Browser requires both an exhausted same-scope CLI/API/connector path and UI-only evidence/action. GitHub uses connector/`gh`; product UI stays Browser-first.
 - Before target-dependent provider use, require flags, env, repo config, credential/profile and link/cache selectors agree. Parse identity/target first; only after success may reads or mutations run, never concurrently. Conflicts block until repair and recheck.
 - External state change: read object/latest evidence, compare, preview, mutate that object, read back. Stale/mismatched owner/status/version, partial batch or ambiguous ID stops the lane; request success is not proof.
-- Use authenticated CLI automatically when it covers the authorized operation. Missing plugins do not block working tools. Request only a user-named plugin after tool/CLI discovery is exhausted and it uniquely supplies the capability; otherwise report the exact unsupported operation. Never assume API parity, fabricate access or switch a failed authorized path to another Browser/account.
+- Execute authorized CLI and checks yourself; do not ask the user. Use authenticated CLI automatically. Missing plugins do not block working tools. Request only a user-named plugin after tool/CLI discovery is exhausted and it uniquely supplies the capability; otherwise report the exact unsupported operation. Never assume API parity, fabricate access or switch a failed authorized path to another Browser/account.
 
 ## Authority and scope
 
-- Consequential action needs current-turn single-use confirmation of action, target/account/environment, amount/count and price/effect; it expires after use, any new turn, compaction/resume, or target/account/environment/login/scope/price/reauth/action change.
-- Classify discoveries: bounded acceptance repair stays; independent defect becomes a lane; cross-app refactor, infrastructure, public surface or material expansion needs authority.
+- Explicitly requested PR/merge/branch sync/board work stays authorized for its unchanged target through goal continuation. A new purchase, deletion, publication, production mutation or changed target/account/environment/count/price/effect needs current-turn single-use confirmation; it expires after use, compaction/resume or reauth.
+- Classify discoveries: acceptance repair stays; independent defect becomes a lane; cross-app, infrastructure or public expansion needs authority.
 
 ## Interactive development
 

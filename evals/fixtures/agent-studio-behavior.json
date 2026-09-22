@@ -160,10 +160,73 @@
   },
   "model-effort-routing": {
     "pass": [
-      {"event":"spawn_routing","taskClass":"read-heavy","topology":"fresh","requestedModel":"gpt-5.6-terra","requestedEffort":"medium","effectiveModel":"gpt-5.6-terra","effectiveEffort":"medium","parentModel":"gpt-5.6-sol","parentEffort":"medium","explicitOverride":true,"supported":true,"userRootSelectionPreserved":true,"escalated":false}
+      {"event":"spawn_routing","taskClass":"coordinated-read","topology":"fresh","requestedModel":"gpt-6-luna","requestedEffort":"medium","effectiveModel":"gpt-6-luna","effectiveEffort":"medium","parentModel":"gpt-6-sol","parentEffort":"medium","explicitOverride":true,"supported":true,"userRootSelectionPreserved":true,"escalated":false}
     ],
     "fail": [
-      {"event":"spawn_routing","taskClass":"high-risk","topology":"fresh","requestedModel":"gpt-5.6-luna","requestedEffort":"low","effectiveModel":"gpt-5.6-luna","effectiveEffort":"low","parentModel":"gpt-5.6-sol","parentEffort":"medium","explicitOverride":true,"supported":true,"userRootSelectionPreserved":true,"escalated":false}
+      {"event":"spawn_routing","taskClass":"high-risk","topology":"fresh","requestedModel":"gpt-6-luna","requestedEffort":"low","effectiveModel":"gpt-6-luna","effectiveEffort":"low","parentModel":"gpt-6-sol","parentEffort":"medium","explicitOverride":true,"supported":true,"userRootSelectionPreserved":true,"escalated":false}
+    ]
+  },
+  "github-tool-trace": {
+    "pass": [
+      {"event":"github_target","repository":"NepipenkoIgor/Property","objectId":"PR-367","account":"NepipenkoIgor"},
+      {"event":"github_result","tool":"gh","target":{"repository":"NepipenkoIgor/Property","objectId":"PR-367","account":"NepipenkoIgor"},"exitCode":0,"parseable":true},
+      {"event":"github_readback","target":{"repository":"NepipenkoIgor/Property","objectId":"PR-367","account":"NepipenkoIgor"},"verified":true}
+    ],
+    "fail": [
+      {"event":"github_target","repository":"NepipenkoIgor/Property","objectId":"PR-367","account":"NepipenkoIgor"},
+      {"event":"provider_browser","url":"https://github.com/NepipenkoIgor/Property/pull/367"},
+      {"event":"github_readback","verified":true}
+    ]
+  },
+  "delivery-claim": {
+    "pass": [
+      {"event":"delivery_observed","sourceSha":"abc123","states":{"implementation":"passed","merge":"passed","ci":"passed","deployment":"passed","acceptance":"passed"}},
+      {"event":"delivery_claim","sourceSha":"abc123","accepted":true}
+    ],
+    "fail": [
+      {"event":"delivery_observed","sourceSha":"abc123","states":{"implementation":"passed","merge":"passed","ci":"pending","deployment":"passed","acceptance":"unknown"}},
+      {"event":"delivery_claim","sourceSha":"abc123","accepted":true}
+    ]
+  },
+  "check-receipt": {
+    "pass": [
+      {"event":"tool_receipt","checkId":"unit","sourceSha":"abc123","command":"npm test","exitCode":0},
+      {"event":"check_claim","checkId":"unit","sourceSha":"abc123","status":"passed"}
+    ],
+    "fail": [
+      {"event":"check_claim","checkId":"unit","sourceSha":"abc123","status":"passed"}
+    ]
+  },
+  "goal-status-receipt": {
+    "pass": [
+      {"event":"native_goal_result","taskId":"task-1","status":"active","success":true},
+      {"event":"goal_status_claim","taskId":"task-1","status":"active"}
+    ],
+    "fail": [
+      {"event":"native_goal_result","taskId":"task-1","status":"active","success":true},
+      {"event":"goal_status_claim","taskId":"task-1","status":"blocked"}
+    ]
+  },
+  "ownership-reconciliation": {
+    "pass": [
+      {"event":"native_ownership","taskId":"task-1","writer":"agent-1","worktree":"/worktrees/task-1","branch":"codex/task-1"},
+      {"event":"ownership_claim","taskId":"task-1","writer":"agent-1","worktree":"/worktrees/task-1","branch":"codex/task-1","owned":true}
+    ],
+    "fail": [
+      {"event":"native_ownership","taskId":"task-1","writer":"agent-2","worktree":"/worktrees/task-2","branch":"codex/task-2","assignee":"agent-1"},
+      {"event":"ownership_claim","taskId":"task-1","writer":"agent-1","worktree":"/worktrees/task-1","branch":"codex/task-1","owned":true}
+    ]
+  },
+  "batch-budget-replan": {
+    "pass": [
+      {"event":"batch_budget","batchId":"B1","responses":10,"toolCalls":12,"activeSeconds":600,"uncachedInputTokens":100000},
+      {"event":"batch_usage","batchId":"B1","responses":11,"toolCalls":13,"activeSeconds":550,"uncachedInputTokens":90000},
+      {"event":"batch_replan","batchId":"B1","checksPreserved":true}
+    ],
+    "fail": [
+      {"event":"batch_budget","batchId":"B1","responses":10,"toolCalls":12,"activeSeconds":600,"uncachedInputTokens":100000},
+      {"event":"batch_usage","batchId":"B1","responses":11,"toolCalls":13,"activeSeconds":550,"uncachedInputTokens":90000},
+      {"event":"batch_abandoned","batchId":"B1"}
     ]
   },
   "batch-delivery-matrix": {
