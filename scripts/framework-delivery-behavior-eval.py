@@ -802,7 +802,7 @@ def debate_conformance(root_records: list[dict], child_records: dict[str, list[d
                 if any(nonce in visible_message_text(record) for record in prior_records):
                     status = 'violation'; reasons.append('developer-response nonce was present before the response')
                 targeted = [event for event in followups
-                            if event['target'] == tester_path
+                            if tester_path and event['target'] in {tester_path, tester_path.rsplit('/', 1)[-1]}
                             and response['when'] < event['when'] < disposition['when']]
                 if len(targeted) != 1:
                     status = 'unverifiable'
@@ -1534,6 +1534,13 @@ class Tests(unittest.TestCase):
             json.dumps({'target': '/root/other', 'message': 'cipher-plan'})
         self.assertNotEqual(debate_conformance(wrong_target, {'child': child}, task)['results'][0]['status'],
                             'compliant')
+        short_target = copy.deepcopy(root)
+        for record in short_target:
+            if record.get('payload', {}).get('name') == 'followup_task':
+                args = json.loads(record['payload']['arguments'])
+                args['target'] = 'challenge'
+                record['payload']['arguments'] = json.dumps(args)
+        self.assertTrue(debate_conformance(short_target, {'child': child}, task)['familyComplete'])
         wrong_nonce = copy.deepcopy(child)
         wrong_nonce[2] = assistant('2026-09-21T00:00:03.500Z',
                                    '[challenger_disposition:PLAN-1] resolved responseNonce=aaaaaaaaaaaaaaaa')
