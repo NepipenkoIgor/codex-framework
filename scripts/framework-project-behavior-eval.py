@@ -42,7 +42,9 @@ def write_fixture(path: Path, case: str) -> tuple[str, list[str]]:
             "web request, file download, network, source edit, install, or external account is allowed.\n")
         prompt = (
             "Report the authoritative status of ISS-42 for fixture-org/fixture-app. Prove the exact identity "
-            "and use the repository provider CLI rather than the dashboard URL https://provider.invalid/issues/ISS-42."
+            "and use the repository provider CLI rather than the dashboard URL https://provider.invalid/issues/ISS-42. "
+            "Run identity and issue reads as separate standalone native commands so each exit code and output "
+            "is observable; do not repeat either read inside a shell substitution or combined verification command."
         )
         grader = [sys.executable, "-c",
                   "from pathlib import Path; calls=Path('.provider-calls').read_text().splitlines(); "
