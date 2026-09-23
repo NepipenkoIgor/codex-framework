@@ -179,6 +179,28 @@ def validate_skill_attestation(rows: Any) -> None:
     quality_module().validate_compact_attestation(rows)
 
 
+def baseline_source_binding_failures(
+    baseline: Any,
+    source_commit: Any,
+    commit_exists: Any = git_commit_exists,
+    digest_for: Any = git_digest,
+) -> list[str]:
+    if not isinstance(baseline, dict) or not isinstance(source_commit, str) \
+            or not re.fullmatch(r"[a-f0-9]{40}", source_commit) \
+            or baseline.get("gitHeadAtGeneration") != source_commit:
+        return ["skill corpus baseline source binding mismatch"]
+    source_digest = baseline.get("sourceDigest")
+    if not is_nonzero_sha256(source_digest):
+        return ["skill corpus baseline source binding mismatch"]
+    # A squash merge preserves the certified tree and committed evidence while
+    # the pre-squash source commit can legitimately be absent from a clean clone.
+    # Recompute when the object is available; otherwise the ancestor evidence
+    # commit plus its exact byte digest remains the immutable trust anchor.
+    if commit_exists(source_commit) and source_digest != digest_for(source_commit):
+        return ["skill corpus baseline source binding mismatch"]
+    return []
+
+
 def validate_skill_provenance(provenance: Any, rows: Any, current_commit: Any) -> list[str]:
     expected = {"baselineEvidenceCommit", "baselineEvidenceSha256", "baselineSourceCommit", "freshSkills", "reusedSkills"}
     if not isinstance(provenance, dict) or set(provenance) != expected:
@@ -186,7 +208,7 @@ def validate_skill_provenance(provenance: Any, rows: Any, current_commit: Any) -
     failures: list[str] = []
     evidence_commit = provenance.get("baselineEvidenceCommit")
     source_commit = provenance.get("baselineSourceCommit")
-    if not git_commit_exists(str(evidence_commit)) or not git_commit_exists(str(source_commit)):
+    if not git_commit_exists(str(evidence_commit)):
         return ["skill corpus baseline commit is unavailable"]
     if command("git", "merge-base", "--is-ancestor", str(evidence_commit), str(current_commit)).returncode:
         failures.append("skill corpus baseline evidence is not an ancestor of the release")
@@ -200,8 +222,7 @@ def validate_skill_provenance(provenance: Any, rows: Any, current_commit: Any) -
         return failures + ["skill corpus baseline evidence cannot be read"]
     if provenance.get("baselineEvidenceSha256") != hashlib.sha256(raw).hexdigest():
         failures.append("skill corpus baseline evidence digest mismatch")
-    if baseline.get("gitHeadAtGeneration") != source_commit or baseline.get("sourceDigest") != git_digest(str(source_commit)):
-        failures.append("skill corpus baseline source binding mismatch")
+    failures.extend(baseline_source_binding_failures(baseline, source_commit))
     names = sorted(quality_module().skill_paths())
     fresh = provenance.get("freshSkills")
     reused = provenance.get("reusedSkills")
@@ -633,6 +654,22 @@ def self_test() -> None:
         raise AssertionError("release evidence validator accepted malformed git commit")
     if not validate_git_binding("f" * 40, "0" * 64):
         raise AssertionError("release evidence validator accepted nonexistent git commit")
+    portable_baseline = {"gitHeadAtGeneration": "a" * 40, "sourceDigest": "b" * 64}
+    if baseline_source_binding_failures(
+            portable_baseline, "a" * 40, commit_exists=lambda _sha: False):
+        raise AssertionError("release evidence rejected a squash-portable committed baseline")
+    if not baseline_source_binding_failures(
+            portable_baseline, "a" * 40, commit_exists=lambda _sha: True,
+            digest_for=lambda _sha: "c" * 64):
+        raise AssertionError("release evidence accepted an available baseline source digest mismatch")
+    if not baseline_source_binding_failures(
+            {**portable_baseline, "sourceDigest": "malformed"}, "a" * 40,
+            commit_exists=lambda _sha: False):
+        raise AssertionError("release evidence accepted malformed portable baseline provenance")
+    if not baseline_source_binding_failures(
+            {**portable_baseline, "sourceDigest": "0" * 64}, "a" * 40,
+            commit_exists=lambda _sha: False):
+        raise AssertionError("release evidence accepted an all-zero portable baseline digest")
     quality = quality_module()
     rows = []
     for skill in sorted(quality.skill_paths()):
