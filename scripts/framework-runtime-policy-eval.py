@@ -15,7 +15,21 @@ ROOT = pathlib.Path(__file__).resolve().parents[1]
 CASES = ROOT / "evals/runtime-efficiency-cases.tsv"
 ACTIONS = ["continue_execution", "bounded_wait", "heartbeat", "checkpoint",
            "blocked_split", "reuse_evidence", "review_unavailable"]
+ACTION_DEFINITIONS = {
+    "continue_execution": "perform available in-scope task work before the next user-facing yield",
+    "bounded_wait": "attach once to a known live operation for a bounded wait",
+    "heartbeat": "schedule explicitly requested recurring or later monitoring",
+    "checkpoint": "answer or yield already verified state now, without scheduling",
+    "blocked_split": "separate a blocked lane and advance or deliver independent completed lanes",
+    "reuse_evidence": "use unchanged valid evidence instead of repeating its check",
+    "review_unavailable": "report that required review independence is unavailable without retrying it",
+}
 TRIALS = 3
+
+
+def validate_action_definitions() -> None:
+    if set(ACTION_DEFINITIONS) != set(ACTIONS) or any(not value.strip() for value in ACTION_DEFINITIONS.values()):
+        raise ValueError("runtime policy action definitions do not match the schema action set")
 
 
 def load_cases() -> list[dict[str, Any]]:
@@ -48,11 +62,14 @@ def output_schema(cases: list[dict[str, Any]]) -> dict[str, Any]:
 
 
 def prompt_for(cases: list[dict[str, Any]]) -> str:
+    validate_action_definitions()
     tasks = "\n".join(f"{index + 1}. {row['case']}: {row['prompt']}"
                       for index, row in enumerate(cases))
+    definitions = "\n".join(f"- {action}: {ACTION_DEFINITIONS[action]}" for action in ACTIONS)
     return ("Do not use tools or change files. Classify every hypothetical long-running task below "
             "using the repository agreement. Return one result per case in the listed order and assess "
-            "each independently. shell_poll_allowed means a repeated shell/sleep polling loop, not a "
+            "each independently. action means the immediate next step:\n" + definitions + "\n"
+            "shell_poll_allowed means a repeated shell/sleep polling loop, not a "
             "one-time command or attached native wait. repeat_full_gate means rerunning every check, "
             "not only checks invalidated by new evidence. This is policy classification, not proof of "
             f"tool behavior.\n\n{tasks}")
@@ -91,6 +108,12 @@ def decision_tuple(item: dict[str, Any]) -> tuple[Any, ...]:
     return (item["action"], item["shell_poll_allowed"], item["repeat_full_gate"], item["start_reviewer"])
 
 
+def trial_decision(item: dict[str, Any]) -> dict[str, Any]:
+    if not isinstance(item.get("reason"), str) or not item["reason"].strip():
+        raise ValueError("runtime policy decision reason is missing")
+    return {"case": item["case"], "decision": list(decision_tuple(item)), "reason": item["reason"]}
+
+
 def evaluate(cases: list[dict[str, Any]], trials: list[list[dict[str, Any]]]) -> list[dict[str, Any]]:
     if len(trials) != TRIALS:
         raise ValueError(f"runtime policy certification requires exactly {TRIALS} fresh trials")
@@ -110,11 +133,29 @@ def evaluate(cases: list[dict[str, Any]], trials: list[list[dict[str, Any]]]) ->
 
 
 def self_test() -> None:
+    validate_action_definitions()
+    removed = ACTION_DEFINITIONS.pop(ACTIONS[0])
+    try:
+        try:
+            validate_action_definitions()
+        except ValueError:
+            pass
+        else:
+            raise AssertionError("runtime policy evaluator accepted incomplete action definitions")
+    finally:
+        ACTION_DEFINITIONS[ACTIONS[0]] = removed
     cases = [{"case": "a", "expectedActions": ["checkpoint"], "shell_poll_allowed": False,
               "repeat_full_gate": False, "start_reviewer": False}]
     good = {"case": "a", "action": "checkpoint", "shell_poll_allowed": False,
             "repeat_full_gate": False, "start_reviewer": False, "reason": "good"}
     bad = {**good, "action": "continue_execution"}
+    assert trial_decision(good)["reason"] == "good"
+    try:
+        trial_decision({**good, "reason": ""})
+    except ValueError:
+        pass
+    else:
+        raise AssertionError("runtime policy evaluator accepted a missing decision reason")
     assert evaluate(cases, [[good], [good], [bad]])[0]["passed"]
     assert not evaluate(cases, [[good], [bad], [bad]])[0]["passed"]
     ordered_cases = [cases[0], {**cases[0], "case": "b"}]
@@ -166,8 +207,7 @@ def run(receipt_path: pathlib.Path | None) -> int:
             usage = parse_usage(events)
             trial_results.append(results)
             trial_receipts.append({"trial": trial, "usage": usage,
-                                   "decisions": [{"case": item["case"], "decision": list(decision_tuple(item))}
-                                                 for item in results]})
+                                   "decisions": [trial_decision(item) for item in results]})
     verdicts = evaluate(cases, trial_results)
     totals = {key: sum(trial["usage"][key] for trial in trial_receipts)
               for key in trial_receipts[0]["usage"]}
