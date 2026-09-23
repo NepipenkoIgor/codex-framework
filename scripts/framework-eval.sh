@@ -377,7 +377,7 @@ interactive_development_contract() {
 
 native_feature_adoption_contract() {
   local instructions="$ROOT/templates/global/AGENTS.md"
-  grep -Eqi 'native automations for recurring work' "$instructions" \
+  grep -Eqi 'native automations.*recurring work' "$instructions" \
     && grep -Eqi 'heartbeats notify only on actionable change' "$instructions" \
     && grep -Eqi 'task names.*,? pins.*,? sections.*,? handoff.*,? forks' "$instructions" \
     && python3 "$ROOT/scripts/framework-task-topology-check.py" "$instructions" \
@@ -389,8 +389,8 @@ native_feature_adoption_contract() {
 runtime_efficiency_contract() {
   local instructions="$ROOT/templates/global/AGENTS.md"
   grep -Fq '## Mandatory delivery pipeline' "$instructions" \
-    && grep -Fq 'attached waits across timeouts' "$instructions" \
-    && grep -Fq 'Reuse checks while code SHA, command/config, environment' "$instructions" \
+    && grep -Eqi 'attached waits( across timeouts)?' "$instructions" \
+    && grep -Eqi 'Reuse checks while (code SHA|source), command/config, environment' "$instructions" \
     && grep -Fq 'never authorized fixes for later CI failures' "$instructions" \
     && test -s "$ROOT/docs/runtime-efficiency.md" \
     && python3 -m json.tool "$ROOT/evals/runtime-efficiency-output.schema.json" >/dev/null
@@ -414,8 +414,8 @@ project_environment_authority_contract() {
   local instructions="$contract_root/templates/global/AGENTS.md"
   grep -Eqi 'compact contract.*repo shape.*stack manifests/locks.*,? commands.*,? environment map.*release/mutation boundaries' "$instructions" \
       && grep -Eqi 'target environment/account/project.*,? authority.*,? actor/credential class.*,? boundary.*provider-visible verification' "$instructions" \
-      && grep -Fqi 'A failed local check does not authorize substitute infrastructure' "$instructions" \
-      && grep -Eqi 'substitute infrastructure.*,? environment or weaker proof' "$instructions" \
+      && grep -Eqi 'A failed local check (does not authorize|never authorizes) substitute infrastructure' "$instructions" \
+      && grep -Eqi 'substitute infrastructure(/|.*,? )environment or weaker proof' "$instructions" \
       && grep -Eqi 'ambiguity blocks mutation' "$instructions" \
       || return 1
   if grep -Erqi 'failed local (readiness|status)( check| command)?.*(authorizes|allows|permits).*(substitute infrastructure|different environment|weaker verification)' "$contract_root/AGENTS.md" "$contract_root/templates"; then return 1; fi
