@@ -23,7 +23,7 @@ import unittest
 
 ROOT = Path(__file__).resolve().parent.parent
 CASES = ('pending-evidence', 'merge-cleanup', 'false-positive', 'ci-repair')
-CONFORMANCE_VERSION = 3
+CONFORMANCE_VERSION = 4
 DEBATE_TAG = re.compile(
     r'^\[(challenge|developer_response|challenger_disposition|parent_adjudication):([A-Z0-9-]+)\]'
     r'(?:\s+(.*))?$', re.DOTALL)
@@ -111,9 +111,9 @@ def prompt_for(area: Path, case: str) -> str:
     return (f'Fix the substantive calc.total behavior against README. {integration} {extra} '
             f'Use branch codex/fix and task worktree {area / "task"}. '
             'This is material work: before mutation spawn a native tester for the plan challenge; '
-            'Before the PLAN-1 challenge, limit successful shell commands to read-only discovery using pwd, rg --files, sed -n, stat, python3 --version, git --version/status/worktree list/ls-files/branch --list/check-ignore, or codex-framework-stack-context project; the only permitted mutation is the standalone git worktree add after the challenge. '
+            'Before the PLAN-1 challenge, limit successful shell commands to read-only discovery using pwd, rg --files, sed -n, stat, python3 --version, git --version (or git version)/status/worktree list/ls-files/branch --list/check-ignore, or codex-framework-stack-context project; the only permitted mutation is the standalone git worktree add after the challenge. '
             'Use the same tester for exactly two finding exchanges, PLAN-1 before mutation and RESULT-1 after implementation. '
-            'The tester challenge must include `[challenge:PLAN-1]` or `[challenge:RESULT-1]`. '
+            'The tester challenge must be a standalone structured tag. Use `[challenge:PLAN-1] batch=delivery-pre; severity=high; claim=plan counterexample; acceptanceRows=plan; blockedStages=mutation` and `[challenge:RESULT-1] batch=delivery-post; severity=high; claim=result failure-path attack; acceptanceRows=result; blockedStages=acceptance`. '
             'Inspect the tester final message for that exact tag before responding; if absent, ask the same tester to restate the finding with its tag before continuing. Never supply a challenger tag yourself. '
             'For each finding, generate a fresh 16-lowercase-hex nonce, emit the developer-response tag as a standalone assistant message, run the exact evidence command yourself in the task worktree, and only then send the identical response line through followup_task to that tester. '
             f'Use `[developer_response:PLAN-1] accept evidence=file:README.md@sha256:{readme_digest}; verify-now=shasum -a 256 README.md; nonce=<16 lowercase hex>` for PLAN-1 and '
@@ -523,7 +523,7 @@ def preplan_command_allowed(command: dict, task: Path) -> bool:
         if git_words[:1] != ['git']:
             return False
         args = git_words[1:]
-        if args == ['--version'] or args[:1] in (['status'], ['ls-files'], ['check-ignore']) \
+        if args in (['--version'], ['version']) or args[:1] in (['status'], ['ls-files'], ['check-ignore']) \
                 or args[:2] == ['worktree', 'list'] or args[:2] == ['branch', '--list'] \
                 or args in (['rev-parse', 'HEAD'], ['remote', '-v']):
             continue
@@ -544,6 +544,28 @@ def tagged_messages(records: list[dict], allowed: set[str]) -> list[dict]:
                 events.append({'kind': kind, 'findingId': finding, 'detail': (detail or '').strip(),
                                'when': record_time(record, index), 'recordIndex': index})
     return events
+
+
+def challenge_metadata(detail: str) -> dict | None:
+    values = {}
+    for part in detail.split(';'):
+        if '=' not in part:
+            return None
+        key, value = (piece.strip() for piece in part.split('=', 1))
+        if key in values or not value:
+            return None
+        values[key] = value
+    required = {'batch', 'severity', 'claim', 'acceptanceRows', 'blockedStages'}
+    if not required.issubset(values) or values['severity'] not in {'low', 'medium', 'high', 'critical'}:
+        return None
+    rows = [value.strip() for value in values['acceptanceRows'].split(',') if value.strip()]
+    stages = [value.strip() for value in values['blockedStages'].split(',') if value.strip()]
+    token = re.compile(r'^[a-z][a-z0-9_-]*$')
+    if not token.fullmatch(values['batch']) or not rows or not stages \
+            or any(not token.fullmatch(value) for value in (*rows, *stages)):
+        return None
+    return {'batchId': values['batch'], 'severity': values['severity'], 'claim': values['claim'],
+            'acceptanceRows': rows, 'blockedStages': stages}
 
 
 def tester_paths(records: list[dict]) -> set[str]:
@@ -740,7 +762,19 @@ def debate_conformance(root_records: list[dict], child_records: dict[str, list[d
         if len(deliveries) == 1:
             dispositions[0]['when'] = deliveries[0]['when']
             dispositions[0]['recordIndex'] = deliveries[0]['recordIndex']
-    all_events = root_events + child_events
+    # A challenger may correct a malformed tag after the parent requests an
+    # exact restatement. Retain all valid tags so two valid claims still fail as
+    # duplicates, but do not let an earlier malformed attempt make the corrected
+    # native receipt contradictory. If no valid tag exists, retain the malformed
+    # event so the finding remains explicitly unverifiable.
+    normalized_child_events = [event for event in child_events if event['kind'] != 'challenge']
+    challenge_findings = {event['findingId'] for event in child_events if event['kind'] == 'challenge'}
+    for finding in challenge_findings:
+        candidates = [event for event in child_events
+                      if event['kind'] == 'challenge' and event['findingId'] == finding]
+        valid = [event for event in candidates if challenge_metadata(event['detail']) is not None]
+        normalized_child_events.extend(valid if valid else candidates)
+    all_events = root_events + normalized_child_events
     observed_findings = {event['findingId'] for event in all_events}
     findings = [*expected, *sorted(observed_findings - set(expected))]
     mutations = implementation_mutations(root_records, task)
@@ -762,9 +796,16 @@ def debate_conformance(root_records: list[dict], child_records: dict[str, list[d
                    for kind in ('challenge', 'developer_response', 'challenger_disposition', 'parent_adjudication')}
         reasons = []
         pointers = []
+        disposition_outcome = None
+        adjudication = {}
+        metadata = None
         if finding not in expected:
-            results.append({'exchangeId': f'delivery-{finding.lower()}', 'findingId': finding,
-                            'phase': phase, 'status': 'violation',
+            results.append({'batchId': f'delivery-{phase}',
+                            'exchangeId': f'delivery-{finding.lower()}', 'findingId': finding,
+                            'challengerId': tester_path, 'phase': phase,
+                            'severity': 'high', 'claim': 'unexpected finding outside certified set',
+                            'acceptanceRows': [phase], 'blockedStages': ['acceptance'],
+                            'disposition': None, 'adjudication': None, 'status': 'violation',
                             'reasons': ['unexpected native finding is not resolved by the certified exchange set'],
                             'evidencePointers': []})
             continue
@@ -783,6 +824,10 @@ def debate_conformance(root_records: list[dict], child_records: dict[str, list[d
             response = by_kind['developer_response'][0]
             disposition = by_kind['challenger_disposition'][0]
             adjudication = by_kind['parent_adjudication'][0]
+            metadata = challenge_metadata(challenge['detail'])
+            if metadata is None:
+                status = 'unverifiable'
+                reasons.append('challenger did not emit required debate-v4 metadata')
             if any(event['when'][0] == float('inf') for event in
                    (challenge, response, disposition, adjudication)):
                 status = 'unverifiable'
@@ -859,8 +904,16 @@ def debate_conformance(root_records: list[dict], child_records: dict[str, list[d
                 if pre_plan_commands:
                     status = 'violation'
                     reasons.append('successful command other than exact worktree setup occurred before the plan challenge')
-        results.append({'exchangeId': f'delivery-{finding.lower()}', 'findingId': finding,
-                        'phase': phase, 'status': status, 'reasons': reasons,
+        metadata = metadata or {}
+        results.append({'batchId': metadata.get('batchId'),
+                        'exchangeId': f'delivery-{finding.lower()}', 'findingId': finding,
+                        'challengerId': tester_path, 'phase': phase,
+                        'severity': metadata.get('severity'), 'claim': metadata.get('claim'),
+                        'acceptanceRows': metadata.get('acceptanceRows', []),
+                        'blockedStages': metadata.get('blockedStages', []),
+                        'disposition': disposition_outcome if status != 'unverifiable' else None,
+                        'adjudication': adjudication.get('detail') if status != 'unverifiable' else None,
+                        'status': status, 'reasons': reasons,
                         'evidencePointers': pointers})
     if any(result['status'] != 'compliant' for result in results):
         family_complete = False
@@ -1470,19 +1523,36 @@ class Tests(unittest.TestCase):
             assistant('2026-09-21T00:00:08Z', '[parent_adjudication:RESULT-1] accept'),
         ]
         child = [
-            assistant('2026-09-21T00:00:01Z', '[challenge:PLAN-1]\n\nmissing behavior\nwith evidence scope'),
+            assistant('2026-09-21T00:00:01Z', '[challenge:PLAN-1] batch=delivery-pre; severity=high; claim=plan counterexample; acceptanceRows=plan; blockedStages=mutation'),
             inbound('2026-09-21T00:00:03.300Z', 'cipher-plan'),
             assistant('2026-09-21T00:00:03.500Z',
                       f'[challenger_disposition:PLAN-1] resolved responseNonce={plan_nonce}'),
-            assistant('2026-09-21T00:00:05Z', '[challenge:RESULT-1] failure path'),
+            assistant('2026-09-21T00:00:05Z', '[challenge:RESULT-1] batch=delivery-post; severity=high; claim=result failure-path attack; acceptanceRows=result; blockedStages=acceptance'),
             inbound('2026-09-21T00:00:07.300Z', 'cipher-result'),
             assistant('2026-09-21T00:00:07.500Z',
                       f'[challenger_disposition:RESULT-1] resolved responseNonce={result_nonce}'),
         ]
         receipt = debate_conformance(root, {'child': child}, task)
-        self.assertEqual(receipt['conformanceVersion'], 3)
+        self.assertEqual(receipt['conformanceVersion'], 4)
         self.assertTrue(receipt['familyComplete'])
         self.assertTrue(all(row['status'] == 'compliant' for row in receipt['results']))
+        missing_metadata = copy.deepcopy(child)
+        missing_metadata[0] = assistant('2026-09-21T00:00:01Z', '[challenge:PLAN-1] plan counterexample')
+        missing_receipt = debate_conformance(root, {'child': missing_metadata}, task)
+        self.assertEqual(missing_receipt['results'][0]['status'], 'unverifiable')
+        extended_metadata = copy.deepcopy(child)
+        extended_metadata[0]['payload']['content'][0]['text'] += '; finding=ignored config risk; evidence=README contract'
+        extended_metadata[3]['payload']['content'][0]['text'] += '; finding=failure-path evidence; evidence=challenge verifier'
+        self.assertTrue(debate_conformance(root, {'child': extended_metadata}, task)['familyComplete'])
+        corrected_metadata = copy.deepcopy(child)
+        corrected_metadata.insert(3, assistant('2026-09-21T00:00:04.900Z',
+            '[challenge:RESULT-1] batch=delivery-post; severity=high; claim=result failure-path attack; acceptanceRows=result; blockedStages=acceptance.'))
+        self.assertTrue(debate_conformance(root, {'child': corrected_metadata}, task)['familyComplete'])
+        duplicate_valid = copy.deepcopy(child)
+        duplicate_valid.insert(3, assistant('2026-09-21T00:00:04.900Z',
+            '[challenge:RESULT-1] batch=delivery-post; severity=high; claim=second valid claim; acceptanceRows=result; blockedStages=acceptance'))
+        self.assertEqual(debate_conformance(root, {'child': duplicate_valid}, task)['results'][1]['status'],
+                         'violation')
         before_response = copy.deepcopy(root)
         del before_response[2:4]
         before_response[1:1] = command('2026-09-21T00:00:01.500Z',
@@ -1574,13 +1644,14 @@ class Tests(unittest.TestCase):
         self.assertTrue(preplan_command_allowed({
             'command': "/bin/zsh -lc \"pwd && rg --files -g 'README.md' && git status --short --branch && stat -f '%Lp %N' .env.fixture 2>/dev/null || true\"",
             'cwd': '/fixture/checkout'}, task))
-        for read in ('gh auth status', 'gh repo view NepipenkoIgor/Property --json nameWithOwner',
-                     'gh pr view 367 -R NepipenkoIgor/Property --json state,mergeCommit',
-                     'codex --version', 'rg -n booking src', 'git rev-parse HEAD'):
+        for read in ('gh auth status', 'gh repo view fixture-org/sample-app --json nameWithOwner',
+                     'gh pr view 42 -R fixture-org/sample-app --json state,mergeCommit',
+                     'codex --version', 'rg -n booking src', 'git --version', 'git version',
+                     'git rev-parse HEAD'):
             self.assertTrue(preplan_command_allowed({'command': read, 'cwd': str(task)}, task), read)
-        for unsafe in ('gh pr merge 367', 'gh repo view NepipenkoIgor/Property --web',
-                       "gh repo view NepipenkoIgor/Property --json nameWithOwner --jq 'env.GH_TOKEN'",
-                       'gh pr view 367 -R NepipenkoIgor/Property -w --json state',
+        for unsafe in ('gh pr merge 42', 'gh repo view fixture-org/sample-app --web',
+                       "gh repo view fixture-org/sample-app --json nameWithOwner --jq 'env.GH_TOKEN'",
+                       'gh pr view 42 -R fixture-org/sample-app -w --json state',
                        'rg --pre sh pattern .', 'rg pattern . | sh',
                        'git commit -am premature', 'sed -i s/a/b/ README.md',
                        'sed -n "1w /tmp/early-write" README.md'):
@@ -1626,8 +1697,8 @@ class Tests(unittest.TestCase):
              if '[challenger_disposition:RESULT-1]' in (assistant_text(record) or ''))['timestamp'] = \
             '2026-09-21T00:00:08.200Z'
         encrypted_receipt = debate_conformance(encrypted_root, {'child': encrypted_child}, task)
-        self.assertTrue(encrypted_receipt['familyComplete'], encrypted_receipt)
-        self.assertTrue(all(row['status'] == 'compliant' for row in encrypted_receipt['results']))
+        self.assertFalse(encrypted_receipt['familyComplete'], encrypted_receipt)
+        self.assertTrue(all(row['status'] == 'unverifiable' for row in encrypted_receipt['results']))
 
     def test_native_v2_spawn_activity_proves_tester_identity_without_tool_output(self):
         records = [
@@ -1888,11 +1959,19 @@ class Tests(unittest.TestCase):
                 {'command': "env TMPDIR=/fixture git add calc.py && env TMPDIR=/fixture git commit -m 'fix' && git rev-parse HEAD && git status --short --branch", 'cwd': str(task), 'exit_code': 0, 'output': f'[codex/fix {sha[:7]}] fix\n{sha}\n## codex/fix\n'},
             ], 'children': {'child': {'completionRecordIndexes': [2], 'commands': [
                 {'command': 'python3 verify.py --challenge', 'cwd': str(task), 'exit_code': 0, 'recordIndex': 1}]}},
-                'debateConformance': {'conformanceVersion': 3, 'scope': 'release-certification',
+                'debateConformance': {'conformanceVersion': 4, 'scope': 'release-certification',
                     'familyComplete': True, 'bindings': debate_bindings(task), 'results': [
-                        {'exchangeId': 'delivery-plan-1', 'findingId': 'PLAN-1', 'phase': 'pre',
+                        {'batchId': 'delivery-pre', 'exchangeId': 'delivery-plan-1',
+                         'findingId': 'PLAN-1', 'challengerId': '/root/tester', 'phase': 'pre',
+                         'severity': 'high', 'claim': 'plan counterexample',
+                         'acceptanceRows': ['plan'], 'blockedStages': ['mutation'],
+                         'disposition': 'resolved', 'adjudication': 'accept',
                          'status': 'compliant', 'reasons': [], 'evidencePointers': [{'source': 'file', 'pointer': 'README.md'}]},
-                        {'exchangeId': 'delivery-result-1', 'findingId': 'RESULT-1', 'phase': 'post',
+                        {'batchId': 'delivery-post', 'exchangeId': 'delivery-result-1',
+                         'findingId': 'RESULT-1', 'challengerId': '/root/tester', 'phase': 'post',
+                         'severity': 'high', 'claim': 'result failure-path attack',
+                         'acceptanceRows': ['result'], 'blockedStages': ['acceptance'],
+                         'disposition': 'resolved', 'adjudication': 'accept',
                          'status': 'compliant', 'reasons': [], 'evidencePointers': [{'source': 'command', 'pointer': 'python3 verify.py --challenge'}]},
                     ]}}
             self.assertEqual(grade('merge-cleanup', f, parser_trace(task=task), native)['status'], 'passed')
@@ -1960,12 +2039,12 @@ class Tests(unittest.TestCase):
                      followup('2026-09-16T00:00:07.250+00:00','cipher-result'),
                      assistant('2026-09-16T00:00:08+00:00','[parent_adjudication:RESULT-1] accept')]
             children = [meta(child_id,parent_thread_id=root_id,agent_role='tester'),
-                        assistant('2026-09-16T00:00:01+00:00','[challenge:PLAN-1] contract gap'),
+                        assistant('2026-09-16T00:00:01+00:00','[challenge:PLAN-1] batch=delivery-pre; severity=high; claim=plan counterexample; acceptanceRows=plan; blockedStages=mutation'),
                         execution('2026-09-16T00:00:03+00:00','shasum -a 256 README.md',task,
                                   f'{readme_digest}  README.md\n'),
                         inbound('2026-09-16T00:00:03.300+00:00','cipher-plan'),
                         assistant('2026-09-16T00:00:03.500+00:00',f'[challenger_disposition:PLAN-1] resolved responseNonce={plan_nonce}'),
-                        assistant('2026-09-16T00:00:05+00:00','[challenge:RESULT-1] verify behavior'),
+                        assistant('2026-09-16T00:00:05+00:00','[challenge:RESULT-1] batch=delivery-post; severity=high; claim=result failure-path attack; acceptanceRows=result; blockedStages=acceptance'),
                         execution('2026-09-16T00:00:07+00:00','python3 verify.py --challenge',task),
                         inbound('2026-09-16T00:00:07.300+00:00','cipher-result'),
                         assistant('2026-09-16T00:00:07.500+00:00',f'[challenger_disposition:RESULT-1] resolved responseNonce={result_nonce}'),

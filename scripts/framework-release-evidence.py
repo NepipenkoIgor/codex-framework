@@ -22,7 +22,7 @@ ARTIFACT_POLICY = "incremental-commit-bound-attestation-v2"
 DELIVERY_CASES = ("pending-evidence", "merge-cleanup", "false-positive", "ci-repair")
 DELIVERY_SCOPE = "disposable native delivery fixtures; no external delivery acceptance"
 DELIVERY_RECEIPT_VERSION = 3
-DEBATE_CONFORMANCE_VERSION = 3
+DEBATE_CONFORMANCE_VERSION = 4
 GATE_COMMANDS = {
     "deterministicHealth": ["bash", "scripts/framework-health.sh"],
     "tokenEfficiency": ["python3", "scripts/framework-token-budget-check.py", "--live"],
@@ -349,15 +349,28 @@ def validate_debate_conformance(receipt: Any) -> list[str]:
             or not is_nonzero_sha256(bindings.get("taskPathDigest")):
         return ["debate conformance source, contract, config or environment binding is invalid"]
     results = receipt.get("results")
-    if not isinstance(results, list) or len(results) != 2:
+    if not isinstance(results, list) or not results:
         return ["debate conformance finding coverage is incomplete"]
-    expected = {("PLAN-1", "pre"), ("RESULT-1", "post")}
-    observed = set()
+    observed_ids = set()
+    observed_phases = set()
     for result in results:
         if not isinstance(result, dict) or set(result) != {
-                "exchangeId", "findingId", "phase", "status", "reasons", "evidencePointers"}:
+                "batchId", "exchangeId", "findingId", "challengerId", "phase", "severity",
+                "claim", "acceptanceRows", "blockedStages", "disposition", "adjudication",
+                "status", "reasons", "evidencePointers"}:
             return ["debate conformance finding is malformed"]
-        observed.add((result.get("findingId"), result.get("phase")))
+        finding_id = result.get("findingId")
+        if not all(isinstance(result.get(key), str) and result[key] for key in
+                   ("batchId", "exchangeId", "findingId", "challengerId", "claim")) \
+                or finding_id in observed_ids \
+                or result.get("severity") not in {"low", "medium", "high", "critical"} \
+                or not isinstance(result.get("acceptanceRows"), list) or not result["acceptanceRows"] \
+                or not isinstance(result.get("blockedStages"), list) or not result["blockedStages"] \
+                or result.get("disposition") not in {"resolved", "withdrawn"} \
+                or result.get("adjudication") != "accept":
+            return ["debate conformance finding identity or closure is invalid"]
+        observed_ids.add(finding_id)
+        observed_phases.add(result.get("phase"))
         if result.get("status") != "compliant" or result.get("reasons") != []:
             return ["debate conformance contains a non-compliant finding"]
         pointers = result.get("evidencePointers")
@@ -367,7 +380,7 @@ def validate_debate_conformance(receipt: Any) -> list[str]:
                 or not isinstance(pointer.get("pointer"), str) or not pointer["pointer"]
                 for pointer in pointers):
             return ["debate conformance evidence pointer is invalid"]
-    return [] if observed == expected else ["debate conformance findings are missing or unexpected"]
+    return [] if {"pre", "post"} <= observed_phases else ["debate conformance phase coverage is incomplete"]
 
 
 def validate_delivery_receipt(receipt: Any, require_artifacts: bool = False) -> list[str]:
@@ -551,13 +564,21 @@ def self_test() -> None:
         raise AssertionError("fabricated summary with absent artifact files was accepted")
     if not validate_delivery_summary(delivery):
         raise AssertionError("fabricated four-row summary was accepted without raw evidence")
-    conformance = {"conformanceVersion": 3, "scope": "release-certification", "familyComplete": True,
+    conformance = {"conformanceVersion": 4, "scope": "release-certification", "familyComplete": True,
                    "bindings": delivery_module().debate_bindings(Path("/fixture/task")),
                    "results": [
-                       {"exchangeId": "delivery-plan-1", "findingId": "PLAN-1", "phase": "pre",
+                       {"batchId": "delivery-pre", "exchangeId": "delivery-plan-1",
+                        "findingId": "PLAN-1", "challengerId": "/root/tester", "phase": "pre",
+                        "severity": "high", "claim": "plan counterexample",
+                        "acceptanceRows": ["plan"], "blockedStages": ["mutation"],
+                        "disposition": "resolved", "adjudication": "accept",
                         "status": "compliant", "reasons": [],
                         "evidencePointers": [{"source": "file", "pointer": "README.md"}]},
-                       {"exchangeId": "delivery-result-1", "findingId": "RESULT-1", "phase": "post",
+                       {"batchId": "delivery-post", "exchangeId": "delivery-result-1",
+                        "findingId": "RESULT-1", "challengerId": "/root/tester", "phase": "post",
+                        "severity": "high", "claim": "result failure-path attack",
+                        "acceptanceRows": ["result"], "blockedStages": ["acceptance"],
+                        "disposition": "resolved", "adjudication": "accept",
                         "status": "compliant", "reasons": [],
                         "evidencePointers": [{"source": "command", "pointer": "python3 verify.py --challenge"}]},
                    ]}

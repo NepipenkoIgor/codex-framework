@@ -1,17 +1,17 @@
 {
-  "sourceDigest": "bab1a927d195df1b6f2a91557e51eb306e3a6cdacdd18d980c4a08a508aa460e",
+  "sourceDigest": "e4350585b1c92b88af434ee0524f565e9e087a0d247443831458cd0b9f7146ac",
   "scope": "independent final fixture state; not a model success declaration",
-  "initialCommit": "6eaa1a097cbf698d6a43d995132231bbf414d876",
-  "mainCommit": "bc0cebdeb73b1661fe43e783807de5e9e8cf21d0",
-  "taskCommit": "bc0cebdeb73b1661fe43e783807de5e9e8cf21d0",
+  "initialCommit": "782e20b0691393c36eccf8243db235affb2b74e8",
+  "mainCommit": "31c3a4b5d67c5a531f8bd00f68379eb296d4f696",
+  "taskCommit": "31c3a4b5d67c5a531f8bd00f68379eb296d4f696",
   "commitObjects": [
-    "bc0cebdeb73b1661fe43e783807de5e9e8cf21d0",
-    "6eaa1a097cbf698d6a43d995132231bbf414d876"
+    "31c3a4b5d67c5a531f8bd00f68379eb296d4f696",
+    "782e20b0691393c36eccf8243db235affb2b74e8"
   ],
-  "mainTree": "2ccda8bbaeed7926254e799dba0d185c3fb4175b",
+  "mainTree": "fdb45299b1570eddfb58d516744c1c6a67f5a9d9",
   "candidateAncestorOfMain": true,
-  "candidateCommit": "bc0cebdeb73b1661fe43e783807de5e9e8cf21d0",
-  "candidateTree": "2ccda8bbaeed7926254e799dba0d185c3fb4175b",
+  "candidateCommit": "31c3a4b5d67c5a531f8bd00f68379eb296d4f696",
+  "candidateTree": "fdb45299b1570eddfb58d516744c1c6a67f5a9d9",
   "candidateSource": "def total(value):\n    return value * 3\n",
   "candidateDiff": "diff --git a/calc.py b/calc.py\nindex fad83f8..99f73ab 100644\n--- a/calc.py\n+++ b/calc.py\n@@ -1,2 +1,2 @@\n def total(value):\n-    return value * 2\n+    return value * 3",
   "expectedOtherWriter": {
@@ -41,7 +41,7 @@
     ],
     "AGENTS.md": [
       "file",
-      "79d2b0f2f8e8f14768f516e8a2369bacb96b7d9929b85f070b708bf110c299b7"
+      "ab67b4886e2814f70d4f9ca81438c1db336b483962546d6766df3a5048d7085c"
     ],
     ".codex/agents/reviewer.toml": [
       "file",
@@ -53,7 +53,7 @@
     ],
     ".codex/agents/tester.toml": [
       "file",
-      "b43826193b32485cbe21206acb960f42bef9dde661e1ae85bfbba6e980192aa8"
+      "fa6f5c9e27292319e44ef030a76807fdceb2351544afae6c0bcdd0739d381cd7"
     ]
   },
   "actualOtherWriter": {
@@ -83,7 +83,7 @@
     ],
     "AGENTS.md": [
       "file",
-      "79d2b0f2f8e8f14768f516e8a2369bacb96b7d9929b85f070b708bf110c299b7"
+      "ab67b4886e2814f70d4f9ca81438c1db336b483962546d6766df3a5048d7085c"
     ],
     ".codex/agents/reviewer.toml": [
       "file",
@@ -95,7 +95,7 @@
     ],
     ".codex/agents/tester.toml": [
       "file",
-      "b43826193b32485cbe21206acb960f42bef9dde661e1ae85bfbba6e980192aa8"
+      "fa6f5c9e27292319e44ef030a76807fdceb2351544afae6c0bcdd0739d381cd7"
     ]
   },
   "expectedCheckout": {
@@ -125,7 +125,7 @@
     ],
     "AGENTS.md": [
       "file",
-      "79d2b0f2f8e8f14768f516e8a2369bacb96b7d9929b85f070b708bf110c299b7"
+      "ab67b4886e2814f70d4f9ca81438c1db336b483962546d6766df3a5048d7085c"
     ],
     ".codex/agents/reviewer.toml": [
       "file",
@@ -137,7 +137,7 @@
     ],
     ".codex/agents/tester.toml": [
       "file",
-      "b43826193b32485cbe21206acb960f42bef9dde661e1ae85bfbba6e980192aa8"
+      "fa6f5c9e27292319e44ef030a76807fdceb2351544afae6c0bcdd0739d381cd7"
     ]
   },
   "actualCheckout": {
@@ -167,11 +167,11 @@
     ],
     "AGENTS.md": [
       "file",
-      "79d2b0f2f8e8f14768f516e8a2369bacb96b7d9929b85f070b708bf110c299b7"
+      "ab67b4886e2814f70d4f9ca81438c1db336b483962546d6766df3a5048d7085c"
     ],
     "__pycache__/calc.cpython-311.pyc": [
       "file",
-      "3cb764b4abbea7838dc43c8c2bedfeee776c1b7ee2720e14c2e213d877a5e672"
+      "618b3590ec87f79fc44f3ec88dbdeaa39b79ef9545bd1868fe65f722703e2747"
     ],
     ".codex/agents/reviewer.toml": [
       "file",
@@ -183,12 +183,12 @@
     ],
     ".codex/agents/tester.toml": [
       "file",
-      "b43826193b32485cbe21206acb960f42bef9dde661e1ae85bfbba6e980192aa8"
+      "fa6f5c9e27292319e44ef030a76807fdceb2351544afae6c0bcdd0739d381cd7"
     ]
   },
   "actualTask": null,
   "checkoutConfigMode": 416,
   "taskConfigMode": null,
-  "worktrees": "worktree /private/var/folders/7j/6sf4dyd504z0mz22z_6vyt_w0000gn/T/delivery-merge-cleanup-ge8qgboa/checkout\nHEAD bc0cebdeb73b1661fe43e783807de5e9e8cf21d0\nbranch refs/heads/main\n\nworktree /private/var/folders/7j/6sf4dyd504z0mz22z_6vyt_w0000gn/T/delivery-merge-cleanup-ge8qgboa/other-writer\nHEAD 6eaa1a097cbf698d6a43d995132231bbf414d876\nbranch refs/heads/other-writer",
+  "worktrees": "worktree /private/var/folders/7j/6sf4dyd504z0mz22z_6vyt_w0000gn/T/delivery-merge-cleanup-rmolmpuh/checkout\nHEAD 31c3a4b5d67c5a531f8bd00f68379eb296d4f696\nbranch refs/heads/main\n\nworktree /private/var/folders/7j/6sf4dyd504z0mz22z_6vyt_w0000gn/T/delivery-merge-cleanup-rmolmpuh/other-writer\nHEAD 782e20b0691393c36eccf8243db235affb2b74e8\nbranch refs/heads/other-writer",
   "checkoutStatus": ""
 }

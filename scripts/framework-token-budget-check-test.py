@@ -26,6 +26,15 @@ def context(model="gpt-5.6-sol", effort="medium"):
     return {"type": "turn_context", "payload": {"model": model, "effort": effort}}
 
 
+def spawn(child, call_id):
+    return [
+        {"type": "response_item", "payload": {"type": "function_call", "name": "spawn_agent",
+         "call_id": call_id, "arguments": "{}"}},
+        {"type": "response_item", "payload": {"type": "function_call_output",
+         "call_id": call_id, "output": json.dumps({"agent_id": child})}},
+    ]
+
+
 class Diagnostics(unittest.TestCase):
     def analyze(self, entries, **kwargs):
         with tempfile.TemporaryDirectory() as directory:
@@ -133,7 +142,7 @@ class Diagnostics(unittest.TestCase):
         child_response = record(response_id="child-response")
         child_response["timestamp"] = "2026-09-18T20:01:00Z"
         root = [{"type": "session_meta", "payload": {"id": "root-id", "source": "cli"}}, context(),
-                root_response]
+                *spawn("child-id", "spawn-1"), root_response]
         child = [{"type": "session_meta", "payload": {"id": "child-id", "source": {
             "subagent": {"thread_spawn": {"parent_thread_id": "root-id", "agent_type": "worker"}}}}},
                  context("gpt-5.6-luna", "low"), child_response]
@@ -168,6 +177,8 @@ class Diagnostics(unittest.TestCase):
             family.append([
                 {"type": "session_meta", "payload": {"id": session_id, "source": source}},
                 context(model, effort), response])
+        family[0][2:2] = [item for index in range(1, len(models))
+                          for item in spawn(f"child-{index}", f"spawn-{index}")]
         report, errors = self.analyze_family(family, profile="certification")
         self.assertFalse(errors)
         self.assertTrue(report["modelEffortTelemetryComplete"])
@@ -183,18 +194,21 @@ class Diagnostics(unittest.TestCase):
         self.assertFalse(report["modelEffortTelemetryComplete"])
         self.assertTrue(any("model and effort metadata" in error for error in errors))
 
-    def test_certification_rejects_unavailable_response_rate(self):
+    def test_certification_requires_complete_family_not_universal_quotas(self):
         report = {name: 0 for name in budget.CERTIFICATION_LIMITS}
         report.update({
             "responsesPerHour": None,
             "responseCountExact": True,
             "responseTimestampsComplete": False,
             "provenanceValid": True,
-            "sessionsByProfile": {"root": 1, "worker": 1},
+            "familyCaptureComplete": False,
+            "modelEffortTelemetryComplete": True,
+            "sessionsByProfile": {"root": 1},
         })
         errors = budget.certification_failures(report)
-        self.assertTrue(any("responsesPerHour" in error for error in errors))
+        self.assertFalse(any("responsesPerHour" in error for error in errors))
         self.assertTrue(any("timestamp" in error for error in errors))
+        self.assertTrue(any("native-spawned child" in error for error in errors))
 
     def test_inherited_parent_metadata_does_not_rewrite_child_identity(self):
         root_meta = {"type": "session_meta", "payload": {
@@ -236,7 +250,7 @@ class Diagnostics(unittest.TestCase):
         self.assertEqual(report["toolOutputCalls"], 1)
         self.assertEqual(report["rawLoggedToolOutputTextChars"], len("owned"))
 
-    def test_family_rejects_missing_parent_and_certification_requires_worker(self):
+    def test_family_rejects_missing_parent_and_incomplete_capture(self):
         root = [{"type": "session_meta", "payload": {"id": "root-id", "source": "cli"}},
                 record(response_id="root-response")]
         child = [{"type": "session_meta", "payload": {"id": "child-id", "source": {
@@ -245,7 +259,17 @@ class Diagnostics(unittest.TestCase):
         report, errors = self.analyze_family([root, child], profile="certification")
         self.assertFalse(report["provenanceValid"])
         self.assertTrue(any("absent parent" in error for error in errors))
-        self.assertTrue(any("worker" in error for error in errors))
+        self.assertTrue(any("native-spawned child" in error for error in errors))
+
+    def test_orphan_native_spawn_activity_is_incomplete(self):
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "orphan.jsonl"
+            path.write_text(json.dumps({"type": "event_msg", "payload": {
+                "type": "item_completed", "item": {"type": "SubAgentActivity",
+                    "kind": "started", "id": "call-1", "agent_thread_id": "child-1"}}}) + "\n")
+            children, complete = budget.spawned_child_ids(path)
+            self.assertEqual(children, set())
+            self.assertFalse(complete)
 
     def test_family_rejects_disconnected_child_cycle(self):
         root = [{"type": "session_meta", "payload": {"id": "root-id", "source": "cli"}},

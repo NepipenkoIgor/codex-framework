@@ -1,20 +1,20 @@
 {
-  "schemaVersion": 3,
+  "schemaVersion": 4,
   "cases": {
   "debate-resolution": {
     "pass": [
-      {"event":"challenge","exchangeId":"E1","phase":"pre","taskClass":"material","findingId":"F1","actor":"tester","evidenceRequest":"pre counterexample"},
+      {"event":"challenge","batchId":"B-PRE","exchangeId":"E1","phase":"pre","taskClass":"material","findingId":"F1","actor":"tester","severity":"high","claim":"precondition can fail","acceptanceRows":["plan"],"blockedStages":["mutation"],"evidenceRequest":"pre counterexample"},
       {"event":"developer_response","exchangeId":"E1","phase":"pre","findingId":"F1","decision":"accept","evidence":{"source":"file","pointer":"criteria.json#F1"}},
       {"event":"verification","exchangeId":"E1","phase":"pre","findingId":"F1","status":"passed","evidence":{"source":"command","pointer":"check:criteria#F1"}},
       {"event":"challenger_disposition","exchangeId":"E1","phase":"pre","findingId":"F1","actor":"tester","outcome":"resolved"},
       {"event":"parent_adjudication","exchangeId":"E1","phase":"pre","findingId":"F1","actor":"parent","decision":"accept"},
       {"event":"mutation_started"},
-      {"event":"challenge","exchangeId":"E2","phase":"post","taskClass":"material","findingId":"F2","actor":"tester","evidenceRequest":"failure-path attack"},
+      {"event":"challenge","batchId":"B-POST","exchangeId":"E2","phase":"post","taskClass":"material","findingId":"F2","actor":"tester","severity":"high","claim":"failure path may regress","acceptanceRows":["failure-path"],"blockedStages":["acceptance"],"evidenceRequest":"failure-path attack"},
       {"event":"developer_response","exchangeId":"E2","phase":"post","findingId":"F2","decision":"rebut","evidence":{"source":"trace","pointer":"reproduction.jsonl#F2"}},
       {"event":"verification","exchangeId":"E2","phase":"post","findingId":"F2","status":"passed","evidence":{"source":"command","pointer":"test:affected#F2"}},
       {"event":"challenger_disposition","exchangeId":"E2","phase":"post","findingId":"F2","actor":"tester","outcome":"withdrawn"},
       {"event":"parent_adjudication","exchangeId":"E2","phase":"post","findingId":"F2","actor":"parent","decision":"accept"},
-      {"event":"challenge","exchangeId":"E2","phase":"post","taskClass":"material","findingId":"F3","actor":"tester","evidenceRequest":"second consumer"},
+      {"event":"challenge","batchId":"B-POST","exchangeId":"E2","phase":"post","taskClass":"material","findingId":"F3","actor":"tester","severity":"medium","claim":"second consumer may regress","acceptanceRows":["consumer"],"blockedStages":["acceptance"],"evidenceRequest":"second consumer"},
       {"event":"developer_response","exchangeId":"E2","phase":"post","findingId":"F3","decision":"accept","evidence":{"source":"file","pointer":"consumer.py:42"}},
       {"event":"verification","exchangeId":"E2","phase":"post","findingId":"F3","status":"passed","evidence":{"source":"command","pointer":"test:consumer#F3"}},
       {"event":"challenger_disposition","exchangeId":"E2","phase":"post","findingId":"F3","actor":"tester","outcome":"resolved"},
@@ -32,7 +32,7 @@
   },
   "trivial-debate": {
     "pass": [
-      {"event":"challenge","exchangeId":"ET1","phase":"single","findingId":"T1","actor":"tester","taskClass":"trivial","evidenceRequest":"exact source counterexample"},
+      {"event":"challenge","batchId":"B-SINGLE","exchangeId":"ET1","phase":"single","findingId":"T1","actor":"tester","taskClass":"trivial","severity":"low","claim":"source claim may be wrong","acceptanceRows":["answer"],"blockedStages":["conclusion"],"evidenceRequest":"exact source counterexample"},
       {"event":"developer_response","exchangeId":"ET1","phase":"single","findingId":"T1","decision":"rebut","evidence":{"source":"file","pointer":"source.md:12"}},
       {"event":"verification","exchangeId":"ET1","phase":"single","findingId":"T1","status":"passed","evidence":{"source":"command","pointer":"check:source#T1"}},
       {"event":"challenger_disposition","exchangeId":"ET1","phase":"single","findingId":"T1","actor":"tester","outcome":"withdrawn"},
@@ -44,7 +44,7 @@
   },
   "false-positive-withdrawal": {
     "pass": [
-      {"event":"challenge","exchangeId":"EF2","phase":"single","taskClass":"trivial","findingId":"F2","actor":"tester","evidenceRequest":"claimed mismatch"},
+      {"event":"challenge","batchId":"B-FP","exchangeId":"EF2","phase":"single","taskClass":"trivial","findingId":"F2","actor":"tester","severity":"low","claim":"claimed mismatch","acceptanceRows":["answer"],"blockedStages":["conclusion"],"evidenceRequest":"claimed mismatch"},
       {"event":"developer_response","exchangeId":"EF2","phase":"single","findingId":"F2","decision":"rebut","evidence":{"source":"file","pointer":"contract.md:20"}},
       {"event":"verification","exchangeId":"EF2","phase":"single","findingId":"F2","status":"passed","evidence":{"source":"command","pointer":"reproduce:false-positive"}},
       {"event":"challenger_disposition","exchangeId":"EF2","phase":"single","findingId":"F2","actor":"tester","outcome":"withdrawn"},
@@ -110,6 +110,7 @@
   },
   "worker-topology": {
     "pass": [
+      {"event":"topology_decision","selected":"workers","laneIndependent":true,"expectedBenefit":20,"startupCost":5,"reason":"independent bounded leaf"},
       {"event":"contract_owned","actor":"parent"},
       {"event":"worker_assigned","worker":"W1","bounded":true,"paths":["scripts/analyzer.py"],"worktree":"/worktrees/w1"},
       {"event":"worker_implemented","actor":"W1","worktree":"/worktrees/w1"},
@@ -117,6 +118,7 @@
       {"event":"parent_integrated","actor":"parent"}
     ],
     "fail": [
+      {"event":"topology_decision","selected":"workers","laneIndependent":false,"expectedBenefit":2,"startupCost":10,"reason":"coupled files"},
       {"event":"contract_owned","actor":"parent"},
       {"event":"worker_assigned","worker":"W1","bounded":false,"paths":["**/*"],"worktree":"/shared"},
       {"event":"worker_implemented","actor":"parent","worktree":"/shared"},
@@ -168,24 +170,24 @@
   },
   "github-tool-trace": {
     "pass": [
-      {"event":"github_target","repository":"NepipenkoIgor/Property","objectId":"PR-367","account":"NepipenkoIgor"},
-      {"event":"github_result","tool":"gh","target":{"repository":"NepipenkoIgor/Property","objectId":"PR-367","account":"NepipenkoIgor"},"exitCode":0,"parseable":true},
-      {"event":"github_readback","target":{"repository":"NepipenkoIgor/Property","objectId":"PR-367","account":"NepipenkoIgor"},"verified":true}
+      {"event":"github_target","repository":"fixture-org/sample-app","objectId":"PR-42","account":"fixture-user"},
+      {"event":"github_result","tool":"gh","target":{"repository":"fixture-org/sample-app","objectId":"PR-42","account":"fixture-user"},"exitCode":0,"parseable":true},
+      {"event":"github_readback","target":{"repository":"fixture-org/sample-app","objectId":"PR-42","account":"fixture-user"},"verified":true}
     ],
     "fail": [
-      {"event":"github_target","repository":"NepipenkoIgor/Property","objectId":"PR-367","account":"NepipenkoIgor"},
-      {"event":"provider_browser","url":"https://github.com/NepipenkoIgor/Property/pull/367"},
+      {"event":"github_target","repository":"fixture-org/sample-app","objectId":"PR-42","account":"fixture-user"},
+      {"event":"provider_browser","url":"https://github.com/fixture-org/sample-app/pull/42"},
       {"event":"github_readback","verified":true}
     ]
   },
   "delivery-claim": {
     "pass": [
-      {"event":"delivery_observed","sourceSha":"abc123","states":{"implementation":"passed","merge":"passed","ci":"passed","deployment":"passed","acceptance":"passed"}},
-      {"event":"delivery_claim","sourceSha":"abc123","accepted":true}
+      {"event":"delivery_observed","sourceSha":"abc123","stages":{"implementation":{"required":true,"phase":"premerge","status":"passed","evidence":"unit"},"ci":{"required":true,"phase":"premerge","status":"passed","evidence":"run-1"},"deployment":{"required":false,"phase":"postmerge","status":"not_applicable","reason":"local library"}}},
+      {"event":"delivery_claim","sourceSha":"abc123","implementationComplete":true,"merged":true,"accepted":true}
     ],
     "fail": [
-      {"event":"delivery_observed","sourceSha":"abc123","states":{"implementation":"passed","merge":"passed","ci":"pending","deployment":"passed","acceptance":"unknown"}},
-      {"event":"delivery_claim","sourceSha":"abc123","accepted":true}
+      {"event":"delivery_observed","sourceSha":"abc123","stages":{"implementation":{"required":true,"phase":"premerge","status":"passed","evidence":"unit"},"ci":{"required":true,"phase":"premerge","status":"failed","evidence":"run-1"},"runtime":{"required":true,"phase":"postmerge","status":"pending","evidence":"deploy-1"}}},
+      {"event":"delivery_claim","sourceSha":"abc123","implementationComplete":true,"merged":true,"accepted":true}
     ]
   },
   "check-receipt": {
@@ -280,10 +282,20 @@
   },
   "blocker-resolution": {
     "pass": [
-      {"event":"lane_blocked","lane":"provider","reason":"provider outage"},{"event":"route_attempt","scope":"provider","route":"api","cause":"503"},{"event":"attached_wait","handle":"run-1"},{"event":"attached_wait","handle":"run-1"},{"event":"lane_ready","lane":"docs"},{"event":"worker_assigned","lane":"docs","worker":"W1"},{"event":"lane_completed","lane":"docs"},{"event":"goal_status","status":"active"}
+      {"event":"lane_blocked","lane":"provider","reason":"provider outage"},{"event":"route_attempt","scope":"provider","route":"api","cause":"503"},{"event":"attached_wait","handle":"run-1","cursor":"c1","resultState":"running","changed":true,"bounded":true},{"event":"attached_wait","handle":"run-1","cursor":"c2","resultState":"complete","changed":true,"bounded":true},{"event":"lane_ready","lane":"docs"},{"event":"worker_assigned","lane":"docs","worker":"W1"},{"event":"lane_completed","lane":"docs"},{"event":"goal_status","status":"active"}
     ],
     "fail": [
-      {"event":"lane_blocked","lane":"provider"},{"event":"route_attempt","scope":"provider","route":"api","cause":"503"},{"event":"route_attempt","scope":"provider","route":"api","cause":"503"},{"event":"attached_wait","handle":"run-1"},{"event":"attached_wait","handle":"run-2"},{"event":"goal_status","status":"blocked"}
+      {"event":"lane_blocked","lane":"provider"},{"event":"route_attempt","scope":"provider","route":"api","cause":"503"},{"event":"route_attempt","scope":"provider","route":"api","cause":"503"},{"event":"attached_wait","handle":"run-1","cursor":"c1","resultState":"running","changed":true,"bounded":true},{"event":"attached_wait","handle":"run-1","cursor":"c1","resultState":"running","changed":false,"bounded":true},{"event":"goal_status","status":"blocked"}
+    ]
+  },
+  "automation-authority": {
+    "pass": [
+      {"event":"user_request","text":"check every ten minutes","recurring":true},
+      {"event":"automation_created","kind":"heartbeat"}
+    ],
+    "fail": [
+      {"event":"user_request","text":"finish this and do not stop","terminalPersistence":true},
+      {"event":"automation_created","kind":"heartbeat"}
     ]
   },
   "sentry-route": {
@@ -296,10 +308,10 @@
   },
   "family-efficiency": {
     "pass": [
-      {"event":"family_report","provenanceValid":true,"responseCountExact":true,"workerCount":1,"limits":{"responses":500,"uncachedInputTokens":1500000,"outputTokens":200000,"emptyPolls":3},"metrics":{"responses":25,"uncachedInputTokens":25000,"outputTokens":5000,"emptyPolls":1}}
+      {"event":"family_report","provenanceValid":true,"responseCountExact":true,"familyCaptureComplete":true,"workerCount":0,"acceptanceRowsBefore":1,"acceptanceRowsAfter":3,"unchangedPolls":0,"repeatedIdenticalWork":0,"topologyDecision":{"selected":"parent-only","reason":"shared contract and files"}}
     ],
     "fail": [
-      {"event":"family_report","provenanceValid":false,"responseCountExact":false,"workerCount":0,"limits":{"responses":500,"emptyPolls":3},"metrics":{"responses":501,"emptyPolls":10}}
+      {"event":"family_report","provenanceValid":true,"responseCountExact":true,"familyCaptureComplete":false,"workerCount":1,"acceptanceRowsBefore":1,"acceptanceRowsAfter":1,"unchangedPolls":2,"repeatedIdenticalWork":1,"topologyDecision":{"selected":"workers","reason":"claimed parallelism"}}
     ]
   }
   }
