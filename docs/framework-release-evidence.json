@@ -28,8 +28,8 @@
       ],
       "exitCode": 0,
       "name": "tokenEfficiency",
-      "output": "{\n  \"livePrompt\": {\n    \"frameworkInstructionBytes\": 17240,\n    \"frameworkSkillVisible\": true,\n    \"items\": 5,\n    \"project\": \"/Users/igornepipenko/.codex/worktrees/generic-runtime-conformance/codex-framework\",\n    \"sentinelVisible\": true,\n    \"textParts\": 10,\n    \"totalChars\": 36910\n  },\n  \"static\": \"passed\"\n}\ntoken structure checks passed; runtime efficiency: not certified by static budgets\n",
-      "outputSha256": "797b075d2d9376c0ff1a43566b17e7b4266713861072ee7741799c124a834251"
+      "output": "{\n  \"livePrompt\": {\n    \"frameworkInstructionBytes\": 17240,\n    \"frameworkSkillVisible\": true,\n    \"items\": 5,\n    \"project\": \"/Users/igornepipenko/.codex/worktrees/generic-runtime-conformance/codex-framework\",\n    \"sentinelVisible\": true,\n    \"textParts\": 10,\n    \"totalChars\": 36953\n  },\n  \"static\": \"passed\"\n}\ntoken structure checks passed; runtime efficiency: not certified by static budgets\n",
+      "outputSha256": "f740bc3402c3bf5678d1473d8dd04cb1144f649ed9ba0ec8c1ccf3a5fedb2181"
     },
     {
       "command": [
@@ -39,8 +39,8 @@
       ],
       "exitCode": 0,
       "name": "effectiveInstallDoctor",
-      "output": "note framework doctor: installation source: /Users/igornepipenko/.codex/frameworks/releases/646410551c6184b997f00728801da3456b234067\nok framework doctor: legacy framework skill namespaces are absent\nok framework doctor: profile copies and safety rule match this framework checkout\nsource=/Users/igornepipenko/.codex/frameworks/releases/646410551c6184b997f00728801da3456b234067 sha=646410551c6184b997f00728801da3456b234067 branch=(detached) dirty=false mode=detached (source identity only; not release certification)\nframework installation is synchronized: 5 links, 3 files\nok framework doctor: auxiliary framework links match explicit ownership state\nok framework doctor: global guidance is managed by this framework checkout\nok framework doctor: canonical USER skills and intentionally global packs match install state\nnote framework doctor: installation and source identity checked; project validation belongs to framework-health.sh\nok framework doctor: native prompt metadata contains one core skill and no retired framework skills\nnote framework doctor: certification: not checked (use --evidence for release certification)\nnote framework doctor: native advisory: state.rollout_db_parity: rollout files and state DB thread inventory differ\nnote framework doctor: ignored TERM=dumb because this audit is running without a TTY\nok framework doctor: native codex doctor has no actionable failures\nframework doctor: 0 failures\n",
-      "outputSha256": "cb1e4b785f0a18c5c27f4dbd865ab32899d3c9f8ef951310c3cf44aebf980948"
+      "output": "note framework doctor: installation source: /Users/igornepipenko/.codex/frameworks/releases/3107b2337ccc334eec6d09f00d7dad4c54dd3379\nok framework doctor: legacy framework skill namespaces are absent\nok framework doctor: profile copies and safety rule match this framework checkout\nsource=/Users/igornepipenko/.codex/frameworks/releases/3107b2337ccc334eec6d09f00d7dad4c54dd3379 sha=3107b2337ccc334eec6d09f00d7dad4c54dd3379 branch=(detached) dirty=false mode=detached (source identity only; not release certification)\nframework installation is synchronized: 5 links, 3 files\nok framework doctor: auxiliary framework links match explicit ownership state\nok framework doctor: global guidance is managed by this framework checkout\nok framework doctor: canonical USER skills and intentionally global packs match install state\nnote framework doctor: installation and source identity checked; project validation belongs to framework-health.sh\nok framework doctor: native prompt metadata contains one core skill and no retired framework skills\nnote framework doctor: certification: not checked (use --evidence for release certification)\nnote framework doctor: native advisory: state.rollout_db_parity: rollout files and state DB thread inventory differ\nnote framework doctor: native advisory: terminal.env: TERM=dumb - colors and cursor control are disabled in this non-interactive run\nok framework doctor: native codex doctor has no actionable failures\nframework doctor: 0 failures\n",
+      "outputSha256": "ff00a82f509d72732d9756c97a2f8a921368e18b3a0a6a13cbb3ad6b73cfe68f"
     },
     {
       "command": [
@@ -104,8 +104,8 @@
       "outputSha256": "f61f1cbb7ec9ef2fb60e942e70fd20783c85673e5e8c975187db9831b126025e"
     }
   ],
-  "generatedAt": "2026-09-23T21:15:33+00:00",
-  "gitHeadAtGeneration": "a08db10d6517f6fd48d34e50631f6a12f4fa6b28",
+  "generatedAt": "2026-09-23T21:38:33+00:00",
+  "gitHeadAtGeneration": "061317cba90e47f8485b204bf23fdd1a8c046405",
   "schemaVersion": 4,
   "skillCorpusAttestation": [
     {
@@ -2138,9 +2138,9 @@
     }
   ],
   "skillCorpusProvenance": {
-    "baselineEvidenceCommit": "646410551c6184b997f00728801da3456b234067",
-    "baselineEvidenceSha256": "ed09bf91951b431145622efd90706c2a2f27f79b38106ef72c8b8ee362b8b13d",
-    "baselineSourceCommit": "1f350624f140f287e4023b30b11e8f0035524b71",
+    "baselineEvidenceCommit": "3107b2337ccc334eec6d09f00d7dad4c54dd3379",
+    "baselineEvidenceSha256": "21f2cc00984fbd1aab08bf297793559d6050cf7d6ae6ea290c3e626e36d23810",
+    "baselineSourceCommit": "a08db10d6517f6fd48d34e50631f6a12f4fa6b28",
     "freshSkills": [],
     "reusedSkills": [
       "ab-testing",
@@ -2301,5 +2301,5 @@
       "workflow-engine-design"
     ]
   },
-  "sourceDigest": "d0730e772fc90ea4aebe70af2213ef749b1ed39462258cd34a5e432e7f6ab4ed"
+  "sourceDigest": "bce28fe68a40fdd0a495529ef4cb57488f9062787c5860aba55eee7799b2063a"
 }
