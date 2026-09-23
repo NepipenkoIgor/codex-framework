@@ -1,17 +1,17 @@
 {
-  "sourceDigest": "e4350585b1c92b88af434ee0524f565e9e087a0d247443831458cd0b9f7146ac",
+  "sourceDigest": "ab91efb0eef4679539ea61f3220b123fe10a8ee49f0f64140ad055b1d8fa1979",
   "scope": "independent final fixture state; not a model success declaration",
-  "initialCommit": "1f8c07a2fa177993e0722bb6ff5885857a0f413c",
-  "mainCommit": "1f8c07a2fa177993e0722bb6ff5885857a0f413c",
-  "taskCommit": "1fc4ec5d53c6f79fc2ca41da5dc187bce405b888",
+  "initialCommit": "10583a59153eb14c1c96e81c9cac021df1d197f8",
+  "mainCommit": "10583a59153eb14c1c96e81c9cac021df1d197f8",
+  "taskCommit": "b023cab394fea2061c1891442a27895fed6681ba",
   "commitObjects": [
-    "1fc4ec5d53c6f79fc2ca41da5dc187bce405b888",
-    "1f8c07a2fa177993e0722bb6ff5885857a0f413c"
+    "b023cab394fea2061c1891442a27895fed6681ba",
+    "10583a59153eb14c1c96e81c9cac021df1d197f8"
   ],
-  "mainTree": "60daf16a5203d2522b485db421fcb8ab9bc09dcd",
+  "mainTree": "f37d2dfa5a63abdc03964a406f9ae3f53fcbe2cc",
   "candidateAncestorOfMain": false,
-  "candidateCommit": "1fc4ec5d53c6f79fc2ca41da5dc187bce405b888",
-  "candidateTree": "8917d612983771dd7bb2592df6014f42c71bc8a7",
+  "candidateCommit": "b023cab394fea2061c1891442a27895fed6681ba",
+  "candidateTree": "d4f9079005d738d8f8b63f0846f7ef511b50a485",
   "candidateSource": "def total(value):\n    return value * 3\n",
   "candidateDiff": "diff --git a/calc.py b/calc.py\nindex fad83f8..99f73ab 100644\n--- a/calc.py\n+++ b/calc.py\n@@ -1,2 +1,2 @@\n def total(value):\n-    return value * 2\n+    return value * 3",
   "expectedOtherWriter": {
@@ -41,7 +41,7 @@
     ],
     "AGENTS.md": [
       "file",
-      "ab67b4886e2814f70d4f9ca81438c1db336b483962546d6766df3a5048d7085c"
+      "0f3bb107e94a555e727378a4d74a0f9af82bb47afe9a1007a6e47bcc1f6d93c3"
     ],
     ".codex/agents/reviewer.toml": [
       "file",
@@ -83,7 +83,7 @@
     ],
     "AGENTS.md": [
       "file",
-      "ab67b4886e2814f70d4f9ca81438c1db336b483962546d6766df3a5048d7085c"
+      "0f3bb107e94a555e727378a4d74a0f9af82bb47afe9a1007a6e47bcc1f6d93c3"
     ],
     ".codex/agents/reviewer.toml": [
       "file",
@@ -125,7 +125,7 @@
     ],
     "AGENTS.md": [
       "file",
-      "ab67b4886e2814f70d4f9ca81438c1db336b483962546d6766df3a5048d7085c"
+      "0f3bb107e94a555e727378a4d74a0f9af82bb47afe9a1007a6e47bcc1f6d93c3"
     ],
     ".codex/agents/reviewer.toml": [
       "file",
@@ -167,7 +167,7 @@
     ],
     "AGENTS.md": [
       "file",
-      "ab67b4886e2814f70d4f9ca81438c1db336b483962546d6766df3a5048d7085c"
+      "0f3bb107e94a555e727378a4d74a0f9af82bb47afe9a1007a6e47bcc1f6d93c3"
     ],
     ".codex/agents/reviewer.toml": [
       "file",
@@ -209,7 +209,11 @@
     ],
     "AGENTS.md": [
       "file",
-      "ab67b4886e2814f70d4f9ca81438c1db336b483962546d6766df3a5048d7085c"
+      "0f3bb107e94a555e727378a4d74a0f9af82bb47afe9a1007a6e47bcc1f6d93c3"
+    ],
+    "__pycache__/calc.cpython-311.pyc": [
+      "file",
+      "f4c90d18a2caf29693c9cb5d4bcdaa30d3358ae0213d1910928ffe54485c5a8d"
     ],
     ".codex/agents/reviewer.toml": [
       "file",
@@ -226,6 +230,6 @@
   },
   "checkoutConfigMode": 416,
   "taskConfigMode": 416,
-  "worktrees": "worktree /private/var/folders/7j/6sf4dyd504z0mz22z_6vyt_w0000gn/T/delivery-pending-evidence-6cassv3g/checkout\nHEAD 1f8c07a2fa177993e0722bb6ff5885857a0f413c\nbranch refs/heads/main\n\nworktree /private/var/folders/7j/6sf4dyd504z0mz22z_6vyt_w0000gn/T/delivery-pending-evidence-6cassv3g/other-writer\nHEAD 1f8c07a2fa177993e0722bb6ff5885857a0f413c\nbranch refs/heads/other-writer\n\nworktree /private/var/folders/7j/6sf4dyd504z0mz22z_6vyt_w0000gn/T/delivery-pending-evidence-6cassv3g/task\nHEAD 1fc4ec5d53c6f79fc2ca41da5dc187bce405b888\nbranch refs/heads/codex/fix",
+  "worktrees": "worktree /private/var/folders/7j/6sf4dyd504z0mz22z_6vyt_w0000gn/T/delivery-pending-evidence-68enm6p8/checkout\nHEAD 10583a59153eb14c1c96e81c9cac021df1d197f8\nbranch refs/heads/main\n\nworktree /private/var/folders/7j/6sf4dyd504z0mz22z_6vyt_w0000gn/T/delivery-pending-evidence-68enm6p8/other-writer\nHEAD 10583a59153eb14c1c96e81c9cac021df1d197f8\nbranch refs/heads/other-writer\n\nworktree /private/var/folders/7j/6sf4dyd504z0mz22z_6vyt_w0000gn/T/delivery-pending-evidence-68enm6p8/task\nHEAD b023cab394fea2061c1891442a27895fed6681ba\nbranch refs/heads/codex/fix",
   "checkoutStatus": ""
 }
