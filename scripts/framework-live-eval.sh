@@ -13,9 +13,9 @@ CASES="$ROOT/evals/routing-cases.tsv"
 SCHEMA="$ROOT/evals/routing-output.schema.json"
 SERVICE_CASES="$ROOT/evals/service-operation-cases.tsv"
 SERVICE_SCHEMA="$ROOT/evals/service-operation-output.schema.json"
-RUNTIME_CASES="$ROOT/evals/runtime-efficiency-cases.tsv"
-RUNTIME_SCHEMA="$ROOT/evals/runtime-efficiency-output.schema.json"
-if [ "$POLICY_SCOPE" = runtime ]; then CASES=/dev/null; SERVICE_CASES=/dev/null; fi
+if [ "$POLICY_SCOPE" = runtime ]; then
+  exec python3 "$ROOT/scripts/framework-runtime-policy-eval.py"
+fi
 TMP_ROOT="$(mktemp -d)"
 trap 'rm -rf "$TMP_ROOT"' EXIT
 
@@ -58,31 +58,12 @@ while IFS=$'\t' read -r name expected_route expected_rely expected_browser promp
   fi
 done < "$SERVICE_CASES"
 
-while IFS=$'\t' read -r name expected_action expected_poll expected_repeat expected_reviewer prompt; do
-  [ -n "$name" ] || continue
-  total=$((total + 1))
-  output="$TMP_ROOT/runtime-$name.json"
-  codex exec --ephemeral -s read-only -C "$ROOT" \
-    --output-schema "$RUNTIME_SCHEMA" -o "$output" \
-    "Do not use tools or change files. Classify the next action for this hypothetical long-running task using the repository agreement. shell_poll_allowed means a repeated shell or sleep polling loop, not a one-time command or attached native wait. repeat_full_gate means rerunning every check, not only checks invalidated by new evidence. This is a policy classification exercise, not proof of tool behavior. Task: $prompt" \
-    </dev/null >/dev/null 2>"$TMP_ROOT/runtime-$name.stderr"
-  actual_action="$(python3 -c 'import json,sys; print(json.load(open(sys.argv[1]))["action"])' "$output")"
-  actual_poll="$(python3 -c 'import json,sys; print(str(json.load(open(sys.argv[1]))["shell_poll_allowed"]).lower())' "$output")"
-  actual_repeat="$(python3 -c 'import json,sys; print(str(json.load(open(sys.argv[1]))["repeat_full_gate"]).lower())' "$output")"
-  actual_reviewer="$(python3 -c 'import json,sys; print(str(json.load(open(sys.argv[1]))["start_reviewer"]).lower())' "$output")"
-  action_matches=false
-  case "|$expected_action|" in *"|$actual_action|"*) action_matches=true ;; esac
-  if [ "$action_matches" = true ] && [ "$actual_poll" = "$expected_poll" ] \
-      && [ "$actual_repeat" = "$expected_repeat" ] && [ "$actual_reviewer" = "$expected_reviewer" ]; then
-    printf 'ok %02d %s -> %s poll=%s repeat=%s reviewer=%s\n' \
-      "$total" "$name" "$actual_action" "$actual_poll" "$actual_repeat" "$actual_reviewer"
-  else
-    printf 'not ok %02d %s expected=%s/%s/%s/%s actual=%s/%s/%s/%s\n' \
-      "$total" "$name" "$expected_action" "$expected_poll" "$expected_repeat" "$expected_reviewer" \
-      "$actual_action" "$actual_poll" "$actual_repeat" "$actual_reviewer"
-    failures=$((failures + 1))
-  fi
-done < "$RUNTIME_CASES"
+runtime_receipt="$TMP_ROOT/runtime-receipt.json"
+python3 "$ROOT/scripts/framework-runtime-policy-eval.py" --receipt "$runtime_receipt" || true
+runtime_total="$(python3 -c 'import json,sys; print(json.load(open(sys.argv[1]))["totalCases"])' "$runtime_receipt")"
+runtime_failures="$(python3 -c 'import json,sys; print(json.load(open(sys.argv[1]))["failureCount"])' "$runtime_receipt")"
+total=$((total + runtime_total))
+failures=$((failures + runtime_failures))
 
 printf 'framework policy classification: %d cases, %d failures (runtime behavior not certified)\n' "$total" "$failures"
 [ "$failures" -eq 0 ]

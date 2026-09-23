@@ -720,6 +720,7 @@ check 'installation source isolation fixtures pass' python3 "$ROOT/scripts/frame
 check 'scoped token evidence fixtures pass' python3 "$ROOT/scripts/framework-token-budget-check-test.py"
 check 'agent-studio debate, safety, coordination, and efficiency counterexamples are rejected' python3 "$ROOT/scripts/framework-agent-studio-behavior-eval.py" --self-test
 check 'behavioral graders reject false acceptance' python3 "$ROOT/scripts/framework-project-behavior-eval.py" --self-test
+check 'runtime policy evaluator uses bounded majority sampling and usage receipts' python3 "$ROOT/scripts/framework-runtime-policy-eval.py" --self-test
 
 printf 'framework eval: %d checks, %d failures\n' "$total" "$failures"
 [ "$failures" -eq 0 ]
