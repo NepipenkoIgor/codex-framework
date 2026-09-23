@@ -6,7 +6,7 @@
   "additionalProperties": false,
   "required": ["conformanceVersion", "scope", "familyComplete", "bindings", "results"],
   "properties": {
-    "conformanceVersion": {"const": 3},
+    "conformanceVersion": {"const": 4},
     "scope": {"enum": ["historical-audit", "release-certification"]},
     "familyComplete": {"type": "boolean"},
     "bindings": {
@@ -26,11 +26,19 @@
       "items": {
         "type": "object",
         "additionalProperties": false,
-        "required": ["exchangeId", "findingId", "phase", "status", "reasons", "evidencePointers"],
+        "required": ["batchId", "exchangeId", "findingId", "challengerId", "phase", "severity", "claim", "acceptanceRows", "blockedStages", "disposition", "adjudication", "status", "reasons", "evidencePointers"],
         "properties": {
+          "batchId": {"type": ["string", "null"]},
           "exchangeId": {"type": ["string", "null"]},
           "findingId": {"type": ["string", "null"]},
+          "challengerId": {"type": ["string", "null"]},
           "phase": {"enum": ["single", "pre", "post"]},
+          "severity": {"enum": ["low", "medium", "high", "critical", null]},
+          "claim": {"type": ["string", "null"]},
+          "acceptanceRows": {"type": "array", "items": {"type": "string"}},
+          "blockedStages": {"type": "array", "items": {"type": "string"}},
+          "disposition": {"enum": ["resolved", "withdrawn", "unresolved", "no_findings", null]},
+          "adjudication": {"enum": ["accept", "reject", "block", null]},
           "status": {"enum": ["compliant", "violation", "unverifiable"]},
           "reasons": {"type": "array", "items": {"type": "string"}},
           "evidencePointers": {

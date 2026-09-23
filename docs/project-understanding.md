@@ -36,4 +36,4 @@ External workflow state changes use read/compare/preview/mutate/read-back agains
 
 ## Verification scope
 
-`framework-project-behavior-eval.py` uses isolated local repositories and native Codex execution. Its independent graders test unambiguous successful commands, product behavior and the fixture input schema. Free-form documentation semantics remain unverified; keywords cannot establish correct knowledge. These are controlled fixtures, not evidence of live Property acceptance. Policy classification, deterministic diagnostics, behavioral fixtures, and actual project acceptance remain separate evidence levels.
+`framework-project-behavior-eval.py` uses isolated local repositories and native Codex execution. Its independent graders test unambiguous successful commands, product behavior and the fixture input schema. Free-form documentation semantics remain unverified; keywords cannot establish correct knowledge. These are controlled fixtures, not evidence of acceptance in any live project. Policy classification, deterministic diagnostics, behavioral fixtures, and actual project acceptance remain separate evidence levels.

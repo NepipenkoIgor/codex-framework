@@ -52,7 +52,7 @@ COMPUTER_USE_DOCUMENTATION_MARKERS = (
     "initialized cua API",
     "rewriteDocumentation",
 )
-CERTIFICATION_LIMITS = {
+CONTROLLED_CANARY_LIMITS = {
     "responses": 500,
     "uncachedInputTokens": 1_500_000,
     "outputTokens": 200_000,
@@ -67,13 +67,17 @@ CERTIFICATION_LIMITS = {
     "repeatedComputerUseDocumentation": 0,
     "goalBlockedContinuationChurn": 0,
 }
+# Backward-compatible diagnostics name; these are advisory controlled-canary
+# baselines, never universal pass/fail limits for an arbitrary project task.
+CERTIFICATION_LIMITS = CONTROLLED_CANARY_LIMITS
 
 
 def valid_usage(value: object) -> bool:
     return isinstance(value, dict) and all(
         isinstance(value.get(key), int) and not isinstance(value.get(key), bool)
         and value[key] >= 0 for key in USAGE_KEYS
-    ) and value["cached_input_tokens"] <= value["input_tokens"]
+    ) and value["cached_input_tokens"] <= value["input_tokens"] \
+        and value["reasoning_output_tokens"] <= value["output_tokens"]
 
 
 def timestamp(value: object) -> dt.datetime | None:
@@ -829,43 +833,66 @@ def sum_usage(values: list[dict[str, int]]) -> dict[str, int]:
 
 def certification_failures(report: dict[str, object]) -> list[str]:
     failures: list[str] = []
-    checks = {
-        "responses": report.get("responses", 0),
-        "uncachedInputTokens": report.get("uncachedInputTokens", 0),
-        "outputTokens": report.get("outputTokens", 0),
-        "compactions": report.get("compactions", 0),
-        "nearWindowResponses": report.get("nearWindowResponses", 0),
-        "responsesPerHour": report.get("responsesPerHour"),
-        "emptyPolls": report.get("emptyWriteStdinPolls", 0),
-        "emptyPollsPerSession": report.get("maxEmptyWriteStdinPollsPerSession", 0),
-        "identicalExternalReads": max(
-            int(report.get("maxIdenticalExternalStatusReads", 0)),
-            int(report.get("maxIdenticalExternalReadResults", 0)),
-        ),
-        "oversizedToolOutputs": report.get("toolOutputsOver16000TextChars", 0),
-        "repeatedOversizedToolOutputs": report.get("repeatedOversizedToolOutputCalls", 0),
-        "repeatedComputerUseDocumentation": report.get("repeatedComputerUseDocumentationLoads", 0),
-        "goalBlockedContinuationChurn": report.get("goalBlockedContinuationChurn", 0),
-    }
-    for name, value in checks.items():
-        if not isinstance(value, (int, float)) or isinstance(value, bool):
-            failures.append(f"certification metric is unavailable: {name}")
-        elif value > CERTIFICATION_LIMITS[name]:
-            failures.append(
-                f"certification threshold exceeded: {name}={value} > {CERTIFICATION_LIMITS[name]}"
-            )
     if report.get("responseCountExact") is not True:
         failures.append("certification requires exact response identity and per-response usage")
     if report.get("responseTimestampsComplete") is not True:
         failures.append("certification requires a timestamp for every response in every rollout")
     if report.get("provenanceValid") is not True:
-        failures.append("certification requires a complete root/child provenance graph")
+        failures.append("certification requires a connected root/child provenance graph")
+    if report.get("familyCaptureComplete") is not True:
+        failures.append("certification requires every native-spawned child rollout")
     if report.get("modelEffortTelemetryComplete") is not True:
         failures.append("certification requires effective model and effort metadata for every session")
-    profiles = report.get("sessionsByProfile", {})
-    if not isinstance(profiles, dict) or int(profiles.get("worker", 0)) < 1:
-        failures.append("certification requires at least one provenance-identified worker")
     return failures
+
+
+def spawned_child_ids(path: pathlib.Path) -> tuple[set[str], bool]:
+    """Resolve native spawn receipts without inferring children from prose."""
+    calls: dict[str, set[str]] = {}
+    activities: dict[str, set[str]] = collections.defaultdict(set)
+    try:
+        records = [json.loads(line) for line in path.read_text().splitlines() if line.strip()]
+    except (OSError, ValueError, json.JSONDecodeError):
+        return set(), False
+    for record in records:
+        payload = record.get("payload", {}) if isinstance(record, dict) else {}
+        if record.get("type") == "event_msg" and payload.get("type") == "item_completed":
+            item = payload.get("item", {})
+            if isinstance(item, dict) and item.get("type") == "SubAgentActivity" \
+                    and item.get("kind") == "started" \
+                    and isinstance(item.get("id"), str) \
+                    and isinstance(item.get("agent_thread_id"), str):
+                activities[item["id"]].add(item["agent_thread_id"])
+        if record.get("type") != "response_item" or not isinstance(payload, dict):
+            continue
+        if payload.get("type") == "function_call" \
+                and str(payload.get("name", "")).split(".")[-1] == "spawn_agent":
+            call_id = payload.get("call_id")
+            if not isinstance(call_id, str) or not call_id or call_id in calls:
+                return set(), False
+            calls[call_id] = set()
+        elif payload.get("type") == "function_call_output" and payload.get("call_id") in calls:
+            value = payload.get("output")
+            try:
+                value = json.loads(value) if isinstance(value, str) else value
+            except json.JSONDecodeError:
+                return set(), False
+            child = value.get("agent_id") if isinstance(value, dict) else None
+            if child is not None and (not isinstance(child, str) or not child):
+                return set(), False
+            if isinstance(child, str):
+                calls[payload["call_id"]].add(child)
+    resolved: list[set[str]] = []
+    if set(activities) - set(calls):
+        return set(), False
+    for call_id, output_ids in calls.items():
+        activity_ids = activities.get(call_id, set())
+        if output_ids and activity_ids and output_ids != activity_ids:
+            return set(), False
+        resolved.append(output_ids or activity_ids)
+    if any(len(children) != 1 for children in resolved):
+        return set(), False
+    return {child for children in resolved for child in children}, True
 
 
 def family_report(paths: list[pathlib.Path], *, details: bool = False,
@@ -941,6 +968,16 @@ def family_report(paths: list[pathlib.Path], *, details: bool = False,
                 break
     failures.extend(graph_failures)
     provenance_valid = len(roots) == 1 and not graph_failures and not duplicate_response_ids
+    spawned: set[str] = set()
+    spawn_receipts_complete = True
+    for path in unique_paths:
+        children, complete = spawned_child_ids(path)
+        spawned.update(children)
+        spawn_receipts_complete = spawn_receipts_complete and complete
+    supplied_children = {str(session.get("sessionId")) for session in sessions
+                         if session.get("threadRole") == "child"}
+    family_capture_complete = provenance_valid and spawn_receipts_complete \
+        and spawned == supplied_children
 
     usage_values = [session.get("responseUsageSum") for session in sessions]
     exact = all(isinstance(value, dict) for value in usage_values) and not duplicate_response_ids
@@ -982,6 +1019,9 @@ def family_report(paths: list[pathlib.Path], *, details: bool = False,
     family: dict[str, object] = {
         "profile": profile,
         "provenanceValid": provenance_valid,
+        "familyCaptureComplete": family_capture_complete,
+        "spawnedChildSessionIds": sorted(spawned),
+        "suppliedChildSessionIds": sorted(supplied_children),
         "rootSessionId": roots[0].get("sessionId") if len(roots) == 1 else None,
         "sessionCount": len(sessions),
         "sessionsByProfile": dict(sorted(sessions_by_profile.items())),
@@ -1039,7 +1079,7 @@ def family_report(paths: list[pathlib.Path], *, details: bool = False,
             }
             for session in sessions
         ],
-        "thresholds": CERTIFICATION_LIMITS if profile == "certification" else None,
+        "controlledCanaryBaselines": CONTROLLED_CANARY_LIMITS if profile == "certification" else None,
     }
     if profile == "certification":
         failures.extend(certification_failures(family))

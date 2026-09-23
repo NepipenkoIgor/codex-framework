@@ -1,17 +1,17 @@
 {
-  "sourceDigest": "bab1a927d195df1b6f2a91557e51eb306e3a6cdacdd18d980c4a08a508aa460e",
+  "sourceDigest": "e4350585b1c92b88af434ee0524f565e9e087a0d247443831458cd0b9f7146ac",
   "scope": "independent final fixture state; not a model success declaration",
-  "initialCommit": "2d1622b0eb0e29f0dc1d8df5dc8a5e981a1cd660",
-  "mainCommit": "7e31b3610471b0c42a4ed1bb8e57af032fc41da7",
-  "taskCommit": "7e31b3610471b0c42a4ed1bb8e57af032fc41da7",
+  "initialCommit": "c14028af498d450a8ad0372c4a551555ff62e3ec",
+  "mainCommit": "09627464cddcf7d9840a9483ac3418b672ebe8ec",
+  "taskCommit": "09627464cddcf7d9840a9483ac3418b672ebe8ec",
   "commitObjects": [
-    "7e31b3610471b0c42a4ed1bb8e57af032fc41da7",
-    "2d1622b0eb0e29f0dc1d8df5dc8a5e981a1cd660"
+    "09627464cddcf7d9840a9483ac3418b672ebe8ec",
+    "c14028af498d450a8ad0372c4a551555ff62e3ec"
   ],
-  "mainTree": "76b94499102301c9858e98fb520348f7695427a2",
+  "mainTree": "f674180566963fb57a73657aca7ad63be08c6c96",
   "candidateAncestorOfMain": true,
-  "candidateCommit": "7e31b3610471b0c42a4ed1bb8e57af032fc41da7",
-  "candidateTree": "76b94499102301c9858e98fb520348f7695427a2",
+  "candidateCommit": "09627464cddcf7d9840a9483ac3418b672ebe8ec",
+  "candidateTree": "f674180566963fb57a73657aca7ad63be08c6c96",
   "candidateSource": "def total(value):\n    return value * 3\n",
   "candidateDiff": "diff --git a/calc.py b/calc.py\nindex fad83f8..99f73ab 100644\n--- a/calc.py\n+++ b/calc.py\n@@ -1,2 +1,2 @@\n def total(value):\n-    return value * 2\n+    return value * 3",
   "expectedOtherWriter": {
@@ -45,7 +45,7 @@
     ],
     "AGENTS.md": [
       "file",
-      "79d2b0f2f8e8f14768f516e8a2369bacb96b7d9929b85f070b708bf110c299b7"
+      "ab67b4886e2814f70d4f9ca81438c1db336b483962546d6766df3a5048d7085c"
     ],
     ".codex/agents/reviewer.toml": [
       "file",
@@ -57,7 +57,7 @@
     ],
     ".codex/agents/tester.toml": [
       "file",
-      "b43826193b32485cbe21206acb960f42bef9dde661e1ae85bfbba6e980192aa8"
+      "fa6f5c9e27292319e44ef030a76807fdceb2351544afae6c0bcdd0739d381cd7"
     ]
   },
   "actualOtherWriter": {
@@ -91,7 +91,7 @@
     ],
     "AGENTS.md": [
       "file",
-      "79d2b0f2f8e8f14768f516e8a2369bacb96b7d9929b85f070b708bf110c299b7"
+      "ab67b4886e2814f70d4f9ca81438c1db336b483962546d6766df3a5048d7085c"
     ],
     ".codex/agents/reviewer.toml": [
       "file",
@@ -103,7 +103,7 @@
     ],
     ".codex/agents/tester.toml": [
       "file",
-      "b43826193b32485cbe21206acb960f42bef9dde661e1ae85bfbba6e980192aa8"
+      "fa6f5c9e27292319e44ef030a76807fdceb2351544afae6c0bcdd0739d381cd7"
     ]
   },
   "expectedCheckout": {
@@ -137,7 +137,7 @@
     ],
     "AGENTS.md": [
       "file",
-      "79d2b0f2f8e8f14768f516e8a2369bacb96b7d9929b85f070b708bf110c299b7"
+      "ab67b4886e2814f70d4f9ca81438c1db336b483962546d6766df3a5048d7085c"
     ],
     ".codex/agents/reviewer.toml": [
       "file",
@@ -149,7 +149,7 @@
     ],
     ".codex/agents/tester.toml": [
       "file",
-      "b43826193b32485cbe21206acb960f42bef9dde661e1ae85bfbba6e980192aa8"
+      "fa6f5c9e27292319e44ef030a76807fdceb2351544afae6c0bcdd0739d381cd7"
     ]
   },
   "actualCheckout": {
@@ -183,11 +183,11 @@
     ],
     "AGENTS.md": [
       "file",
-      "79d2b0f2f8e8f14768f516e8a2369bacb96b7d9929b85f070b708bf110c299b7"
+      "ab67b4886e2814f70d4f9ca81438c1db336b483962546d6766df3a5048d7085c"
     ],
     "__pycache__/calc.cpython-311.pyc": [
       "file",
-      "6103964e20aaf5babe59279cf099639b6a6f93b5b69f8f4cfa28faa8fffbd7d5"
+      "4de203bcca69286cec6ae75f3ffa2b1bfcc8ac0ebc803ffdf98741e1af0fddf3"
     ],
     ".codex/agents/reviewer.toml": [
       "file",
@@ -199,12 +199,12 @@
     ],
     ".codex/agents/tester.toml": [
       "file",
-      "b43826193b32485cbe21206acb960f42bef9dde661e1ae85bfbba6e980192aa8"
+      "fa6f5c9e27292319e44ef030a76807fdceb2351544afae6c0bcdd0739d381cd7"
     ]
   },
   "actualTask": null,
   "checkoutConfigMode": 416,
   "taskConfigMode": null,
-  "worktrees": "worktree /private/var/folders/7j/6sf4dyd504z0mz22z_6vyt_w0000gn/T/delivery-false-positive-xs3mos9y/checkout\nHEAD 7e31b3610471b0c42a4ed1bb8e57af032fc41da7\nbranch refs/heads/main\n\nworktree /private/var/folders/7j/6sf4dyd504z0mz22z_6vyt_w0000gn/T/delivery-false-positive-xs3mos9y/other-writer\nHEAD 2d1622b0eb0e29f0dc1d8df5dc8a5e981a1cd660\nbranch refs/heads/other-writer",
+  "worktrees": "worktree /private/var/folders/7j/6sf4dyd504z0mz22z_6vyt_w0000gn/T/delivery-false-positive-brfl4udb/checkout\nHEAD 09627464cddcf7d9840a9483ac3418b672ebe8ec\nbranch refs/heads/main\n\nworktree /private/var/folders/7j/6sf4dyd504z0mz22z_6vyt_w0000gn/T/delivery-false-positive-brfl4udb/other-writer\nHEAD c14028af498d450a8ad0372c4a551555ff62e3ec\nbranch refs/heads/other-writer",
   "checkoutStatus": ""
 }

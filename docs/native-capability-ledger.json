@@ -1,25 +1,25 @@
 {
   "schemaVersion": 3,
-  "reviewedAt": "2026-09-22T21:21:03+00:00",
-  "codexVersion": "codex-cli 0.156.0",
+  "reviewedAt": "2026-09-23T18:49:54+00:00",
+  "codexVersion": "codex-cli 0.156.1",
   "baselineReleaseTag": "rust-v0.149.0",
-  "latestReleaseTag": "rust-v0.156.0",
-  "changelogReviewedThrough": "2026-09-22",
+  "latestReleaseTag": "rust-v0.156.1",
+  "changelogReviewedThrough": "2026-09-23",
   "sources": [
     {
       "kind": "manual",
       "url": "https://learn.chatgpt.com/docs/codex/cli",
-      "sha256": "b3520fa9177a753053b6c9be29e15c2736707b6db3981a8bf0b988eddd91cb5e"
+      "sha256": "18522c7dd1d89f1a44626b84ad297bda02269a95ff390f9d3d3d00a0358fda5f"
     },
     {
       "kind": "changelog",
       "url": "https://learn.chatgpt.com/docs/changelog",
-      "sha256": "8ceeae492fe8ce714f2e2bf1e89b6d07a850de7e6a5b91f4025452a4e191c0f4"
+      "sha256": "1ac624bd7f646ec9747cac381c9b186d090e92712d90949b3efc0b81aae16037"
     },
     {
       "kind": "release",
       "url": "https://api.github.com/repos/openai/codex/releases/latest",
-      "sha256": "c15bd0a7b9bf21cd0c973f59122aa9d50065e6c17b4d54e7ca07c13ee0ffd8a6"
+      "sha256": "1966686cdcfe6ae4a17e55775992f2ccdb0de9ce9577e5913a98809299b0ca28"
     }
   ],
   "releaseCoverage": [
@@ -164,6 +164,13 @@
         "native-doctor-diagnostics",
         "approval-review",
         "experimental-voice"
+      ]
+    },
+    {
+      "tag": "rust-v0.156.1",
+      "publishedAt": "2026-09-23T02:41:36Z",
+      "capabilityIds": [
+        "native-model-defaults"
       ]
     }
   ],

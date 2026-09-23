@@ -17,13 +17,14 @@ import tempfile
 import unittest
 
 ROOT = Path(__file__).resolve().parent.parent
-CASES = ("python-discovery", "node-runtime", "incremental-contract", "provider-cli-routing")
+CASES = ("python-discovery", "no-project-agents", "node-runtime", "incremental-contract", "provider-cli-routing")
 
 
 def write_fixture(path: Path, case: str) -> tuple[str, list[str]]:
     # Proposed guidance is installed only in the disposable project. Real user
     # configuration, model/effort and global instruction files are untouched.
-    (path / "AGENTS.md").write_text((ROOT / "templates/global/AGENTS.md").read_text())
+    if case != "no-project-agents":
+        (path / "AGENTS.md").write_text((ROOT / "templates/global/AGENTS.md").read_text())
     if case == "provider-cli-routing":
         (path / "bin").mkdir()
         provider = path / "bin/providerctl"
@@ -364,7 +365,10 @@ def grade(case: str, path: Path, raw: str, grader: list[str]) -> tuple[bool, dic
     except (OSError, subprocess.TimeoutExpired) as error:
         return False, {"error": f"independent check unavailable: {error}"}
     contract_updated = case != "incremental-contract" or contract_evidence(path)
-    return observed and behavior and contract_updated and route_clean, {"machineContractPassed": contract_updated,
+    no_generated_adapter = case != "no-project-agents" or not any(
+        (path / name).exists() for name in ("AGENTS.md", ".codex", "PROJECT_BRIEF.md", "codex-project.json"))
+    return observed and behavior and contract_updated and route_clean and no_generated_adapter, {"machineContractPassed": contract_updated,
+                                   "noGeneratedProjectAdapter": no_generated_adapter,
                                    "documentationSemantics": "unverified; free-form prose is not graded",
                                    "observedCommands": len(commands), "requiredChecksObserved": observed,
                                    "providerRouteClean": route_clean,

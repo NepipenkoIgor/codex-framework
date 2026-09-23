@@ -117,6 +117,20 @@ def codex_version() -> str:
     return completed.stdout.strip()
 
 
+def compatible_codex_runtime(evidence_version: Any, current_version: str | None = None) -> bool:
+    """Reuse skill evidence across stable patch updates only.
+
+    Release gates still rerun the current-CLI loader, capability-currency and
+    provider-routing canaries. A major/minor change can alter routing or tool
+    semantics broadly and therefore invalidates every per-skill attestation.
+    """
+    current = current_version or codex_version()
+    pattern = re.compile(r'^codex-cli (\d+)\.(\d+)\.(\d+)$')
+    old_match = pattern.fullmatch(evidence_version) if isinstance(evidence_version, str) else None
+    current_match = pattern.fullmatch(current)
+    return bool(old_match and current_match and old_match.groups()[:2] == current_match.groups()[:2])
+
+
 def fixture_path(value: str) -> Path:
     candidate = (ROOT / value).resolve()
     require(candidate.is_file(), f"missing fixture {value}")
@@ -1374,7 +1388,8 @@ def validate_compact_attestation(rows: Any, selected: str | None = None) -> None
         require(row["semanticDigest"] == semantic_digest(skill), f"compact skill attestation semantic digest mismatch: {skill}")
         require(isinstance(row["rawEvidenceDigest"], str) and len(row["rawEvidenceDigest"]) == 64 and row["rawEvidenceDigest"] != "0" * 64 and all(character in "0123456789abcdef" for character in row["rawEvidenceDigest"]), f"compact skill attestation raw digest malformed: {skill}")
         require(row["model"] == EVALUATOR_MODEL and row["reasoningEffort"] == EVALUATOR_REASONING_EFFORT, f"compact skill attestation evaluator mismatch: {skill}")
-        require(row["codexVersion"] == codex_version(), f"compact skill attestation runtime mismatch: {skill}")
+        require(compatible_codex_runtime(row["codexVersion"]),
+                f"compact skill attestation runtime mismatch: {skill}")
         require(row["caseCount"] == expected_cases and row["verdict"] == "pass", f"compact skill attestation verdict mismatch: {skill}")
 
 
@@ -1556,6 +1571,12 @@ def full_live(artifact_dir: Path, routing_artifact: Path, jobs: int, resume: boo
 
 def self_test() -> None:
     require(sha256_bytes(b"x") == hashlib.sha256(b"x").hexdigest(), "sha helper")
+    require(compatible_codex_runtime("codex-cli 0.156.0", "codex-cli 0.156.1"),
+            "stable patch update should reuse unchanged per-skill evidence")
+    require(not compatible_codex_runtime("codex-cli 0.155.9", "codex-cli 0.156.0"),
+            "minor runtime update must invalidate per-skill evidence")
+    require(not compatible_codex_runtime("codex-cli 0.156.0-dev", "codex-cli 0.156.1"),
+            "non-stable runtime evidence must fail closed")
     require(30 <= MODEL_CALL_TIMEOUT_SECONDS <= 600, "model evaluator timeout must remain bounded")
     require(1 <= MODEL_TERMINATION_GRACE_SECONDS <= 10, "model evaluator termination grace must remain bounded")
     require(EVALUATOR_MODEL and EVALUATOR_REASONING_EFFORT, "evaluator identity must be pinned")
