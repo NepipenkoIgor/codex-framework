@@ -1,17 +1,17 @@
 {
-  "sourceDigest": "e4350585b1c92b88af434ee0524f565e9e087a0d247443831458cd0b9f7146ac",
+  "sourceDigest": "ab91efb0eef4679539ea61f3220b123fe10a8ee49f0f64140ad055b1d8fa1979",
   "scope": "independent final fixture state; not a model success declaration",
-  "initialCommit": "ef48202f50b4ba114b6e26e0af485e16a5bcbd5b",
-  "mainCommit": "7c6b8aecb1b1d1318933b6a6e758f7b80813f165",
-  "taskCommit": "7c6b8aecb1b1d1318933b6a6e758f7b80813f165",
+  "initialCommit": "abd99b02d271cb66188023a2481caba66d58aa5d",
+  "mainCommit": "ffa33c06235aab0e89d5113f72dd800c40b4bfe9",
+  "taskCommit": "ffa33c06235aab0e89d5113f72dd800c40b4bfe9",
   "commitObjects": [
-    "7c6b8aecb1b1d1318933b6a6e758f7b80813f165",
-    "ef48202f50b4ba114b6e26e0af485e16a5bcbd5b"
+    "ffa33c06235aab0e89d5113f72dd800c40b4bfe9",
+    "abd99b02d271cb66188023a2481caba66d58aa5d"
   ],
-  "mainTree": "34aa163456ade0a54221b898dce5070adbc73abd",
+  "mainTree": "2558dfa2fdc0699ca747ce4d4e66895da4b319b8",
   "candidateAncestorOfMain": true,
-  "candidateCommit": "7c6b8aecb1b1d1318933b6a6e758f7b80813f165",
-  "candidateTree": "34aa163456ade0a54221b898dce5070adbc73abd",
+  "candidateCommit": "ffa33c06235aab0e89d5113f72dd800c40b4bfe9",
+  "candidateTree": "2558dfa2fdc0699ca747ce4d4e66895da4b319b8",
   "candidateSource": "def total(value):\n    return value * 3\n",
   "candidateDiff": "diff --git a/calc.py b/calc.py\nindex fad83f8..99f73ab 100644\n--- a/calc.py\n+++ b/calc.py\n@@ -1,2 +1,2 @@\n def total(value):\n-    return value * 2\n+    return value * 3",
   "expectedOtherWriter": {
@@ -45,7 +45,7 @@
     ],
     "AGENTS.md": [
       "file",
-      "ab67b4886e2814f70d4f9ca81438c1db336b483962546d6766df3a5048d7085c"
+      "0f3bb107e94a555e727378a4d74a0f9af82bb47afe9a1007a6e47bcc1f6d93c3"
     ],
     ".codex/agents/reviewer.toml": [
       "file",
@@ -91,7 +91,7 @@
     ],
     "AGENTS.md": [
       "file",
-      "ab67b4886e2814f70d4f9ca81438c1db336b483962546d6766df3a5048d7085c"
+      "0f3bb107e94a555e727378a4d74a0f9af82bb47afe9a1007a6e47bcc1f6d93c3"
     ],
     ".codex/agents/reviewer.toml": [
       "file",
@@ -137,7 +137,7 @@
     ],
     "AGENTS.md": [
       "file",
-      "ab67b4886e2814f70d4f9ca81438c1db336b483962546d6766df3a5048d7085c"
+      "0f3bb107e94a555e727378a4d74a0f9af82bb47afe9a1007a6e47bcc1f6d93c3"
     ],
     ".codex/agents/reviewer.toml": [
       "file",
@@ -183,7 +183,7 @@
     ],
     "AGENTS.md": [
       "file",
-      "ab67b4886e2814f70d4f9ca81438c1db336b483962546d6766df3a5048d7085c"
+      "0f3bb107e94a555e727378a4d74a0f9af82bb47afe9a1007a6e47bcc1f6d93c3"
     ],
     ".codex/agents/reviewer.toml": [
       "file",
@@ -201,6 +201,6 @@
   "actualTask": null,
   "checkoutConfigMode": 416,
   "taskConfigMode": null,
-  "worktrees": "worktree /private/var/folders/7j/6sf4dyd504z0mz22z_6vyt_w0000gn/T/delivery-ci-repair-5r0x49kg/checkout\nHEAD 7c6b8aecb1b1d1318933b6a6e758f7b80813f165\nbranch refs/heads/main\n\nworktree /private/var/folders/7j/6sf4dyd504z0mz22z_6vyt_w0000gn/T/delivery-ci-repair-5r0x49kg/other-writer\nHEAD ef48202f50b4ba114b6e26e0af485e16a5bcbd5b\nbranch refs/heads/other-writer",
+  "worktrees": "worktree /private/var/folders/7j/6sf4dyd504z0mz22z_6vyt_w0000gn/T/delivery-ci-repair-au5y2uai/checkout\nHEAD ffa33c06235aab0e89d5113f72dd800c40b4bfe9\nbranch refs/heads/main\n\nworktree /private/var/folders/7j/6sf4dyd504z0mz22z_6vyt_w0000gn/T/delivery-ci-repair-au5y2uai/other-writer\nHEAD abd99b02d271cb66188023a2481caba66d58aa5d\nbranch refs/heads/other-writer",
   "checkoutStatus": ""
 }
