@@ -73,6 +73,8 @@ def parse_usage(events: pathlib.Path) -> dict[str, int]:
         raise ValueError("runtime policy usage receipt is incomplete")
     if usage["cached_input_tokens"] > usage["input_tokens"]:
         raise ValueError("cached input exceeds input tokens")
+    if usage["reasoning_output_tokens"] > usage["output_tokens"]:
+        raise ValueError("reasoning output exceeds output tokens")
     return {key: usage[key] for key in keys}
 
 
@@ -115,6 +117,31 @@ def self_test() -> None:
     bad = {**good, "action": "continue_execution"}
     assert evaluate(cases, [[good], [good], [bad]])[0]["passed"]
     assert not evaluate(cases, [[good], [bad], [bad]])[0]["passed"]
+    ordered_cases = [cases[0], {**cases[0], "case": "b"}]
+    ordered = [good, {**good, "case": "b"}]
+    assert validate_results({"results": ordered}, ordered_cases) == ordered
+    for invalid in ([ordered[1], ordered[0]], [ordered[0], ordered[0]]):
+        try:
+            validate_results({"results": invalid}, ordered_cases)
+        except ValueError:
+            pass
+        else:
+            raise AssertionError("runtime policy evaluator accepted reordered or duplicated cases")
+    valid_usage = {"input_tokens": 10, "cached_input_tokens": 5, "cache_write_input_tokens": 0,
+                   "output_tokens": 2, "reasoning_output_tokens": 1}
+    with tempfile.TemporaryDirectory(prefix="framework-runtime-policy-self-test-") as directory:
+        events = pathlib.Path(directory) / "events.jsonl"
+        events.write_text(json.dumps({"type": "turn.completed", "usage": valid_usage}) + "\n")
+        assert parse_usage(events) == valid_usage
+        for invalid_usage in ({**valid_usage, "reasoning_output_tokens": 3},
+                              {key: value for key, value in valid_usage.items() if key != "output_tokens"}):
+            events.write_text(json.dumps({"type": "turn.completed", "usage": invalid_usage}) + "\n")
+            try:
+                parse_usage(events)
+            except ValueError:
+                pass
+            else:
+                raise AssertionError("runtime policy evaluator accepted invalid usage")
     print("runtime policy evaluator self-test: passed")
 
 
