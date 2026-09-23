@@ -53,7 +53,7 @@ for instructions in "$ROOT/templates/global/AGENTS.md"; do
   grep -Eqi 'headless.*supplement|headless E2E.*supplement' "$instructions" || fail "headless supplementary-only boundary is missing: ${instructions#"$ROOT"/}"
   grep -Eqi 'task-owned.*(tab|process|resource)' "$instructions" || fail "task-owned interactive cleanup is missing: ${instructions#"$ROOT"/}"
   grep -Eqi 'visible repository-configured simulator, emulator, or device' "$instructions" || fail "visible mobile target default is missing: ${instructions#"$ROOT"/}"
-  grep -Eqi 'native automations for recurring work' "$instructions" && grep -Eqi 'heartbeats notify only on actionable change' "$instructions" || fail "native scheduled automation policy is missing: ${instructions#"$ROOT"/}"
+  grep -Eqi 'native automations.*recurring work' "$instructions" && grep -Eqi 'heartbeats notify only on actionable change' "$instructions" || fail "native scheduled automation policy is missing: ${instructions#"$ROOT"/}"
   grep -Eqi 'task names.*,? pins.*,? sections.*,? handoff.*,? forks' "$instructions" || fail "native long-task ergonomics policy is missing: ${instructions#"$ROOT"/}"
   python3 "$ROOT/scripts/framework-task-topology-check.py" "$instructions" || fail "native task topology semantics are missing or contradictory: ${instructions#"$ROOT"/}"
   grep -Eqi 'Record & Replay.*user-demonstrated|Record & Replay.*demonstrated.*workflow' "$instructions" || fail "Record and Replay user-gate policy is missing: ${instructions#"$ROOT"/}"
