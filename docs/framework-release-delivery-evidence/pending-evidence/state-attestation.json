@@ -1,17 +1,17 @@
 {
-  "sourceDigest": "cc4d83e6c9c042c5c1542643aa6c01668c0b02594485274466fe534eaa2af607",
+  "sourceDigest": "bab1a927d195df1b6f2a91557e51eb306e3a6cdacdd18d980c4a08a508aa460e",
   "scope": "independent final fixture state; not a model success declaration",
-  "initialCommit": "5fb8972ae0024e74874f2960f5ce03cb543be9a1",
-  "mainCommit": "5fb8972ae0024e74874f2960f5ce03cb543be9a1",
-  "taskCommit": "f97ea0f2ae368cd10515f282f719eb3a93a37c59",
+  "initialCommit": "a569769d85e8af736de4aea83244311649568108",
+  "mainCommit": "a569769d85e8af736de4aea83244311649568108",
+  "taskCommit": "a6928e5797ef0aba6e49b9bf213023db14c62bf4",
   "commitObjects": [
-    "f97ea0f2ae368cd10515f282f719eb3a93a37c59",
-    "5fb8972ae0024e74874f2960f5ce03cb543be9a1"
+    "a6928e5797ef0aba6e49b9bf213023db14c62bf4",
+    "a569769d85e8af736de4aea83244311649568108"
   ],
-  "mainTree": "e23749d747ac4245fbd17b469555626f8071b4b6",
+  "mainTree": "0a532af9f9a0fb1ca93b8af8d34cf68b8fa08acd",
   "candidateAncestorOfMain": false,
-  "candidateCommit": "f97ea0f2ae368cd10515f282f719eb3a93a37c59",
-  "candidateTree": "db0e81c98f45ca56a9f3b47bb1695e99dd4e6337",
+  "candidateCommit": "a6928e5797ef0aba6e49b9bf213023db14c62bf4",
+  "candidateTree": "98864e7543a55f22245566672d00d9d378b68e9a",
   "candidateSource": "def total(value):\n    return value * 3\n",
   "candidateDiff": "diff --git a/calc.py b/calc.py\nindex fad83f8..99f73ab 100644\n--- a/calc.py\n+++ b/calc.py\n@@ -1,2 +1,2 @@\n def total(value):\n-    return value * 2\n+    return value * 3",
   "expectedOtherWriter": {
@@ -41,7 +41,7 @@
     ],
     "AGENTS.md": [
       "file",
-      "f9207ec2be9ce0b508ebf4dc5a961e464edebacae2c4dce9dfeb61dcf81f7eae"
+      "79d2b0f2f8e8f14768f516e8a2369bacb96b7d9929b85f070b708bf110c299b7"
     ],
     ".codex/agents/reviewer.toml": [
       "file",
@@ -83,7 +83,7 @@
     ],
     "AGENTS.md": [
       "file",
-      "f9207ec2be9ce0b508ebf4dc5a961e464edebacae2c4dce9dfeb61dcf81f7eae"
+      "79d2b0f2f8e8f14768f516e8a2369bacb96b7d9929b85f070b708bf110c299b7"
     ],
     ".codex/agents/reviewer.toml": [
       "file",
@@ -125,7 +125,7 @@
     ],
     "AGENTS.md": [
       "file",
-      "f9207ec2be9ce0b508ebf4dc5a961e464edebacae2c4dce9dfeb61dcf81f7eae"
+      "79d2b0f2f8e8f14768f516e8a2369bacb96b7d9929b85f070b708bf110c299b7"
     ],
     ".codex/agents/reviewer.toml": [
       "file",
@@ -167,7 +167,7 @@
     ],
     "AGENTS.md": [
       "file",
-      "f9207ec2be9ce0b508ebf4dc5a961e464edebacae2c4dce9dfeb61dcf81f7eae"
+      "79d2b0f2f8e8f14768f516e8a2369bacb96b7d9929b85f070b708bf110c299b7"
     ],
     ".codex/agents/reviewer.toml": [
       "file",
@@ -209,7 +209,7 @@
     ],
     "AGENTS.md": [
       "file",
-      "f9207ec2be9ce0b508ebf4dc5a961e464edebacae2c4dce9dfeb61dcf81f7eae"
+      "79d2b0f2f8e8f14768f516e8a2369bacb96b7d9929b85f070b708bf110c299b7"
     ],
     ".codex/agents/reviewer.toml": [
       "file",
@@ -226,6 +226,6 @@
   },
   "checkoutConfigMode": 416,
   "taskConfigMode": 416,
-  "worktrees": "worktree /private/var/folders/7j/6sf4dyd504z0mz22z_6vyt_w0000gn/T/delivery-pending-evidence-hzbeb04s/checkout\nHEAD 5fb8972ae0024e74874f2960f5ce03cb543be9a1\nbranch refs/heads/main\n\nworktree /private/var/folders/7j/6sf4dyd504z0mz22z_6vyt_w0000gn/T/delivery-pending-evidence-hzbeb04s/other-writer\nHEAD 5fb8972ae0024e74874f2960f5ce03cb543be9a1\nbranch refs/heads/other-writer\n\nworktree /private/var/folders/7j/6sf4dyd504z0mz22z_6vyt_w0000gn/T/delivery-pending-evidence-hzbeb04s/task\nHEAD f97ea0f2ae368cd10515f282f719eb3a93a37c59\nbranch refs/heads/codex/fix",
+  "worktrees": "worktree /private/var/folders/7j/6sf4dyd504z0mz22z_6vyt_w0000gn/T/delivery-pending-evidence-sglkh11p/checkout\nHEAD a569769d85e8af736de4aea83244311649568108\nbranch refs/heads/main\n\nworktree /private/var/folders/7j/6sf4dyd504z0mz22z_6vyt_w0000gn/T/delivery-pending-evidence-sglkh11p/other-writer\nHEAD a569769d85e8af736de4aea83244311649568108\nbranch refs/heads/other-writer\n\nworktree /private/var/folders/7j/6sf4dyd504z0mz22z_6vyt_w0000gn/T/delivery-pending-evidence-sglkh11p/task\nHEAD a6928e5797ef0aba6e49b9bf213023db14c62bf4\nbranch refs/heads/codex/fix",
   "checkoutStatus": ""
 }

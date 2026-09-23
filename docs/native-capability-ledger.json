@@ -1,25 +1,25 @@
 {
   "schemaVersion": 3,
-  "reviewedAt": "2026-09-21T07:42:01+00:00",
-  "codexVersion": "codex-cli 0.155.1",
+  "reviewedAt": "2026-09-22T21:21:03+00:00",
+  "codexVersion": "codex-cli 0.156.0",
   "baselineReleaseTag": "rust-v0.149.0",
-  "latestReleaseTag": "rust-v0.155.1",
-  "changelogReviewedThrough": "2026-09-18",
+  "latestReleaseTag": "rust-v0.156.0",
+  "changelogReviewedThrough": "2026-09-22",
   "sources": [
     {
       "kind": "manual",
       "url": "https://learn.chatgpt.com/docs/codex/cli",
-      "sha256": "5cf95e6f311bf0452a81b6f69df244a21d638683e385c6716a49ea7699dced08"
+      "sha256": "b3520fa9177a753053b6c9be29e15c2736707b6db3981a8bf0b988eddd91cb5e"
     },
     {
       "kind": "changelog",
       "url": "https://learn.chatgpt.com/docs/changelog",
-      "sha256": "8ab2ee4e439ea3dbd856a4f2e840c3e0fb264bc82ea8a05e2e3938809a04940d"
+      "sha256": "8ceeae492fe8ce714f2e2bf1e89b6d07a850de7e6a5b91f4025452a4e191c0f4"
     },
     {
       "kind": "release",
       "url": "https://api.github.com/repos/openai/codex/releases/latest",
-      "sha256": "2e6609ae2bc08dbc2c77f84385b233a1e5b86e3691ee7f9475cbbe34be2d42e8"
+      "sha256": "c15bd0a7b9bf21cd0c973f59122aa9d50065e6c17b4d54e7ca07c13ee0ffd8a6"
     }
   ],
   "releaseCoverage": [
@@ -151,6 +151,20 @@
         "native-model-defaults",
         "native-token-optimizations"
       ]
+    },
+    {
+      "tag": "rust-v0.156.0",
+      "publishedAt": "2026-09-22T19:51:01Z",
+      "capabilityIds": [
+        "native-model-defaults",
+        "native-token-optimizations",
+        "task-ergonomics",
+        "native-agent-lifecycle",
+        "live-extension-refresh",
+        "native-doctor-diagnostics",
+        "approval-review",
+        "experimental-voice"
+      ]
     }
   ],
   "capabilities": [
@@ -168,10 +182,10 @@
     },
     {
       "id": "live-extension-refresh",
-      "nativeFeature": "Existing sessions refresh installed plugin tools, skills, and hooks after external plugin upgrades or rollbacks",
+      "nativeFeature": "Existing sessions refresh installed plugin tools, skills, and hooks; CLI 0.156.0 refreshes global instructions at model-request boundaries",
       "decision": "adopted",
       "localOverlap": "A framework watcher or session-reload hook would duplicate native extension refresh and could inject stale context.",
-      "action": "Use native plugin refresh. Global guidance remains run-scoped; validate effective target and installed source identity. Install from clean detached Git by default, development links only by explicit opt-in; no reload watcher.",
+      "action": "Use native extension and instruction refresh, then verify effective target and installed source identity. Install from clean detached Git by default, development links only by explicit opt-in; no reload watcher.",
       "evidence": [
         "README.md",
         "docs/native-capability-review.md"
@@ -371,7 +385,7 @@
     },
     {
       "id": "native-token-optimizations",
-      "nativeFeature": "Stable request compression, remote compaction v2, skill search, cached web search, prompt caching, MCP catalog caching, and provider token telemetry",
+      "nativeFeature": "Stable request compression, remote compaction v2, skill search, cached web search, prompt caching, MCP catalog caching, provider token telemetry, and 0.156.0 usage analytics",
       "decision": "adopted",
       "localOverlap": "Local cache, transcript replay, prompt injection, compaction, or tool-catalog wrappers would duplicate native ownership and could hide actual provider usage.",
       "action": "Leave stable optimizations at native defaults, bound retained tool output as an evidence-backed local preference, keep auto-compaction model-owned, and separate prompt input, raw rollout output, and provider token telemetry in the token budget gate.",
@@ -451,14 +465,15 @@
     },
     {
       "id": "native-model-defaults",
-      "nativeFeature": "Native model catalog and default-model updates including Astra visibility",
+      "nativeFeature": "Native model catalog and defaults including Astra and the 2026-09-22 Sol/Luna rollout",
       "decision": "adopted",
       "localOverlap": "A project model pin, framework model router, or permanent tier ladder would prevent automatic native default adoption and become stale.",
-      "action": "Keep repository and ordinary profiles unpinned. Treat user-owned model selection as authoritative. Test bounded explicit spawn candidates against effective native metadata and paired quality/usage evidence; enable guidance only after the experiment passes. Retain the 0.155.1 native reasoning-summary default fix and never recreate provider-compatibility routing locally.",
+      "action": "Keep repository and ordinary profiles unpinned. Treat user-owned model selection as authoritative. Test bounded GPT-6 model/effort candidates against effective native metadata and paired quality/usage evidence; enable guidance only after the experiment passes. Availability depends on rollout and workspace settings. Retain the 0.155.1 native reasoning-summary default fix and never recreate provider-compatibility routing locally.",
       "evidence": [
         ".codex/config.toml",
         "templates/global/AGENTS.md",
-        "docs/token-efficiency.md"
+        "docs/token-efficiency.md",
+        "docs/model-routing-evaluation.md"
       ]
     },
     {

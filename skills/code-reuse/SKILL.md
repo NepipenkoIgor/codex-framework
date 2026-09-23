@@ -29,3 +29,4 @@ Existing project versions and APIs remain authoritative; verify version-specific
 ## Verification and output
 
 Characterize each variant before changing it, refactor incrementally, and run focused plus affected tests/type/build checks for every caller and package boundary. Explicitly prove authorization, validation, error and data behavior for every variant, plus cycles, bundle/runtime expansion, rollback and public API compatibility. Report candidates, ownership/evolution evidence, extract/reuse/leave decision, changes, actual checks and residual coupling/divergence risk.
+Distinguish artifacts actually inspected from artifacts merely known to exist; report unperformed reads and checks as pending, never as completed inspection or verification.

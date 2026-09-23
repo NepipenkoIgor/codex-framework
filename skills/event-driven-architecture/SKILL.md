@@ -15,6 +15,7 @@ Design `$ARGUMENTS` read-only. Do not assume event sourcing, CQRS, sagas, Kafka,
 ## Start from contracts and failure
 
 1. Identify bounded contexts, business invariants, transaction boundaries, producers/consumers/owners, consequences, volume, latency, retention, residency and audit/privacy requirements.
+   Derive context names and owners from inspected source; task nouns or service roles alone do not prove repository bounded contexts.
 2. Distinguish domain facts, integration events, commands and notifications. Define stable event identity, aggregate/resource/tenant scope, causation/correlation, occurred versus recorded time, schema version, privacy classification and owner.
 3. Select direct request, queue/work item, pub/sub event, log/stream, outbox/CDC, saga/process manager, CQRS or event sourcing only where the required coupling, fan-out, audit, replay and consistency justify it. Queue implementation is a separate delivery task.
 
@@ -38,6 +39,6 @@ Minimize PII in immutable events; prefer stable subject references or encrypted/
 
 ## Verification and output
 
-Test transaction/outbox crash windows, duplicate/concurrent delivery, effect-before-ack and timeout-after-effect, consumer crash/restart, schema compatibility with historical fixtures, partition ordering/gaps, poison/redrive, full replay without duplicate external effects, tenant isolation, PII deletion propagation, and projection reconciliation.
+Test transaction/outbox crash windows including committed-but-unpublished and published-but-unmarked recovery, duplicate/concurrent delivery, effect-before-ack and timeout-after-effect, consumer crash/restart, schema compatibility with historical fixtures, partition ordering/gaps, poison/redrive, full replay without duplicate external effects, tenant isolation, PII deletion propagation, and projection reconciliation.
 
 Report event catalog/ownership, invariants and consistency boundaries, publication/delivery/idempotency/ack, ordering/partitioning, schema evolution, replay/rebuild, privacy/deletion, failure/observability, alternatives rejected, and residual risk. Explicitly record whether CQRS and event sourcing were selected or rejected and the task evidence for that decision; neither is a universal event-driven default.

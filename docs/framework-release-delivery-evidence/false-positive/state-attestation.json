@@ -1,17 +1,17 @@
 {
-  "sourceDigest": "cc4d83e6c9c042c5c1542643aa6c01668c0b02594485274466fe534eaa2af607",
+  "sourceDigest": "bab1a927d195df1b6f2a91557e51eb306e3a6cdacdd18d980c4a08a508aa460e",
   "scope": "independent final fixture state; not a model success declaration",
-  "initialCommit": "bb349124008368bf753ad20d3036e7d52b540b4d",
-  "mainCommit": "dcca089fea50a5e1a6ada869ec9eff1115a50615",
-  "taskCommit": "dcca089fea50a5e1a6ada869ec9eff1115a50615",
+  "initialCommit": "2d1622b0eb0e29f0dc1d8df5dc8a5e981a1cd660",
+  "mainCommit": "7e31b3610471b0c42a4ed1bb8e57af032fc41da7",
+  "taskCommit": "7e31b3610471b0c42a4ed1bb8e57af032fc41da7",
   "commitObjects": [
-    "dcca089fea50a5e1a6ada869ec9eff1115a50615",
-    "bb349124008368bf753ad20d3036e7d52b540b4d"
+    "7e31b3610471b0c42a4ed1bb8e57af032fc41da7",
+    "2d1622b0eb0e29f0dc1d8df5dc8a5e981a1cd660"
   ],
-  "mainTree": "de7e0f856fa6d2482fc3b7c595d34a7c898d96d4",
+  "mainTree": "76b94499102301c9858e98fb520348f7695427a2",
   "candidateAncestorOfMain": true,
-  "candidateCommit": "dcca089fea50a5e1a6ada869ec9eff1115a50615",
-  "candidateTree": "de7e0f856fa6d2482fc3b7c595d34a7c898d96d4",
+  "candidateCommit": "7e31b3610471b0c42a4ed1bb8e57af032fc41da7",
+  "candidateTree": "76b94499102301c9858e98fb520348f7695427a2",
   "candidateSource": "def total(value):\n    return value * 3\n",
   "candidateDiff": "diff --git a/calc.py b/calc.py\nindex fad83f8..99f73ab 100644\n--- a/calc.py\n+++ b/calc.py\n@@ -1,2 +1,2 @@\n def total(value):\n-    return value * 2\n+    return value * 3",
   "expectedOtherWriter": {
@@ -45,7 +45,7 @@
     ],
     "AGENTS.md": [
       "file",
-      "f9207ec2be9ce0b508ebf4dc5a961e464edebacae2c4dce9dfeb61dcf81f7eae"
+      "79d2b0f2f8e8f14768f516e8a2369bacb96b7d9929b85f070b708bf110c299b7"
     ],
     ".codex/agents/reviewer.toml": [
       "file",
@@ -91,7 +91,7 @@
     ],
     "AGENTS.md": [
       "file",
-      "f9207ec2be9ce0b508ebf4dc5a961e464edebacae2c4dce9dfeb61dcf81f7eae"
+      "79d2b0f2f8e8f14768f516e8a2369bacb96b7d9929b85f070b708bf110c299b7"
     ],
     ".codex/agents/reviewer.toml": [
       "file",
@@ -137,7 +137,7 @@
     ],
     "AGENTS.md": [
       "file",
-      "f9207ec2be9ce0b508ebf4dc5a961e464edebacae2c4dce9dfeb61dcf81f7eae"
+      "79d2b0f2f8e8f14768f516e8a2369bacb96b7d9929b85f070b708bf110c299b7"
     ],
     ".codex/agents/reviewer.toml": [
       "file",
@@ -183,11 +183,11 @@
     ],
     "AGENTS.md": [
       "file",
-      "f9207ec2be9ce0b508ebf4dc5a961e464edebacae2c4dce9dfeb61dcf81f7eae"
+      "79d2b0f2f8e8f14768f516e8a2369bacb96b7d9929b85f070b708bf110c299b7"
     ],
     "__pycache__/calc.cpython-311.pyc": [
       "file",
-      "bb63832716403da69dcf6a869498bde817bd23245182057e910f49220947448f"
+      "6103964e20aaf5babe59279cf099639b6a6f93b5b69f8f4cfa28faa8fffbd7d5"
     ],
     ".codex/agents/reviewer.toml": [
       "file",
@@ -205,6 +205,6 @@
   "actualTask": null,
   "checkoutConfigMode": 416,
   "taskConfigMode": null,
-  "worktrees": "worktree /private/var/folders/7j/6sf4dyd504z0mz22z_6vyt_w0000gn/T/delivery-false-positive-ij3b587r/checkout\nHEAD dcca089fea50a5e1a6ada869ec9eff1115a50615\nbranch refs/heads/main\n\nworktree /private/var/folders/7j/6sf4dyd504z0mz22z_6vyt_w0000gn/T/delivery-false-positive-ij3b587r/other-writer\nHEAD bb349124008368bf753ad20d3036e7d52b540b4d\nbranch refs/heads/other-writer",
+  "worktrees": "worktree /private/var/folders/7j/6sf4dyd504z0mz22z_6vyt_w0000gn/T/delivery-false-positive-xs3mos9y/checkout\nHEAD 7e31b3610471b0c42a4ed1bb8e57af032fc41da7\nbranch refs/heads/main\n\nworktree /private/var/folders/7j/6sf4dyd504z0mz22z_6vyt_w0000gn/T/delivery-false-positive-xs3mos9y/other-writer\nHEAD 2d1622b0eb0e29f0dc1d8df5dc8a5e981a1cd660\nbranch refs/heads/other-writer",
   "checkoutStatus": ""
 }
