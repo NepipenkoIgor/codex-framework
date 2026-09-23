@@ -40,6 +40,7 @@ Run `python3 scripts/framework-stack-context.py project <path>` and inspect `ang
 
 - Behaviors and boundaries covered
 - Installed Angular/runner/TestBed capability evidence
+- Configured OnPush/default change-detection mode and the observed user-visible transition under that mode, or an explicit unverified boundary
 - Files changed and commands/results
 - Uncovered browser/E2E or migration boundary
 

@@ -30,12 +30,13 @@ Read repository instructions, then generate project stack context and inspect/pr
 2. Evaluate lexical, relational, vector, and hybrid baselines.
 3. Implement versioned ingestion with idempotent upsert/delete and observable failures.
 4. Tune candidate count, index, filtering, hybrid weighting, and optional reranking on held-out queries.
-5. Test authenticated/unauthorized writes and deletes, tenant isolation, stale/missing embeddings, dimension mismatch, partial backfill, reindex cutover and rollback pointer, deletion through every API/generation plus queue replay, caches and backup restore, empty results, and provider outage.
+5. Test authenticated/unauthorized writes and deletes, tenant isolation, stale/missing embeddings, dimension mismatch, partial backfill, reindex cutover and rollback pointer, deletion through every API/generation plus queue replay, caches and backup restore, empty results, and provider outage. For protected retrieval, separately omit the required server-derived tenant/resource authorization scope and assert a typed denial before any provider query and zero returned data; optional relevance filters and authorized public retrieval are distinct.
 6. Monitor recall proxy, latency percentiles, index growth, failed ingestion, and cost.
 
 ## Output Contract
 
 - Baseline and provider/index decision
+- Installed or matching-version compatibility receipt for client/server/index/model/filter and backup/restore capability; unavailable evidence remains unverified, not an assumed upgrade path
 - Versioned schema and lifecycle
 - Retrieval/evaluation results
 - Isolation, recovery, cost, and residual relevance risk

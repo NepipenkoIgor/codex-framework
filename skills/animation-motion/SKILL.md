@@ -37,7 +37,7 @@ Load only the selected implementation reference:
 
 1. Define state before/during/after motion, ownership, interruption/reversal, initial SSR state, focus/pointer behavior, reduced-motion result, and concrete recovery/rollback for any material behavior touched. Motion must not own or delay a consequential business mutation.
 2. Choose the smallest capability: CSS, verified framework primitive, Web Animations, View Transitions or installed library. Use a heavier library only for a demonstrated sequence/gesture need.
-3. Specify named properties and repository motion tokens. Avoid layout animation unless the measured UX benefit and performance evidence justify it.
+3. Specify named properties and repository motion tokens when they exist, otherwise measured interaction requirements. Avoid layout animation unless the measured UX benefit and performance evidence justify it.
 4. Implement cancellation, cleanup and completion independent of visual duration. Capability-gate View Transitions and browser APIs.
 5. Verify normal, reduced, interrupted, rapid/repeated, background-tab and hydration paths with actual component lifecycle.
 
@@ -51,7 +51,7 @@ Load only the selected implementation reference:
 
 ## Output Contract
 
-- Motion purpose and state/lifecycle contract
+- Name the caller-visible state or causal transition the motion communicates and why visual motion helps that journey, separately from its state/lifecycle contract; if purpose is unverified, do not add unjustified motion
 - Selected installed capability/reference and fallback
 - Named properties/tokens and reduced-motion behavior
 - Test/performance/CSP evidence
